@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1b1b1d"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Écoute — Studio</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#eee;background:radial-gradient(circle at 50% 0,#3a2d5c,#1b1b1d 60%);display:flex;align-items:center;justify-content:center;padding:24px}
+.card{width:100%;max-width:440px;background:#26262a;border:1px solid #38383d;border-radius:16px;padding:28px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+img{width:72px;height:72px;border-radius:16px}h1{font-size:22px;margin:14px 0 4px;word-break:break-word}.sub{color:#9a9aa2;font-size:13px;margin-bottom:18px}
+audio{width:100%;margin:6px 0 16px}.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+a.b{display:inline-block;padding:10px 16px;border-radius:10px;background:#3a3a40;color:#fff;text-decoration:none;font-weight:600}a.b.main{background:#5e5ce6}
+.err{color:#ff9f0a}.foot{margin-top:18px;font-size:12px;color:#77777f}.foot a{color:#9a9aff}
+</style></head><body>
+<div class="card">
+ <img src="icon-192.png" alt="">
+ <h1 id="t">Écoute</h1><div class="sub" id="s">Partagé depuis Studio</div>
+ <audio id="a" controls preload="metadata"></audio>
+ <div class="row"><a class="b main" id="dl" download>⬇ Télécharger le MP3</a></div>
+ <div class="foot">Fait avec <a href="./">Studio</a> — home studio dans le navigateur</div>
+</div>
+<script>
+const SUPA_URL='https://btkrbzdgtjvjfzpamkjj.supabase.co';
+const q=new URLSearchParams(location.hash.slice(1)),f=q.get('f')||'',t=(q.get('t')||'').slice(0,80);
+if(!/^[a-z0-9]{12}$/.test(f)){document.getElementById('s').innerHTML='<span class="err">Lien d’écoute invalide.</span>';document.getElementById('a').remove();document.getElementById('dl').remove()}
+else{const url=SUPA_URL+'/storage/v1/object/public/sons/bounces/'+f+'.mp3';
+  if(t){document.getElementById('t').textContent=t;document.title=t+' — Studio'}
+  const a=document.getElementById('a');a.src=url;a.onerror=()=>{document.getElementById('s').innerHTML='<span class="err">Ce morceau n’est pas (ou plus) disponible.</span>'};
+  const d=document.getElementById('dl');d.href=url;d.download=(t||'morceau').replace(/[\\/:*?"<>|]/g,'_')+'.mp3'}
+</script></body></html>

@@ -3,7 +3,7 @@
 import asyncio,json,urllib.request
 from playwright.async_api import async_playwright
 URL='http://localhost:8765/';MOCK='http://localhost:8790'
-INIT="localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.2');localStorage.setItem('studio_supa',JSON.stringify({url:'%s',key:'test'}));localStorage.setItem('studio_user',JSON.stringify({name:'%s',color:'%s'}))"
+INIT="localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.3');localStorage.setItem('studio_supa',JSON.stringify({url:'%s',key:'test'}));localStorage.setItem('studio_user',JSON.stringify({name:'%s',color:'%s'}))"
 mock=lambda p: json.loads(urllib.request.urlopen(MOCK+p).read())
 async def device(b,name,col,errs):
   c=await b.new_context(viewport={'width':1280,'height':800});await c.add_init_script(INIT%(MOCK,name,col))

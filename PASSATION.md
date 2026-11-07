@@ -1,4 +1,4 @@
-# Studio — Passation technique (v3.2)
+# Studio — Passation technique (v3.3)
 
 > Document de reprise pour continuer à développer **Studio** (DAW dans le navigateur, interface inspirée de Logic Pro)
 > et préparer le mode **multijoueur / édition collaborative en direct**.
@@ -12,7 +12,7 @@
 |---|---|
 | **Appli en ligne** | https://1blazeleplufor.github.io/studio/ |
 | **Dépôt** | `github.com/1blazeleplufor/studio` (public, GitHub Pages sur `main`, dossier racine) |
-| **Version** | 3.2 (`APP_VERSION` dans `src/ui6.js`) |
+| **Version** | 3.3 (`APP_VERSION` dans `src/ui6.js`) |
 | **Utilisateur** | Francophone, débutant en MAO mais à l’aise avec les logiciels, fait du rap/trap (références : Timar, Leto, Djadja & Dinaz, Bouss). Travaille surtout sur **Mac**, veut aussi téléphone/tablette/Windows/Android. |
 | **Langue de l’UI** | Français partout. |
 | **Stack** | HTML/CSS/JS **vanilla** (aucun framework, aucune dépendance npm), Web Audio API + AudioWorklet, PWA (manifest + service worker), IndexedDB. |
@@ -40,7 +40,11 @@
   dsp.js                plugins d’effets + instruments (synthé, batterie)
   engine.js             moteur audio (graphe, lecture, enregistrement, rendu offline, WAV)
   ui1.js … ui7.js       interface (voir §5)
-  collab.js             v3.0 : session à plusieurs (pont P ↔ Yjs, cadenas, présence, transport)
+  collab.js             session à plusieurs : pont P ↔ Yjs, cadenas, présence, transport Supabase, sons, écoute seule
+  collab2.js            v3.3 : écouter ensemble, chat, commentaires timeline, versions, bounce MP3
+  flac.js               v3.3 : encodeur FLAC 16 bits (sans perte) pour l’envoi des sons
+  ecoute.html           page publique d’écoute d’un bounce MP3 (copiée à la racine)
+  vendor/lame.min.js    lamejs (LGPL-3.0), encodeur MP3, copié à la racine et chargé à la demande
   vendor/yjs.min.js     Yjs 13.6.33 + lib0 0.2.119 (MIT), bundle IIFE → global `Y` (esbuild, ~95 Ko)
   build.py              concatène tout → fichiers à la racine
 /tests                  scripts Playwright de non-régression (voir §9)
@@ -195,8 +199,24 @@ Implémentation (différente du « refactor store » prévu ci-dessous, pour ne 
 - Tests : `tests/mock_supabase.js` (faux Realtime/REST/Storage, `/__drop` coupe le réseau) + `tests/t16.py` (2 « appareils » sans canal commun, cadenas, son via stockage, 6000 notes, message 300 Ko, coupure/reprise, retour plus tard depuis la base). t13/t14 visent aussi le faux serveur.
 - SQL appliqué côté Supabase : bucket `sons` public + policies `anon` select/insert ; table `salles` + RLS + policy `anon` all.
 
+
+### ✅ Fait en v3.3
+**Bug corrigé** : une prod de ~6 min faisait 69 Mo en WAV 16 bits → refusée par Supabase (limite 50 Mo/fichier, réponse HTTP 400 avec `statusCode:"413"`), l’appli réessayait en silence. Désormais :
+- `flac.js` : encodeur FLAC maison (prédicteurs fixes 0–4, Rice partitionné, stéréo gauche/côté/milieu), vérifié bit à bit avec ffmpeg ; ~1,5 s pour 20 s stéréo. Morceaux de 40 Mo (`sons/<id>.flac` ou `<id>.<i>.flac`), carte Yjs `media` (`{f,n,size,dur}`) dans le document → les autres savent quoi télécharger. Anciens WAV de la v3.2 encore lus (`studio_up`).
+- Envoi par `XMLHttpRequest` (progression), réception en flux (progression), un seul téléchargement à la fois par son, panneau `#xfers`, messages d’erreur clairs.
+
+**Sécurité Supabase** (migration `studio_v33_fonctions` + verrouillage) : plus d’accès direct à la table `salles` ni de listage du stockage. Fonctions `SECURITY DEFINER` : `salle_get(id)`, `salle_put(id,doc)` (id ≥ 12 caractères), `version_add/list/get/del(salle,…)` sur la table `versions`. Il faut connaître l’identifiant exact.
+
+**Lien écoute seule** : jeton `meta.listen` (carte Yjs `meta`), lien `#ecoute=<jeton>`. Les éditeurs rejoignent aussi le canal `realtime:studio-v-<jeton>` ; le **relais** (plus petit id d’éditeur) répond aux `hello` des auditeurs et retransmet les mises à jour ; copie en base sous `L-<jeton>`. L’auditeur ne reçoit jamais l’id de la salle (testé). Chez lui, `lockOf()` renvoie un cadenas « écoute seule » partout et `collabFlush` annule toute modification. Chat/commentaires de l’auditeur : message `vmsg`, ajoutés par le relais.
+
+**Écouter ensemble** (`collab2.js`) : messages `tp` {play|stop|seek, beat, at, cyc}. Horloges recalées par `ping`/`pong` (décalage = t1 − (t0 + rtt/2), garde la mesure au plus faible rtt). Écart mesuré entre 2 navigateurs : ~10 ms. `C2.follow` (bouton 🎧, `localStorage.studio_follow`).
+
+**Chat** `doc.getArray('chat')` (300 derniers), **commentaires** `doc.getArray('cmts')` de `Y.Map` {id,beat,u,n,c,t,x,done,rep:Y.Array}, épingles `.cpin` dans `#lanes`, clic droit dans la règle. **Versions** : JSON `{v:1,p:sharedView(P)}` ; restaurer = sauvegarde auto « Avant le retour… », puis `patchRoot` + `collabFlush` (annulable par Ctrl+Z ; refusé si une piste concernée est verrouillée). **Mes sessions** : `localStorage.studio_rooms`. **Bounce** : `renderMix` → lamejs → `sons/bounces/<12 car.>.mp3` → `ecoute.html#f=…&t=…`, posté dans le chat si en session.
+
+Tests : `tests/t17.py` (avec `LIMIT=400000 node tests/mock_supabase.js 8790`, morceaux de 300 Ko via `localStorage.studio_part`).
+
 ### Prochaines étapes
-- v3.3 : curseurs/sélections des autres, « écouter ensemble » (play/stop partagés), plugins externes partagés avec confirmation.
+- v3.4 : curseurs/sélections des autres, notifications, plugins externes partagés avec confirmation, appel vocal (WebRTC + TURN).
 - v3.4 : comptes, droits (lecture seule / édition), liste des salles, RLS stricte.
 
 ### (Plan initial) Refactor store avant le réseau
@@ -237,6 +257,7 @@ python3 tests/t13.py               # v3.0 : session à 2 fenêtres, cadenas, und
 python3 tests/t14.py               # v3.0 : arrivées simultanées, actions aléatoires, rechargement
 node tests/mock_supabase.js 8790   # faux Supabase (module ws requis : npm i ws, ou WS_MODULE=chemin)
 python3 tests/t16.py               # v3.2 : 2 appareils via le serveur, sons, coupure réseau, salle retrouvée
+python3 tests/t17.py               # v3.3 : FLAC découpé, écouter ensemble, chat, commentaires, versions, écoute seule, bounce MP3
 ```
 (Les chemins `/home/claude/...` et le chemin de Chrome dans les scripts sont à adapter à la machine.)
 
