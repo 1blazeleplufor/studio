@@ -322,6 +322,39 @@ body.cp-open #bTyping,body.cp-open #bMidi{display:none}
 /* panneau latéral ouvert à côté de l'appli : barre du haut plus compacte */
 body.cp-open #bar{gap:4px;padding:0 6px}body.cp-open #lcd .cell.tm,body.cp-open #bCount,body.cp-open #bStart{display:none}
 body.cp-open #scaleSel{max-width:76px}body.cp-open #keySel{max-width:46px}body.cp-open #lcd .cell{padding-left:5px;padding-right:5px}
+/* v3.7 : panneaux fluides, paroles, prompteur, focus, prises, notes dans la règle */
+#main{position:relative}
+#main>.pgrip{position:absolute;top:0;bottom:0;width:6px;cursor:ew-resize;z-index:30}#main>.pgrip:hover,#main>.pgrip.on{background:rgba(79,163,255,.45)}
+#insp.pright,#lyr.pright{border-right:none;border-left:1px solid var(--line)}
+.phead{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:4px;padding:4px 6px 4px 10px;background:#2c2c30;border-bottom:1px solid var(--line);cursor:grab;user-select:none;min-height:28px}
+.phead b{font-size:11px;color:#cfcfd4;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}.phead button{font-size:11px;padding:1px 6px;min-height:0}
+#insp>.phead{margin-bottom:2px}
+#lyr{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+#lyr .lyrbar{display:flex;gap:5px;align-items:center;padding:6px 8px;flex-wrap:wrap}#lyr .lyrbar select{flex:1;min-width:0}
+#lyr .lyrbar label{display:flex;align-items:center;gap:3px;font-size:11px}
+#lyr .lyrtxt{flex:1;min-height:120px;margin:0 8px;background:#151517;color:#f2f2f4;border:1px solid #3a3a40;border-radius:6px;padding:10px 12px;line-height:1.5;resize:none;font-family:inherit}
+#lyr .lyrtxt:focus{outline:none;border-color:#4fa3ff}#lyr .lyrtxt[readonly]{opacity:.75}
+#lyr .lyrfs button{font-size:10px;padding:1px 5px}
+#bcontent>#lyr{height:100%;border:none}
+#lyr.mob{position:fixed;left:0;right:0;top:52px;bottom:0;z-index:41;box-shadow:0 0 30px rgba(0,0,0,.6)}
+#dockz{position:fixed;inset:0;z-index:90;pointer-events:none}#dockz .dz{position:absolute;display:flex;align-items:center;justify-content:center;color:#cfe3ff;font-weight:700;font-size:13px;
+  background:rgba(79,163,255,.12);border:2px dashed rgba(79,163,255,.5);border-radius:10px;transition:background .1s}
+#dockz .dz.left{left:8px;top:60px;bottom:8px;width:150px}#dockz .dz.right{right:8px;top:60px;bottom:8px;width:150px}#dockz .dz.bottom{left:170px;right:170px;bottom:8px;height:130px}
+#dockz .dz.hint{left:50%;top:60px;transform:translateX(-50%);padding:8px 14px;background:rgba(30,30,34,.9);border-style:solid}
+#dockz .dz.hot{background:rgba(79,163,255,.45);border-color:#4fa3ff;color:#fff}
+#prompter{position:fixed;left:50%;top:64px;transform:translateX(-50%);width:min(860px,80vw);max-height:46vh;z-index:58;background:rgba(14,14,16,.92);border:1px solid #3a3a40;border-radius:14px;
+  box-shadow:0 12px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;backdrop-filter:blur(6px)}
+#prompter .phd{display:flex;gap:6px;align-items:center;padding:6px 10px;color:var(--dim);font-size:12px;border-bottom:1px solid #2c2c30}#prompter .phd button{font-size:11px;padding:1px 6px}
+#prompter .pbody{overflow:auto;padding:12px 22px 40px;line-height:1.35;font-weight:600;color:#9a9aa2}#prompter .pl{padding:2px 0;transition:color .15s}#prompter .pl.cur{color:#fff;text-shadow:0 0 18px rgba(79,163,255,.6)}
+.reg .tk{position:absolute;right:3px;top:2px;z-index:3;background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:700;border-radius:8px;padding:1px 6px;cursor:pointer}.reg .tk:hover{background:#2b6fd6}
+#ntip{position:fixed;z-index:95;max-width:320px;background:#111;color:#eee;border:1px solid #3a3a40;border-radius:6px;padding:5px 8px;font-size:12px;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+#lanes .cpin.done{background:#6e6e73!important;opacity:.85}#lanes .cline.done{opacity:.3}
+#cpanel .ntrack{width:100%;margin:4px 0}
+#cpanel .ctabs{cursor:grab}
+body.focus #bottom,body.focus #resizer,body.focus #cpanel,body.focus #library{display:none!important}body.focus.cp-open #app{width:100vw;margin-left:0}
+body.detached.det-insp #insp,body.detached.det-lyr #lyr,body.detached.det-library #library{position:static!important;display:flex;width:100%!important;height:100vh;border:none;box-shadow:none;transform:none!important}
+body.detached.det-insp #insp{display:block;overflow:auto}
+@media (max-width:1500px){body.collab #bTyping,body.collab #bMidi{display:none}}
 </style></head><body>
 <div id="app">
  <div id="bar">
@@ -1035,6 +1068,7 @@ class Engine{
           if(rs>=a&&rs<b)st=T(rs);else if(fresh&&rs<a&&re>a){st=T(a);off=r.offset+(a-rs)*spb}
           if(st===null)continue;
           let end=T(re);if(fresh&&rs<a)end=st+(re-a)*spb;end=Math.min(end,stopC);if(st<minT){off+=minT-st;st=minT}if(end<=st+.002)continue;
+          if(off<0){st-=off;off=0;if(end<=st+.002)continue} // prise qui commence plus tard dans la région (silence au début)
           const src=c.createBufferSource(),g=c.createGain();src.buffer=buf;src.connect(g);g.connect(dest);
           const G=r.gain!=null?dbToG(r.gain):1,fromStart=off<=r.offset+1e-4,toEnd=end>=T(re)-1e-4,span=end-st;
           const fi=Math.min(fromStart?Math.max(.005,r.fi||0):.005,span/2),fo=Math.min(toEnd?Math.max(.005,r.fo||0):.005,span/2);
@@ -1773,7 +1807,7 @@ function bindUI(){
   B('#saveState',()=>saveLocal(true).then(()=>{updateSaveState();toast('Projet sauvegardé ✔')}));
   B('#bTyping',()=>{TYPING=!TYPING;renderBar();toast(TYPING?'Clavier musical : touches Q Z S E D F T G Y H U J K (AZERTY) · W/X = octave · Échap pour quitter':'Clavier musical désactivé',5000)});
   B('#bMidi',()=>initMIDI(true));B('#bSettings',settingsModal);B('#bHelp',helpModal);
-  B('#bFile',e=>menu(e,['Projet',['📂 Mes projets…',projectsModal],['👥 Session à plusieurs…',collabModal],['📀 Partager un lien d’écoute (MP3)…',bounceModal],['Nouveau projet vide',()=>switchProject(()=>newProject(false))],['Nouveau projet démo (trap)',()=>switchProject(()=>newProject(true))],
+  B('#bFile',e=>menu(e,['Projet',['📂 Mes projets…',projectsModal],['👥 Session à plusieurs…',collabModal],['🖥 Dispositions et panneaux…',()=>screensModal()],['📀 Partager un lien d’écoute (MP3)…',bounceModal],['Nouveau projet vide',()=>switchProject(()=>newProject(false))],['Nouveau projet démo (trap)',()=>switchProject(()=>newProject(true))],
     ['Exporter le projet (.studio) pour un autre appareil',saveProject],['Importer un projet (.studio)…',()=>$('#fileProj').click()],'-','Exporter l’audio',
     ['Exporter le morceau en WAV',()=>exportMix('all')],['Exporter la zone de cycle en WAV',()=>exportMix('cycle')],['Exporter chaque piste séparément (stems)',()=>exportMix('stems')],'-',
     ['🎵 Importer une instru…',importInstruDialog],['🍎 Importer depuis Logic Pro…',logicImportDialog],['Importer un son…',()=>$('#fileAudio').click()],['⌨ Raccourcis clavier',shortcutsModal],['Charger un plugin externe (.js)…',()=>$('#filePlug').click()],['Télécharger le modèle de plugin',()=>download(new Blob([PLUGIN_TEMPLATE],{type:'text/javascript'}),'mon-plugin.js')],'-',['📲 Installer l’appli sur cet appareil',installApp]]));
@@ -1955,7 +1989,7 @@ const IDB={db:null,
 let LAST_SAVED='',SAVED_BUFS=new Set(),SAVING=false,LAST_SAVE_T=0;
 function updateSaveState(){const b=$('#saveState');if(!b||!P)return;const ok=LAST_SAVED&&JSON.stringify(P)===LAST_SAVED;b.style.color=ok?'#30d158':'#ff9f0a';
   b.title=ok?'Projet sauvegardé'+(LAST_SAVE_T?' à '+new Date(LAST_SAVE_T).toLocaleTimeString():'')+' (cliquer pour sauvegarder)':'Modifications pas encore sauvegardées : cliquer pour sauvegarder maintenant'}
-function usedBufs(pr){const u=new Set();for(const t of pr.tracks)if(t.type==='audio')for(const r of t.regions)u.add(r.buf);return u}
+function usedBufs(pr){const u=new Set();for(const t of pr.tracks)if(t.type==='audio')for(const r of t.regions){u.add(r.buf);for(const k of r.takes||[])u.add(k.buf)}return u}
 async function saveLocal(force){
   if(SAVING||!P||REC)return;if(!P.id)P.id=uid('p');for(const k in EXT_SRC)P.ext[k]=EXT_SRC[k];
   const js=JSON.stringify(P);if(js===LAST_SAVED&&!force)return;SAVING=true;
@@ -2023,7 +2057,7 @@ function initApp(){
 }
 
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='3.6';
+const APP_VERSION='3.7';
 const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
@@ -2157,7 +2191,7 @@ function showChangelog(force){
   let seen='',old=null;try{seen=localStorage.getItem('studio_ver')||'';old=localStorage.getItem('studio_seen')}catch(e){}
   if(!force&&(seen===APP_VERSION||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v3.6</h4><ul><li><b>La timeline défile toute seule</b> quand vous glissez une région, la tête de lecture ou une sélection jusqu’au bord. Pendant la lecture, la vue suit en continu (si vous faites défiler à la main, elle vous laisse tranquille jusqu’à la prochaine lecture).</li><li><b>🎨 Roue de couleurs complète</b> (clic sur la couleur d’une piste) + 💧 pipette (couleurs du projet, ou n’importe où à l’écran sur Chrome/Edge) + couleurs récentes.</li><li><b>Préréglages « Style ZZ »</b> (inspecteur d’une piste voix) : mélodie autotune, drill/trap kickée, ad-libs/backs.</li><li><b>📌 Notes et 🏷 marqueurs</b> (Intro, Couplet, Refrain…) aussi quand vous travaillez seul : clic droit dans la règle ou bouton 📌. Les marqueurs se glissent, se renomment, changent de couleur.</li><li><b>🎤 Messages vocaux</b> dans le chat (2 min max) : écoutez-les, puis ➕ ajoutez-les au projet ou glissez-les sur une piste.</li><li><b>Panneau du chat</b> redimensionnable (tirez son bord), à gauche ou à droite (⇆), à côté de l’appli.</li><li><b>⧉ Fenêtres détachables</b> pour un 2ᵉ écran : le chat, le panneau du bas (mixeur, piano roll, batterie) et chaque fenêtre d’effet. Leur place est mémorisée.</li></ul><h4>v3.5</h4><ul><li><b>🔌 Bibliothèque de plugins</b> (touche <kbd>Y</kbd> ou bouton 🔌) : tous les effets de Studio, vos plugins .js et <b>les plugins AU / VST3 installés sur votre ordinateur</b> (Waves, FabFilter, Antares, Valhalla…). Un clic : le plugin s’ajoute sur la piste et sa fenêtre d’origine s’ouvre.</li><li>Nécessite <b>Studio Bridge</b>, un petit programme gratuit à lancer sur l’ordinateur (guide dans la Bibliothèque). Latence compensée, réglages des plugins mémorisés dans le projet, export en temps réel quand ces plugins sont utilisés.</li></ul><h4>v3.4</h4><ul><li><b>🍎 Import depuis Logic Pro</b> : glissez un projet <b>.logicx</b> dans Studio → tous ses sons, le tempo, la tonalité et la mesure sont récupérés, chaque son sur sa piste (prises replacées à leur position quand Logic l’a noté). Glissez aussi des <b>pistes exportées</b> (plusieurs fichiers d’un coup → une piste chacun, calées au début) ou un <b>fichier MIDI</b> (notes → pistes instrument, batterie → patterns).</li><li>Lecture des formats Apple <b>AIFF</b> et <b>CAF</b>. Guide dans ☰ Fichier → Importer depuis Logic Pro.</li></ul><h4>v3.3</h4><ul><li><b>Les prods passent enfin</b> : les sons sont compressés sans perte (FLAC, ~2× plus légers) et découpés en morceaux, donc même une longue prod arrive chez les autres. Une barre en bas à gauche montre l’envoi et la réception.</li><li><b>🎧 Écouter ensemble</b> : ▶ / ■ et la tête de lecture sont partagés, tout le monde entend le même passage au même moment. Bouton 🎧 pour écouter en solo.</li><li><b>💬 Chat</b> en direct (bouton 💬, pastille rouge = messages non lus).</li><li><b>📌 Commentaires sur la timeline</b> : clic droit dans la règle → « Commenter ici », ou onglet 📌 du panneau. Réponses, « résolu ».</li><li><b>🕘 Versions</b> : sauvegardez une version nommée (« avant le mix ») et revenez-y quand vous voulez.</li><li><b>👁 Lien écoute seule</b> : à donner à quelqu’un qui doit écouter, discuter et commenter sans rien modifier.</li><li><b>📋 Mes sessions</b> : toutes vos sessions, à rouvrir sans retrouver le lien (☰ Fichier → Session à plusieurs).</li><li><b>📀 Lien d’écoute MP3</b> (☰ Fichier) : le morceau en MP3 avec un lien à envoyer, qui s’écoute sur téléphone sans l’appli.</li></ul><h4>v3.2</h4><ul><li><b>👥 Session à plusieurs entre appareils</b> : ☰ Fichier → Session à plusieurs → Partager, puis envoyez le lien. Vos amis vous rejoignent depuis leur ordinateur, téléphone ou tablette, où qu’ils soient.</li><li>Le projet de la session est <b>sauvegardé en ligne</b> : rouvrez le même lien plus tard pour continuer, même si tout le monde était parti.</li><li>Les <b>sons enregistrés ou importés</b> sont envoyés automatiquement aux autres.</li><li>Pastille de connexion à côté des participants : 🟢 connecté, 🟠 connexion, 🔴 hors ligne (vos modifications partent au retour de la connexion).</li></ul><h4>v3.1</h4><ul><li><b>Réverb Pro « Ères »</b> (catégorie Espace) : réverb algorithmique vintage, 14 modes (plaque, hall, chambre, chorus, aléatoire, cathédrale, versions sales, gated…), couleurs Années 70 / 80 / Moderne, pré-délai, decay, taille, attaque, diffusion, modulation, EQ, decay par fréquence, 11 préréglages. C’est aussi la nouvelle réverb du Bus Réverb des nouveaux projets.</li><li><b>Pitch Pro</b> (catégorie Voix) : autotune avancé avec graphique de hauteur en direct, type de voix, tracking, éditeur de notes, vitesse de correction, Humanize, Flex-Tune, vibrato naturel, formants + gorge, transposition, désaccord, mode classique, préréglages. Latence compensée automatiquement.</li></ul><h4>v3.0</h4><ul><li><b>👥 Session à plusieurs</b> (☰ Fichier → Session à plusieurs) : plusieurs personnes sur le même projet, chacun voit en direct les modifications des autres et écoute sur son appareil. <i>Version d’essai : entre fenêtres d’un même navigateur ; la connexion entre appareils arrive dans une prochaine version.</i></li><li><b>🔒 Cadenas</b> : en session, cliquez le cadenas d’une piste (en haut à droite de son nom, ou dans le mixeur) pour que personne d’autre ne la modifie. Plusieurs cadenas possibles, aussi sur les bus, la sortie et le tempo/tonalité. Il se retire en recliquant ou tout seul après 2 min sans activité.</li><li>En session, <b>Ctrl+Z n’annule que vos propres actions</b>. Solo, armement R et retour micro restent personnels.</li></ul><h4>v2.4</h4><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
+  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v3.7</h4><ul><li><b>📝 Paroles</b> (touche L ou bouton 📝) : les paroles du projet et celles de chaque piste, à gauche comme dans Logic. À plusieurs, chacun peut écrire en même temps sans écraser l’autre. <b>[5]</b> en début de ligne = mesure 5.</li><li><b>🎤 Prompteur</b> : pendant l’enregistrement, les paroles de la piste armée s’affichent en grand et suivent la lecture.</li><li><b>🎙 Prises multiples</b> : ré-enregistrer au même endroit garde les anciennes prises. Clic sur 🎙 dans la région pour choisir, ✂ pour couper et garder les meilleurs bouts de chaque prise, Alt+↑/↓ pour passer de l’une à l’autre.</li><li><b>Panneaux libres</b> : inspecteur, paroles, chat… se redimensionnent (tirer le bord), se ferment, se rangent à gauche/à droite (glisser leur titre, une zone bleue s’affiche) ou se détachent (⧉, ou glisser hors de la fenêtre). Les pistes et leurs noms ne bougent jamais.</li><li><b>🖥 Dispositions</b> 1 · Écriture, 2 · Enregistrement, 3 · Mix (touches 1, 2, 3), modifiables. <b>🎯 Mode focus</b> : F.</li><li><b>Raccourcis</b> : L paroles, T chat, N notes, F focus, I inspecteur, X mixeur.</li><li><b>📌 Notes</b> : sur une piste précise (clic droit sur la piste), toujours visibles jusqu’à ce que quelqu’un les supprime (dans la règle pour « tout le morceau », aperçu au survol), et la position suit la tête de lecture en direct.</li><li>Corrigé : le message envoyé restait dans le champ du chat ; le bouton 📌 était caché (les outils qui ne tiennent pas vont dans « ⋯ »).</li></ul><h4>v3.6</h4><ul><li><b>La timeline défile toute seule</b> quand vous glissez une région, la tête de lecture ou une sélection jusqu’au bord. Pendant la lecture, la vue suit en continu (si vous faites défiler à la main, elle vous laisse tranquille jusqu’à la prochaine lecture).</li><li><b>🎨 Roue de couleurs complète</b> (clic sur la couleur d’une piste) + 💧 pipette (couleurs du projet, ou n’importe où à l’écran sur Chrome/Edge) + couleurs récentes.</li><li><b>Préréglages « Style ZZ »</b> (inspecteur d’une piste voix) : mélodie autotune, drill/trap kickée, ad-libs/backs.</li><li><b>📌 Notes et 🏷 marqueurs</b> (Intro, Couplet, Refrain…) aussi quand vous travaillez seul : clic droit dans la règle ou bouton 📌. Les marqueurs se glissent, se renomment, changent de couleur.</li><li><b>🎤 Messages vocaux</b> dans le chat (2 min max) : écoutez-les, puis ➕ ajoutez-les au projet ou glissez-les sur une piste.</li><li><b>Panneau du chat</b> redimensionnable (tirez son bord), à gauche ou à droite (⇆), à côté de l’appli.</li><li><b>⧉ Fenêtres détachables</b> pour un 2ᵉ écran : le chat, le panneau du bas (mixeur, piano roll, batterie) et chaque fenêtre d’effet. Leur place est mémorisée.</li></ul><h4>v3.5</h4><ul><li><b>🔌 Bibliothèque de plugins</b> (touche <kbd>Y</kbd> ou bouton 🔌) : tous les effets de Studio, vos plugins .js et <b>les plugins AU / VST3 installés sur votre ordinateur</b> (Waves, FabFilter, Antares, Valhalla…). Un clic : le plugin s’ajoute sur la piste et sa fenêtre d’origine s’ouvre.</li><li>Nécessite <b>Studio Bridge</b>, un petit programme gratuit à lancer sur l’ordinateur (guide dans la Bibliothèque). Latence compensée, réglages des plugins mémorisés dans le projet, export en temps réel quand ces plugins sont utilisés.</li></ul><h4>v3.4</h4><ul><li><b>🍎 Import depuis Logic Pro</b> : glissez un projet <b>.logicx</b> dans Studio → tous ses sons, le tempo, la tonalité et la mesure sont récupérés, chaque son sur sa piste (prises replacées à leur position quand Logic l’a noté). Glissez aussi des <b>pistes exportées</b> (plusieurs fichiers d’un coup → une piste chacun, calées au début) ou un <b>fichier MIDI</b> (notes → pistes instrument, batterie → patterns).</li><li>Lecture des formats Apple <b>AIFF</b> et <b>CAF</b>. Guide dans ☰ Fichier → Importer depuis Logic Pro.</li></ul><h4>v3.3</h4><ul><li><b>Les prods passent enfin</b> : les sons sont compressés sans perte (FLAC, ~2× plus légers) et découpés en morceaux, donc même une longue prod arrive chez les autres. Une barre en bas à gauche montre l’envoi et la réception.</li><li><b>🎧 Écouter ensemble</b> : ▶ / ■ et la tête de lecture sont partagés, tout le monde entend le même passage au même moment. Bouton 🎧 pour écouter en solo.</li><li><b>💬 Chat</b> en direct (bouton 💬, pastille rouge = messages non lus).</li><li><b>📌 Commentaires sur la timeline</b> : clic droit dans la règle → « Commenter ici », ou onglet 📌 du panneau. Réponses, « résolu ».</li><li><b>🕘 Versions</b> : sauvegardez une version nommée (« avant le mix ») et revenez-y quand vous voulez.</li><li><b>👁 Lien écoute seule</b> : à donner à quelqu’un qui doit écouter, discuter et commenter sans rien modifier.</li><li><b>📋 Mes sessions</b> : toutes vos sessions, à rouvrir sans retrouver le lien (☰ Fichier → Session à plusieurs).</li><li><b>📀 Lien d’écoute MP3</b> (☰ Fichier) : le morceau en MP3 avec un lien à envoyer, qui s’écoute sur téléphone sans l’appli.</li></ul><h4>v3.2</h4><ul><li><b>👥 Session à plusieurs entre appareils</b> : ☰ Fichier → Session à plusieurs → Partager, puis envoyez le lien. Vos amis vous rejoignent depuis leur ordinateur, téléphone ou tablette, où qu’ils soient.</li><li>Le projet de la session est <b>sauvegardé en ligne</b> : rouvrez le même lien plus tard pour continuer, même si tout le monde était parti.</li><li>Les <b>sons enregistrés ou importés</b> sont envoyés automatiquement aux autres.</li><li>Pastille de connexion à côté des participants : 🟢 connecté, 🟠 connexion, 🔴 hors ligne (vos modifications partent au retour de la connexion).</li></ul><h4>v3.1</h4><ul><li><b>Réverb Pro « Ères »</b> (catégorie Espace) : réverb algorithmique vintage, 14 modes (plaque, hall, chambre, chorus, aléatoire, cathédrale, versions sales, gated…), couleurs Années 70 / 80 / Moderne, pré-délai, decay, taille, attaque, diffusion, modulation, EQ, decay par fréquence, 11 préréglages. C’est aussi la nouvelle réverb du Bus Réverb des nouveaux projets.</li><li><b>Pitch Pro</b> (catégorie Voix) : autotune avancé avec graphique de hauteur en direct, type de voix, tracking, éditeur de notes, vitesse de correction, Humanize, Flex-Tune, vibrato naturel, formants + gorge, transposition, désaccord, mode classique, préréglages. Latence compensée automatiquement.</li></ul><h4>v3.0</h4><ul><li><b>👥 Session à plusieurs</b> (☰ Fichier → Session à plusieurs) : plusieurs personnes sur le même projet, chacun voit en direct les modifications des autres et écoute sur son appareil. <i>Version d’essai : entre fenêtres d’un même navigateur ; la connexion entre appareils arrive dans une prochaine version.</i></li><li><b>🔒 Cadenas</b> : en session, cliquez le cadenas d’une piste (en haut à droite de son nom, ou dans le mixeur) pour que personne d’autre ne la modifie. Plusieurs cadenas possibles, aussi sur les bus, la sortie et le tempo/tonalité. Il se retire en recliquant ou tout seul après 2 min sans activité.</li><li>En session, <b>Ctrl+Z n’annule que vos propres actions</b>. Solo, armement R et retour micro restent personnels.</li></ul><h4>v2.4</h4><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
 <li><b>Réglages rapides</b> pour chaque voix : Écho, Réverb, Autotune, Naturel↔Robot, Basses, Clarté, Brillance, Punch, Doublage, Chaleur… de simples curseurs dans l’inspecteur (ⓘ).</li>
 <li><b>20 préréglages voix</b> classés : Base, Autotune (mélodieux, aérien, robot…), Créatif (grave démon, aiguë, lo-fi, stade, écho slap, phaser…), Ad-libs &amp; backs.</li>
 <li><b>5 nouveaux effets</b> : Pitch Shifter, Lo-Fi/Bitcrusher, Robot, Phaser, Trémolo.</li>
@@ -2596,6 +2630,8 @@ const COLLAB={on:false,synced:false,room:null,doc:null,root:null,locks:null,um:n
   queue:[],peers:{},waiting:{},lockSeen:{},bufWait:{},timers:[],pRef:null,projDirty:false,lockDirty:false,tT:0};
 let LAST_INPUT=Date.now(),POINTER_DOWN=false;
 
+// ---- append/prepend ignorent false et null (écrire cond&&h(...) dans un append ajoutait le texte « false ») ----
+for(const m of ['append','prepend']){const o=Element.prototype[m];Element.prototype[m]=function(...a){return o.apply(this,a.filter(x=>x!==false&&x!=null))}}
 // ---- outils de données ----
 const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 function deepEq(a,b){if(a===b)return true;if(typeof a!=='object'||typeof b!=='object'||!a||!b)return false;
@@ -2605,14 +2641,18 @@ function deepEq(a,b){if(a===b)return true;if(typeof a!=='object'||typeof b!=='ob
 const idArr=x=>x.length>0&&x.every(e=>isObj(e)&&typeof e.id==='string')&&new Set(x.map(e=>e.id)).size===x.length;
 function sharedView(p){const o={};for(const k in p)if(!SKIP_ROOT.includes(k))o[k]=p[k];
   o.tracks=(p.tracks||[]).map(t=>{const c={};for(const k in t)if(!SKIP_TRACK.includes(k))c[k]=t[k];return c});return o}
-function toY(v){if(Array.isArray(v)){const a=new Y.Array();a.push(v.map(toY));return a}
-  if(isObj(v)){const m=new Y.Map();for(const k in v)m.set(k,toY(v[k]));return m}return v}
+function toY(v,k){if(k==='lyrics'&&typeof v==='string')return new Y.Text(v); // paroles : texte collaboratif (fusion lettre par lettre)
+  if(Array.isArray(v)){const a=new Y.Array();a.push(v.map(x=>toY(x)));return a}
+  if(isObj(v)){const m=new Y.Map();for(const kk in v)m.set(kk,toY(v[kk],kk));return m}return v}
+function yTextDiff(yt,a,b){let s=0;while(s<a.length&&s<b.length&&a[s]===b[s])s++;let e=0;while(e<a.length-s&&e<b.length-s&&a[a.length-1-e]===b[b.length-1-e])e++;
+  if(a.length-s-e)yt.delete(s,a.length-s-e);if(b.length-s-e)yt.insert(s,b.slice(s,b.length-e))}
 // écrit dans le Y.Map `ym` (qui reflète `o`) ce qu'il faut pour obtenir `n`
 function yObj(ym,o,n){for(const k in o)if(!(k in n))ym.delete(k);
   for(const k in n){const a=o[k],b=n[k];if(deepEq(a,b))continue;const cur=ym.get(k);
     if(isObj(a)&&isObj(b)&&cur instanceof Y.Map)yObj(cur,a,b);
     else if(Array.isArray(a)&&Array.isArray(b)&&cur instanceof Y.Array)yArr(cur,a,b);
-    else ym.set(k,toY(b))}}
+    else if(k==='lyrics'&&typeof a==='string'&&typeof b==='string'&&cur instanceof Y.Text)yTextDiff(cur,a,b);
+    else ym.set(k,toY(b,k))}}
 function yArr(ya,o,n){
   if(idArr(o)&&idArr(n)){ // pistes, régions… : réconciliation par identifiant
     const keep=new Set(n.map(e=>e.id)),cur=o.slice();
@@ -2679,7 +2719,7 @@ function collabFlush(){
   const n=JSON.parse(str),o=COLLAB.last,bad=lockedChange(o,n);
   if(bad){revertToDoc();lockToast(bad.k,bad.L);return}
   COLLAB.doc.transact(()=>{try{yObj(COLLAB.root,o,n)}catch(e){console.warn('Session : resynchronisation complète',e);
-    for(const k of [...COLLAB.root.keys()])if(!(k in n))COLLAB.root.delete(k);for(const k in n)COLLAB.root.set(k,toY(n[k]))}},LOCAL_ORIGIN);
+    for(const k of [...COLLAB.root.keys()])if(!(k in n))COLLAB.root.delete(k);for(const k in n)COLLAB.root.set(k,toY(n[k],k))}},LOCAL_ORIGIN);
   COLLAB.last=n;COLLAB.lastStr=str}
 function revertToDoc(){patchRoot(COLLAB.root.toJSON());setBase();collabRefresh(true)}
 function pullFromDoc(){const s0=sigAll(P);patchRoot(COLLAB.root.toJSON());setBase();collabRefresh(s0!==sigAll(P));fetchMissingBufs()}
@@ -2831,7 +2871,7 @@ async function adoptDoc(){ // on rejoint : le projet de la session remplace l'af
   PH=0;SELR.clear();EDIT=null;SEL=P.tracks[0]&&P.tracks[0].id;LAST_SAVED='';closeAllPlugins();E.build(P);
   afterSync();renderAll();fetchMissingBufs();toast(COLLAB.viewer?'👁 Vous écoutez « '+P.name+' » (écoute seule)':'👥 Vous avez rejoint « '+P.name+' »',3500)}
 function seed(){
-  const v=JSON.parse(JSON.stringify(sharedView(P)));COLLAB.doc.transact(()=>{for(const k in v)COLLAB.root.set(k,toY(v[k]))},'seed');
+  const v=JSON.parse(JSON.stringify(sharedView(P)));COLLAB.doc.transact(()=>{for(const k in v)COLLAB.root.set(k,toY(v[k],k))},'seed');
   afterSync();renderAll();dbSave(true);uploadBufs()}
 function afterSync(){COLLAB.synced=true;setBase();UNDO=[];REDO=[];
   COLLAB.um=new Y.UndoManager(COLLAB.root,{trackedOrigins:new Set([LOCAL_ORIGIN]),captureTimeout:1e9});
@@ -3118,7 +3158,7 @@ function chatSend(x,extra){x=(x||'').trim().slice(0,1000);if(!x&&!extra)return;i
 COLLAB_H.vmsg=(m,via)=>{if(via!=='v'||!isRelay()||!COLLAB.synced||!m.user)return;const who={u:m.user.id,n:(m.user.name||'?').slice(0,20)+' 👁',c:m.user.color,v:1};
   if(m.kind==='chat'&&m.x){const a=CHAT();COLLAB.doc.transact(()=>{a.push([Object.assign({id:uid('m'),t:Date.now(),x:String(m.x).slice(0,1000)},who)]);if(a.length>300)a.delete(0,a.length-300)},'chat')}
   if(m.kind==='voc'&&m.voc&&/^[a-z0-9]{12}$/.test(m.voc.f)&&/^(webm|m4a|ogg)$/.test(m.voc.ext)){const a=CHAT();COLLAB.doc.transact(()=>{a.push([Object.assign({id:uid('m'),t:Date.now(),x:'🎤 message vocal',voc:{f:m.voc.f,ext:m.voc.ext,type:String(m.voc.type||''),dur:+m.voc.dur||0}},who)]);if(a.length>300)a.delete(0,a.length-300)},'chat')}
-  if(m.kind==='cmt'&&m.x&&typeof m.beat==='number')cmtAdd(m.beat,String(m.x).slice(0,1000),who);
+  if(m.kind==='cmt'&&m.x&&typeof m.beat==='number')cmtAdd(m.beat,String(m.x).slice(0,1000),who,typeof m.tid==='string'?m.tid:'');
   if(m.kind==='rep'&&m.x&&m.cid)cmtReply(m.cid,String(m.x).slice(0,1000),who)};
 function onChatChange(ev){
   if(ev.transaction.origin==='remote'||ev.transaction.origin==='relay'){const added=[];ev.changes.added.forEach(it=>it.content.getContent().forEach(x=>added.push(x)));
@@ -3129,8 +3169,9 @@ function onChatChange(ev){
 // P.cmts = [{id,beat,u,n,c,t,x,done,rep:[{u,n,c,t,x}]}] ; P.marks = [{id,beat,name,color}] (marqueurs de structure)
 const cmtArr=()=>P&&(P.cmts||(P.cmts=[]));
 function cmtChanged(){DIRTY=true;if(COLLAB.on&&COLLAB.synced)collabFlush();renderPins();if(C2.open&&(C2.tab==='cmts'||C2.tab==='marks'))drawPanel()}
-function cmtAdd(beat,x,who){if(COLLAB.on&&COLLAB.viewer&&!who)return send({k:'vmsg',kind:'cmt',beat,x});
-  const w=who||meUser();snapshot();cmtArr().push({id:uid('c'),beat:Math.max(0,beat),u:w.u,n:w.n,c:w.c,t:Date.now(),x,done:false,rep:[]});cmtChanged()}
+function cmtAdd(beat,x,who,tid){if(COLLAB.on&&COLLAB.viewer&&!who)return send({k:'vmsg',kind:'cmt',beat,x,tid:tid||''});
+  const w=who||meUser(),o={id:uid('c'),beat:Math.max(0,beat),u:w.u,n:w.n,c:w.c,t:Date.now(),x,done:false,rep:[]};if(tid&&findTrack(tid))o.tid=tid;
+  snapshot();cmtArr().push(o);cmtChanged()}
 const cmtFind=id=>((P&&P.cmts)||[]).find(c=>c.id===id);
 function cmtReply(id,x,who){if(COLLAB.on&&COLLAB.viewer&&!who)return send({k:'vmsg',kind:'rep',cid:id,x});const c=cmtFind(id);if(!c)return;
   snapshot();(c.rep||(c.rep=[])).push(Object.assign({t:Date.now(),x},who||meUser()));cmtChanged()}
@@ -3142,12 +3183,13 @@ function renderPins(){
   const list=cmtList();
   if(C2.knownC){for(const c of list)if(!C2.knownC.has(c.id)&&c.u!==ME.id&&COLLAB.on)toast('📌 '+c.n+' a commenté '+fmtBar(c.beat)+' : '+String(c.x).slice(0,60),3500)}
   C2.knownC=new Set(list.map(c=>c.id));
-  for(const c of list){if(c.done&&!C2.showDone)continue;const x=c.beat*PPB;
-    L.append(h('div',{class:'cline'+(c.done?' done':''),style:{left:x+'px','--cc':c.c}}),
-      h('div',{class:'cpin'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{left:x+'px','--cc':c.c},title:c.n+' ('+fmtBar(c.beat)+') : '+c.x,
-        onpointerdown:e=>e.stopPropagation(),onclick:e=>{e.stopPropagation();C2.hi=c.id;openPanel('cmts')}},'📌 '+(c.n||'?').slice(0,1).toUpperCase()+((c.rep&&c.rep.length)?' '+(c.rep.length+1):'')))}
+  for(const c of list){const x=c.beat*PPB,ti=c.tid?P.tracks.findIndex(t=>t.id===c.tid):-1,pos=ti>=0?{top:ti*TH+'px',bottom:'auto',height:TH+'px'}:{};
+    L.append(h('div',{class:'cline'+(c.done?' done':''),style:Object.assign({left:x+'px','--cc':c.c},pos)}),
+      ti>=0&&h('div',{class:'cpin'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{left:x+'px',top:(ti*TH+2)+'px','--cc':c.c},title:c.n+' ('+fmtBar(c.beat)+', '+P.tracks[ti].name+') : '+c.x+(c.done?' ✔ résolue':''),
+        onpointerdown:e=>e.stopPropagation(),onclick:e=>{e.stopPropagation();C2.hi=c.id;openPanel('cmts')}},(c.done?'✔ ':'📌 ')+(c.n||'?').slice(0,1).toUpperCase()+((c.rep&&c.rep.length)?' '+(c.rep.length+1):'')))}
+  try{drawRuler()}catch(e){}
   for(const m of (P.marks||[]))L.append(h('div',{class:'mline',style:{left:m.beat*PPB+'px','--mc':m.color}}))}
-function askComment(beat){openPanel('cmts');C2.newAt=beat;drawPanel();setTimeout(()=>{const t=$('#cpanel textarea.newc');if(t)t.focus()},30)}
+function askComment(beat,tid){openPanel('cmts');C2.newAt=beat;C2.newTid=tid||'';drawPanel();setTimeout(()=>{const t=$('#cpanel textarea.newc');if(t)t.focus()},30)}
 
 // ---------- 🎤 Messages vocaux ----------
 const VOC={rec:null,chunks:[],t0:0,timer:null,stream:null,mime:''};
@@ -3275,24 +3317,24 @@ function drawPanel(){
       else if(m.b)content=h('div',{class:'ctxt'},m.x+' : ',h('a',{href:bounceLink(m.b.f,m.b.title),target:'_blank',rel:'noopener'},'📀 '+m.b.title+' ('+Math.floor(m.b.dur/60)+':'+String(m.b.dur%60).padStart(2,'0')+')'));
       else content=h('div',{class:'ctxt'},m.x);
       body.append(h('div',{class:'cmsg'+(mine?' me':'')},h('div',{class:'cmeta'},h('b',{style:{color:m.c}},m.n),' ',h('span',null,hhmm(m.t))),content))}
-    const inp=h('input',{type:'text',placeholder:'Écrire un message…',maxlength:1000,value:draft,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'){chatSend(inp.value);inp.value=''}}});
+    const inp=h('input',{type:'text',placeholder:'Écrire un message…',maxlength:1000,value:draft,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'){const v=inp.value;inp.value='';chatSend(v)}}});
     const recUI=VOC.rec?h('div',{class:'cin rec'},h('span',{class:'vtime'},'● 0:00 / 2:00'),h('div',{style:{flex:1}}),h('button',{title:'Annuler',onclick:()=>vocStop(false)},'✕'),h('button',{class:'send',onclick:()=>vocStop(true)},'➤ Envoyer'))
-      :h('div',{class:'cin'},h('button',{title:'Message vocal (2 min max)',onclick:vocStart},'🎤'),inp,h('button',{onclick:()=>{chatSend(inp.value);inp.value='';inp.focus()}},'➤'));
+      :h('div',{class:'cin'},h('button',{title:'Message vocal (2 min max)',onclick:vocStart},'🎤'),inp,h('button',{onclick:()=>{const v=inp.value;inp.value='';chatSend(v);const ni=$('#cpanel .cin input');if(ni)ni.focus()}},'➤'));
     p.append(h('div',{class:'cquick'},['🔥','👍','😂','🎧','💯','🙏'].map(x=>h('button',{onclick:()=>chatSend(x)},x))),recUI,h('span',{class:'vtime',style:{display:'none'}}));
     setTimeout(()=>{body.scrollTop=body.scrollHeight},0);if(!IS_TOUCH&&!VOC.rec)setTimeout(()=>inp.focus(),0)}
   else if(C2.tab==='cmts'){
-    const at=C2.newAt!=null?C2.newAt:(E.playing?E.pos():PH);
+    const curAt=()=>C2.newAt!=null?C2.newAt:(E.playing?E.pos():PH);
     const ta=h('textarea',{class:'newc',rows:2,placeholder:'Ex : refais ce couplet ici, drop trop tôt, ad-lib à ajouter…',onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();add()}}});
-    const add=()=>{const x=ta.value.trim();if(!x)return;cmtAdd(Math.max(0,at),x);C2.newAt=null;ta.value='';toast('📌 Note ajoutée '+fmtBar(at))};
-    body.append(h('div',{class:'cnew'},h('div',{class:'dim'},'📌 Nouvelle note '+fmtBar(at)+(C2.newAt==null?' (tête de lecture)':'')),ta,h('div',{style:{display:'flex',gap:'6px'}},h('button',{onclick:add},'Ajouter'),
-      C2.newAt!=null&&h('button',{onclick:()=>{C2.newAt=null;drawPanel()}},'Annuler'))),
-      h('label',{class:'dim',style:{display:'flex',gap:'6px',alignItems:'center',margin:'6px 0'}},h('input',{type:'checkbox',checked:C2.showDone,onchange:e=>{C2.showDone=e.target.checked;drawPanel();renderPins()}}),'Afficher les notes résolues'),
-      h('p',{class:'dim',style:{fontSize:'11px'}},'Astuce : clic droit (ou appui long) dans la règle pour noter à un endroit précis. Les notes sont enregistrées avec le projet'+(COLLAB.on?' et partagées avec la session.':'.')));
-    const list=cmtList().filter(c=>C2.showDone||!c.done);if(!list.length)body.append(h('p',{class:'dim'},'Aucune note.'));
+    const tsel=h('select',{class:'ntrack',title:'Sur quelle piste ?',onchange:e=>{C2.newTid=e.target.value}},h('option',{value:''},'🎼 Tout le morceau'),P.tracks.map(t=>h('option',{value:t.id,selected:t.id===C2.newTid},tIco(t)+' '+t.name)));
+    const add=()=>{const x=ta.value.trim();if(!x)return;const at=curAt(),tid=tsel.value;C2.newAt=null;C2.newTid='';cmtAdd(Math.max(0,at),x,null,tid);ta.value='';toast('📌 Note ajoutée '+fmtBar(at)+(tid?' sur « '+(findTrack(tid)||{}).name+' »':''))};
+    body.append(h('div',{class:'cnew'},h('div',{class:'dim cposlbl'},'📌 Nouvelle note '+fmtBar(curAt())+(C2.newAt==null?' (tête de lecture)':'')),tsel,ta,h('div',{style:{display:'flex',gap:'6px'}},h('button',{onclick:add},'Ajouter'),
+      C2.newAt!=null&&h('button',{onclick:()=>{C2.newAt=null;C2.newTid='';drawPanel()}},'Revenir à la tête de lecture'))),
+      h('p',{class:'dim',style:{fontSize:'11px'}},'Astuce : clic droit sur une piste (ou dans la règle) pour noter à cet endroit précis. Une note reste affichée sur la timeline jusqu’à ce que quelqu’un la supprime. Les notes sont enregistrées avec le projet'+(COLLAB.on?' et partagées avec la session.':'.')));
+    const list=cmtList();if(!list.length)body.append(h('p',{class:'dim'},'Aucune note.'));
     for(const c of list){const rep=h('input',{type:'text',placeholder:'Répondre…',maxlength:1000,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'&&rep.value.trim()){const v=rep.value.trim();rep.value='';rep.blur();cmtReply(c.id,v)}}});
       const canMod=!COLLAB.viewer;
       body.append(h('div',{class:'ccmt'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{'--cc':c.c}},
-        h('div',{class:'cmeta'},h('a',{href:'#',onclick:e=>{e.preventDefault();C2.hi=c.id;setPH(c.beat);renderPins();drawPanel()}},'▶ '+fmtBar(c.beat)),' · ',h('b',{style:{color:c.c}},c.n),' ',h('span',null,hhmm(c.t))),
+        h('div',{class:'cmeta'},h('a',{href:'#',onclick:e=>{e.preventDefault();C2.hi=c.id;setPH(c.beat);renderPins();drawPanel()}},'▶ '+fmtBar(c.beat)),c.tid&&findTrack(c.tid)?' · '+tIco(findTrack(c.tid))+' '+findTrack(c.tid).name:' · 🎼',' · ',h('b',{style:{color:c.c}},c.n),' ',h('span',null,hhmm(c.t)),c.done?' · ✔ résolue':''),
         h('div',{class:'ctxt'},c.x),(c.rep||[]).map(r=>h('div',{class:'crep'},h('b',{style:{color:r.c}},r.n),' ',r.x)),
         h('div',{class:'cact'},rep,canMod&&h('button',{title:c.done?'Rouvrir':'Marquer comme résolue',onclick:()=>cmtSet(c.id,'done',!c.done)},c.done?'↺':'✔'),
           canMod&&(c.u===ME.id||!COLLAB.on)&&h('button',{title:'Supprimer',onclick:e=>{if(e.target.dataset.sure){cmtDel(c.id)}else{e.target.dataset.sure=1;e.target.textContent='Sûr ?'}}},'🗑'))))}
@@ -3331,6 +3373,9 @@ COLLAB_H.bar=b=>{
     h('button',{class:'tbtn chatb',title:'Chat, notes, marqueurs et versions',onclick:()=>C2.open?closePanel():openPanel(C2.tab==='cmts'&&!C2.unread?'cmts':'chat')},'💬'));renderBadge()};
 {const o=renderLanes;renderLanes=function(){const r=o.apply(this,arguments);renderPins();return r}}
 {const o=afterLoad;afterLoad=function(){const r=o.apply(this,arguments);C2.knownC=null;renderPins();if(C2.open)drawPanel();try{drawRuler()}catch(e){}return r}}
+
+// la position « tête de lecture » de la nouvelle note se met à jour en direct
+setInterval(()=>{if(!C2.open||C2.tab!=='cmts'||C2.newAt!=null||!P)return;const l=$('#cpanel .cposlbl');if(l)l.textContent='📌 Nouvelle note '+fmtBar(E.playing?E.pos():PH)+' (tête de lecture)'},200);
 
 // ===== v3.6 : défilement automatique, roue de couleurs + pipette, préréglages ZZ, marqueurs, fenêtres détachables =====
 
@@ -3442,11 +3487,12 @@ function panelHost(){return isDetached('chat')?DET.w.chat.win.document.body:docu
 const LAY=()=>{try{return JSON.parse(localStorage.getItem('studio_layout')||'{}')}catch(e){return{}}};
 function laySet(k,o){const l=LAY();l[k]=Object.assign(l[k]||{},o);try{localStorage.setItem('studio_layout',JSON.stringify(l))}catch(e){}}
 function laySave(kind){const d=DET.w[kind];if(!d)return;try{const w=d.win;if(w.closed)return;laySet(d.lk,{x:w.screenX,y:w.screenY,w:w.outerWidth,h:w.outerHeight})}catch(e){}}
-const DET_TITLES={chat:'Chat · notes',bottom:'Mixeur · Piano Roll · Batterie',plug:'Effet'};
+const DET_TITLES={chat:'Chat · notes',bottom:'Mixeur · Piano Roll · Batterie',plug:'Effet',insp:'Inspecteur',lyr:'Paroles',library:'Bibliothèque de plugins'};
+const DET_HOME=['bottom','insp','lyr','library']; // ces panneaux reviennent à leur place quand on ferme la fenêtre
 function detachOpen(kind,el){
   if(IS_TOUCH||isSmall())return toast('Les fenêtres détachables sont disponibles sur ordinateur');
   if(isDetached(kind)){DET.w[kind].win.focus();return}
-  const lk=kind.startsWith('plug:')?'plug':kind,L=LAY()[lk]||{},def={chat:[400,720],bottom:[1180,460],plug:[620,520]}[lk];
+  const lk=kind.startsWith('plug:')?'plug':kind,L=LAY()[lk]||{},def={chat:[400,720],bottom:[1180,460],plug:[620,520],insp:[300,760],lyr:[460,760],library:[380,760]}[lk];
   const W=L.w||def[0],H=L.h||def[1],X=L.x!=null?L.x:screenX+80,Y=L.y!=null?L.y:screenY+80;
   const win=window.open('','studio_'+kind.replace(/\W/g,'_'),'popup=yes,width='+W+',height='+H+',left='+X+',top='+Y);
   if(!win)return toast('Le navigateur a bloqué la fenêtre : autorisez les fenêtres pop-up pour ce site, puis réessayez.',6000);
@@ -3464,14 +3510,16 @@ function detachOpen(kind,el){
   win.addEventListener('pointerdown',()=>{try{ctx.resume()}catch(e){}},true);
   win.addEventListener('pagehide',()=>{laySave(kind);setTimeout(()=>detachReturn(kind),0)});win.addEventListener('resize',()=>laySave(kind));
   laySet(lk==='plug'?'plugx':lk,{open:lk==='plug'?0:1});document.body.classList.add('det-'+lk);
-  if(kind==='chat'){C2.open=true;drawPanel();layoutPanel()}else if(kind==='bottom'){renderBottom();updDetBtn()}else el.style.left=el.style.top='';
+  if(kind==='chat'){C2.open=true;drawPanel();layoutPanel()}else if(kind==='bottom'){renderBottom();updDetBtn()}else{el.style.left=el.style.top='';el.style.display=''}
+  if(typeof applyLayout==='function')applyLayout();if(kind==='lyr'&&typeof renderLyrics==='function')renderLyrics();if(kind==='insp')renderInspector();
   try{drawRuler();schedulePaint()}catch(e){}toast('⧉ Fenêtre détachée : déplacez-la sur votre 2ᵉ écran. Fermez-la pour la remettre ici.',4500)}
 function detachReturn(kind){const d=DET.w[kind];if(!d)return;delete DET.w[kind];const el=d.el;
   if(!DET.unloading)laySet(d.lk,{open:0});document.body.classList.toggle('det-'+d.lk,Object.values(DET.w).some(x=>x.lk===d.lk));
   if(kind==='chat'){el.remove();if(C2.open)drawPanel();layoutPanel()}
-  else if(kind==='bottom'){try{d.home.parent.insertBefore(el,d.home.next&&d.home.next.parentNode===d.home.parent?d.home.next:null)}catch(e){_gid.call(document,'app').append(el)}renderBottom();updDetBtn()}
+  else if(DET_HOME.includes(kind)){try{d.home.parent.insertBefore(el,d.home.next&&d.home.next.parentNode===d.home.parent?d.home.next:null)}catch(e){_gid.call(document,'app').append(el)}
+    if(kind==='bottom'){renderBottom();updDetBtn()}if(kind==='insp')renderInspector();if(kind==='lyr'&&typeof renderLyrics==='function')renderLyrics()}
   else{el.remove();for(const k in WINS)if(WINS[k].el===el)delete WINS[k]}
-  try{drawRuler();schedulePaint()}catch(e){}}
+  if(typeof applyLayout==='function')applyLayout();try{drawRuler();schedulePaint()}catch(e){}}
 function detachClose(kind){const d=DET.w[kind];if(!d)return;laySave(kind);try{d.win.close()}catch(e){}detachReturn(kind)}
 function updDetBtn(){const b=$('#bDetBottom');if(b){const on=isDetached('bottom');b.textContent=on?'⤓':'⧉';b.title=on?'Remettre le panneau dans la fenêtre principale':'Détacher le panneau (mixeur, piano roll, batterie) dans une fenêtre : 2ᵉ écran'}}
 setInterval(()=>{for(const k in DET.w){const d=DET.w[k];let gone=false;try{gone=d.win.closed||!d.el.isConnected||d.el.ownerDocument!==d.win.document}catch(e){gone=true}
@@ -3487,10 +3535,233 @@ addEventListener('pagehide',()=>{DET.unloading=true;for(const k in DET.w)try{DET
   doc.body.append(m);const w=doc.defaultView,r=m.getBoundingClientRect();m.style.left=Math.min(e.clientX,w.innerWidth-r.width-6)+'px';m.style.top=Math.min(e.clientY,w.innerHeight-r.height-6)+'px';
   setTimeout(()=>doc.addEventListener('pointerdown',closeMenuOut,true),0)}}
 // disposition mémorisée : proposer de rouvrir les fenêtres qui étaient détachées (un clic = autorisé par le navigateur)
-function restoreBanner(){if(IS_TOUCH||isSmall())return;const l=LAY(),ks=['chat','bottom'].filter(k=>l[k]&&l[k].open);if(!ks.length)return;
-  const b=h('div',{id:'detBanner'},h('span',null,'⧉ Rouvrir vos fenêtres détachées :'),ks.map(k=>h('button',{onclick:e=>{e.target.remove();detachOpen(k);if(!b.querySelector('button.k'))b.remove()},class:'k'},k==='chat'?'💬 Chat':'🎚 Mixeur')),
+function restoreBanner(){if(IS_TOUCH||isSmall())return;const l=LAY(),ks=['chat','bottom','insp','lyr'].filter(k=>l[k]&&l[k].open);if(!ks.length)return;
+  const b=h('div',{id:'detBanner'},h('span',null,'⧉ Rouvrir vos fenêtres détachées :'),ks.map(k=>h('button',{onclick:e=>{e.target.remove();detachOpen(k,k==='insp'?_gid.call(document,'insp'):k==='lyr'?ensureLyr():undefined);if(!b.querySelector('button.k'))b.remove()},class:'k'},{chat:'💬 Chat',bottom:'🎚 Mixeur',insp:'ⓘ Inspecteur',lyr:'📝 Paroles'}[k])),
     window.getScreenDetails&&h('button',{title:'Permet de rouvrir les fenêtres directement sur le 2ᵉ écran',onclick:async()=>{try{await window.getScreenDetails();toast('2ᵉ écran autorisé ✔')}catch(e){toast('Autorisation refusée')}}},'🖥 Autoriser le 2ᵉ écran'),
     h('button',{title:'Ne plus proposer',onclick:()=>{ks.forEach(k=>laySet(k,{open:0}));b.remove()}},'✕'));
   document.body.append(b);setTimeout(()=>{if(b.isConnected)b.remove()},30000)}
+
+// ===== v3.7 : disposition fluide (panneaux redimensionnables / déplaçables / détachables), paroles, prompteur, mode focus,
+// dispositions enregistrées, raccourcis, menu « ⋯ », notes dans la règle, prises multiples =====
+// Seules deux zones sont fixes : les pistes (#lanesWrap) et leurs noms (#heads). Le reste s'ouvre, se ferme, se redimensionne,
+// s'accroche à gauche / à droite (/ en bas pour les paroles) ou se détache dans une fenêtre.
+const UI=(()=>{const d={insp:{open:true,w:236,side:'left'},lyr:{open:false,w:340,side:'left',where:'side',font:16,tab:'proj'},focus:false,prompt:true};
+  try{const o=JSON.parse(localStorage.getItem('studio_ui')||'{}');for(const k of ['insp','lyr'])Object.assign(d[k],o[k]||{});if(o.prompt===false)d.prompt=false}catch(e){}return d})();
+const saveUI=()=>{try{localStorage.setItem('studio_ui',JSON.stringify({insp:UI.insp,lyr:UI.lyr,prompt:UI.prompt}))}catch(e){}};
+const PANEL_NAMES={insp:'ⓘ Inspecteur',lyr:'📝 Paroles',chat:'💬 Chat · notes'};
+
+// ---------- panneaux latéraux dans #main (grille calculée) ----------
+let LYR_EL=null;
+function ensureLyr(){if(!LYR_EL){LYR_EL=h('div',{id:'lyr'});const M=$('#main');if(M)M.insertBefore(LYR_EL,$('#arr'))}return LYR_EL}
+function applyLayout(light){
+  const M=_gid.call(document,'main');if(!M)return;const lyr=ensureLyr(),ins=_gid.call(document,'insp');
+  if(light){const L=[],R=[];for(const k of ['insp','lyr']){const el=k==='insp'?ins:lyr;if(el&&el.parentNode===M&&el.style.display!=='none')(UI[k].side==='right'?R:L).push(k)}
+    M.style.gridTemplateColumns=[...L.map(k=>UI[k].w+'px'),'minmax(0,1fr)',...R.slice().reverse().map(k=>UI[k].w+'px')].join(' ');
+    let x=0,xr=0;const gs=[...M.querySelectorAll(':scope>.pgrip')];for(const g of gs){const k=g.dataset.k;if(g.dataset.side==='left'){x=0;for(const q of L){x+=UI[q].w;if(q===k)break}g.style.left=(x-3)+'px'}else{xr=0;for(const q of R){xr+=UI[q].w;if(q===k)break}g.style.right=(xr-3)+'px'}}
+    clearTimeout(applyLayout.t);applyLayout.t=setTimeout(()=>{try{drawRuler();schedulePaint()}catch(e){}},30);return}
+  M.querySelectorAll(':scope>.pgrip').forEach(g=>g.remove());document.body.classList.toggle('focus',!!UI.focus);
+  if(UI.lyr.where==='side'&&!isDetached('lyr')&&lyr.parentNode!==M)M.insertBefore(lyr,$('#arr'));
+  if(isSmall()){M.style.gridTemplateColumns='';for(const el of [ins,lyr])if(el&&el.parentNode===M){el.style.order='';el.style.display=''}
+    lyr.classList.toggle('mob',true);lyr.style.display=UI.lyr.open&&UI.lyr.where==='side'?'':'none';return}
+  lyr.classList.remove('mob');
+  const els={insp:ins,lyr},vis=k=>UI[k].open&&!UI.focus&&!isDetached(k)&&(k!=='lyr'||UI.lyr.where==='side')&&els[k]&&els[k].parentNode===M;
+  const L=[],R=[];for(const k of ['insp','lyr']){if(!els[k]||els[k].parentNode!==M)continue;if(vis(k))(UI[k].side==='right'?R:L).push(k);els[k].style.display=vis(k)?'':'none'}
+  const Ro=R.slice().reverse();
+  M.style.gridTemplateColumns=[...L.map(k=>UI[k].w+'px'),'minmax(0,1fr)',...Ro.map(k=>UI[k].w+'px')].join(' ');
+  L.forEach((k,i)=>els[k].style.order=-10+i);$('#arr').style.order=0;Ro.forEach((k,i)=>els[k].style.order=10+i);
+  let x=0;for(const k of L){x+=UI[k].w;M.append(grip(k,'left',x))}
+  let xr=0;for(const k of R){xr+=UI[k].w;M.append(grip(k,'right',xr))}
+  M.classList.toggle('noinsp',!vis('insp'));try{renderBar()}catch(e){}
+  for(const k of ['insp','lyr'])if(els[k])els[k].classList.toggle('pright',UI[k].side==='right');
+  saveUI();clearTimeout(applyLayout.t);applyLayout.t=setTimeout(()=>{try{drawRuler();schedulePaint();fitTools()}catch(e){}},30)}
+function grip(k,side,x){const g=h('div',{class:'pgrip','data-k':k,'data-side':side,title:'Glisser pour élargir / rétrécir « '+PANEL_NAMES[k]+' »',style:side==='left'?{left:(x-3)+'px'}:{right:(x-3)+'px'}});
+  g.addEventListener('pointerdown',e=>{if(e.button)return;e.preventDefault();g.setPointerCapture(e.pointerId);const x0=e.clientX,w0=UI[k].w;g.classList.add('on');
+    const mv=ev=>{UI[k].w=Math.round(clamp(w0+(side==='left'?ev.clientX-x0:x0-ev.clientX),180,Math.min(720,innerWidth-420)));applyLayout(true)};
+    const up=()=>{g.removeEventListener('pointermove',mv);g.removeEventListener('pointerup',up);g.classList.remove('on');saveUI();applyLayout()};g.addEventListener('pointermove',mv);g.addEventListener('pointerup',up)});return g}
+// en-tête d'un panneau : titre (glisser = déplacer / détacher), ⇆ côté, ⧉ détacher, ✕ fermer
+function phead(k,extra){const det=isDetached(k);
+  const hd=h('div',{class:'phead',title:det?'':'Glisser vers un bord pour ranger ce panneau, ou hors de la fenêtre pour le détacher'},h('b',null,PANEL_NAMES[k]),h('div',{style:{flex:1}}),extra||null,
+    !det&&!isSmall()&&h('button',{title:'Mettre à '+(UI[k].side==='right'?'gauche':'droite'),onclick:()=>{UI[k].side=UI[k].side==='right'?'left':'right';if(k==='lyr')UI.lyr.where='side';applyLayout();renderLyrics()}},'⇆'),
+    k==='lyr'&&!det&&!isSmall()&&h('button',{title:UI.lyr.where==='bottom'?'Remettre sur le côté':'Mettre en bas (dans le panneau du bas)',onclick:()=>lyrWhere(UI.lyr.where==='bottom'?'side':'bottom')},UI.lyr.where==='bottom'?'◧':'⬓'),
+    !IS_TOUCH&&!isSmall()&&h('button',{title:det?'Remettre dans la fenêtre principale':'Détacher dans une fenêtre (2ᵉ écran)',onclick:()=>det?detachClose(k):detachOpen(k,k==='insp'?_gid.call(document,'insp'):ensureLyr())},det?'⤓':'⧉'),
+    h('button',{title:'Fermer',onclick:()=>closePanelK(k)},'✕'));
+  if(!det)hd.addEventListener('pointerdown',e=>{if(e.target.closest('button,select,input'))return;startDock(k,e)});return hd}
+function closePanelK(k){if(isDetached(k))detachClose(k);if(k==='lyr'&&UI.lyr.where==='bottom'&&TAB==='lyrics'){setTab('lyrics');UI.lyr.open=false;applyLayout();return}UI[k].open=false;applyLayout();if(k==='lyr')renderLyrics()}
+function togglePanelK(k,force){if(isDetached(k)){DET.w[k].win.focus();return}
+  if(k==='lyr'&&UI.lyr.where==='bottom'){const on=TAB==='lyrics'&&$('#bottom').classList.contains('open');if(force===true&&on)return;UI.lyr.open=true;setTab('lyrics');return}
+  UI[k].open=force!=null?force:!UI[k].open;if(UI[k].open)UI.focus=false;applyLayout();if(k==='lyr')renderLyrics();if(k==='insp')renderInspector()}
+// l'inspecteur a son en-tête (re-créé à chaque rendu)
+{const o=renderInspector;renderInspector=function(){const r=o.apply(this,arguments);const I=$('#insp');if(I&&!isSmall()&&!I.querySelector(':scope>.phead'))I.prepend(phead('insp'));
+  if(I&&!I.querySelector('.lyrbtn')){const t=findTrack(SEL);if(t)I.append(h('div',{class:'sec lyrbtn'},h('button',{onclick:()=>{UI.lyr.tab=t.id;togglePanelK('lyr',true);renderLyrics()}},'📝 Paroles de « '+t.name+' » (L)')))}return r}}
+// le bouton ⓘ (et la touche I) ouvrent / ferment l'inspecteur dans la nouvelle disposition
+document.addEventListener('click',e=>{if(isSmall()||!e.target.closest||!e.target.closest('#bInsp'))return;e.stopPropagation();e.preventDefault();togglePanelK('insp')},true);
+
+// ---------- glisser un panneau vers un bord (zone bleue) ou hors de la fenêtre (détacher) ----------
+let DOCK=null;
+function startDock(k,e){if(isSmall()||IS_TOUCH||e.button)return;DOCK={k,x0:e.clientX,y0:e.clientY,on:false,el:e.currentTarget,pid:e.pointerId};try{e.currentTarget.setPointerCapture(e.pointerId)}catch(err){}}
+function dockZoneAt(x,y,k){if(x<0||y<0||x>innerWidth||y>innerHeight)return'out';if(x<170)return'left';if(x>innerWidth-170)return'right';if(k==='lyr'&&y>innerHeight-150)return'bottom';return null}
+document.addEventListener('pointermove',e=>{if(!DOCK)return;if(!DOCK.on){if(Math.hypot(e.clientX-DOCK.x0,e.clientY-DOCK.y0)<8)return;DOCK.on=true;
+    const z=h('div',{id:'dockz'},h('div',{class:'dz left'},'⬅ Ranger à gauche'),h('div',{class:'dz right'},'Ranger à droite ➡'),DOCK.k==='lyr'&&h('div',{class:'dz bottom'},'⬇ Ranger en bas'),h('div',{class:'dz hint'},'Relâchez hors de la fenêtre pour détacher « '+PANEL_NAMES[DOCK.k]+' » (2ᵉ écran)'));document.body.append(z)}
+  const zone=dockZoneAt(e.clientX,e.clientY,DOCK.k);document.querySelectorAll('#dockz .dz').forEach(d=>d.classList.toggle('hot',d.classList.contains(zone||'-')||(zone==='out'&&d.classList.contains('hint'))))},true);
+document.addEventListener('pointerup',e=>{if(!DOCK)return;const d=DOCK;DOCK=null;const z=$('#dockz');if(z)z.remove();if(!d.on)return;
+  const zone=dockZoneAt(e.clientX,e.clientY,d.k);if(!zone)return;
+  if(zone==='out'){if(d.k==='chat')return detachOpen('chat');return detachOpen(d.k,d.k==='insp'?_gid.call(document,'insp'):ensureLyr())}
+  if(d.k==='chat'){C2.side=zone==='right'?'right':'left';savePanelPref();layoutPanel();drawPanel();return}
+  if(zone==='bottom')return lyrWhere('bottom');
+  UI[d.k].side=zone;if(d.k==='lyr')UI.lyr.where='side';UI[d.k].open=true;applyLayout();if(d.k==='lyr')renderLyrics();if(d.k==='insp')renderInspector()},true);
+// le panneau du chat se déplace aussi en glissant sa barre d'onglets
+document.addEventListener('pointerdown',e=>{const t=e.target.closest&&e.target.closest('#cpanel .ctabs');if(!t||e.target.closest('button,select,input')||isDetached('chat'))return;startDock('chat',e)},true);
+
+// ---------- 📝 paroles (projet + une par piste), comme le bloc-notes de Logic ----------
+const lyrTarget=()=>{const k=UI.lyr.tab;if(k!=='proj'&&!findTrack(k))UI.lyr.tab='proj';return UI.lyr.tab};
+const lyrGet=k=>k==='proj'?(P.lyrics||''):((findTrack(k)||{}).lyrics||'');
+function lyrSet(k,v){if(k==='proj')P.lyrics=v;else{const t=findTrack(k);if(t)t.lyrics=v}DIRTY=true}
+const lyrLocked=k=>COLLAB.on&&(COLLAB.viewer||(k!=='proj'&&lockedByOther(k)));
+function lyrWhere(w){UI.lyr.where=w;UI.lyr.open=true;if(isDetached('lyr'))detachClose('lyr');
+  if(w==='bottom'){applyLayout();TAB=null;setTab('lyrics')}else{if(TAB==='lyrics'){$('#bottom').classList.remove('open');TAB=null;renderBottom()}applyLayout()}renderLyrics();saveUI()}
+function renderLyrics(){if(!P)return;
+  const el=ensureLyr();el.innerHTML='';const k=lyrTarget(),locked=lyrLocked(k),fs=UI.lyr.font||16;
+  el.append(phead('lyr',h('span',{class:'lyrfs'},h('button',{title:'Texte plus petit',onclick:()=>{UI.lyr.font=Math.max(11,fs-2);saveUI();renderLyrics()}},'A−'),h('button',{title:'Texte plus grand',onclick:()=>{UI.lyr.font=Math.min(40,fs+2);saveUI();renderLyrics()}},'A+'))));
+  const sel=h('select',{class:'lyrsel',onchange:e=>{UI.lyr.tab=e.target.value;saveUI();renderLyrics()}},h('option',{value:'proj',selected:k==='proj'},'📄 Paroles du projet'),
+    (P.tracks||[]).map(t=>h('option',{value:t.id,selected:k===t.id},tIco(t)+' '+t.name+((t.lyrics||'').trim()?' ✎':''))));
+  const ta=h('textarea',{class:'lyrtxt',spellcheck:true,readonly:locked||null,style:{fontSize:fs+'px'},placeholder:k==='proj'?'Toutes les paroles du morceau…\n\n[1] Intro\n[5] Couplet 1 : …\n[13] Refrain : …\n\nAstuce : [5] en début de ligne = mesure 5 (le prompteur suit la lecture).':'Paroles de cette piste (couplet, ad-libs, backs…)',
+    onfocus:e=>{if(e.target.dataset.nosnap){delete e.target.dataset.nosnap;return}if(!locked)snapshot()},oninput:e=>{if(lyrLocked(k)){e.target.value=lyrGet(k);return lockToast(k,lockedByOther(k)||VIEW_LOCK)}lyrSet(k,e.target.value)},onkeydown:e=>e.stopPropagation()});
+  ta.value=lyrGet(k);
+  el.append(h('div',{class:'lyrbar'},sel,h('button',{title:'Afficher les paroles de la piste sélectionnée',onclick:()=>{const t=findTrack(SEL);if(t){UI.lyr.tab=t.id;saveUI();renderLyrics()}}},'↳ Piste sélectionnée')),
+    ta,h('div',{class:'lyrbar'},h('button',{title:'Insérer le repère de la mesure où est la tête de lecture',disabled:locked||null,onclick:()=>{const b='['+(Math.floor((E.playing?E.pos():PH)/P.sig)+1)+'] ',p=ta.selectionStart||0;
+        const ls=ta.value.lastIndexOf('\n',p-1)+1;snapshot();ta.value=ta.value.slice(0,ls)+b+ta.value.slice(ls);lyrSet(k,ta.value);ta.dataset.nosnap=1;ta.focus();ta.selectionStart=ta.selectionEnd=p+b.length}},'[ ] Mesure'),
+      h('button',{title:'Afficher les paroles en grand (prompteur)',onclick:()=>showPrompter(true)},'🎤 Prompteur'),
+      h('label',{class:'dim',title:'Afficher le prompteur automatiquement quand on enregistre'},h('input',{type:'checkbox',checked:UI.prompt,onchange:e=>{UI.prompt=e.target.checked;saveUI()}}),' auto à l’enregistrement')),
+    locked&&h('div',{class:'dim',style:{padding:'0 10px 8px'}},COLLAB.viewer?'👁 Écoute seule : lecture seulement.':'🔒 Piste verrouillée par '+lockedByOther(k).n+' : lecture seulement.'));
+  if(UI.lyr.where==='bottom'&&!isDetached('lyr')&&TAB==='lyrics'){const C=$('#bcontent');if(C&&el.parentNode!==C){C.innerHTML='';C.append(el)}el.style.display='';el.style.order=''}}
+function refreshLyrics(){const el=LYR_EL;if(!el||!el.isConnected)return;const ta=el.querySelector('.lyrtxt'),sel=el.querySelector('.lyrsel');if(!ta)return;
+  const k=lyrTarget();if(sel&&sel.value!==k)return renderLyrics();const v=lyrGet(k);if(ta.value===v){if(!!ta.readOnly!==!!lyrLocked(k))renderLyrics();return}
+  const doc=ta.ownerDocument,focused=doc.activeElement===ta,a=ta.value;let p0=ta.selectionStart,p1=ta.selectionEnd;
+  let s=0;while(s<a.length&&s<v.length&&a[s]===v[s])s++;const d=v.length-a.length;ta.value=v;
+  if(focused){if(p0>s)p0=Math.max(s,p0+d);if(p1>s)p1=Math.max(s,p1+d);ta.selectionStart=p0;ta.selectionEnd=p1}}
+{const o=renderAll;renderAll=function(){const r=o.apply(this,arguments);try{refreshLyrics();if(UI.lyr.open||isDetached('lyr')){const el=LYR_EL;if(el&&!el.querySelector('.lyrtxt'))renderLyrics()}}catch(e){}return r}}
+{const o=renderBottom;renderBottom=function(){const r=o.apply(this,arguments);const b=$('#btabs [data-tab=lyrics]');if(b)b.style.display=UI.lyr.where==='bottom'?'':'none';
+  if(TAB==='lyrics'&&$('#bottom').classList.contains('open')&&!isDetached('lyr'))renderLyrics();return r}}
+// les autres (en session) changent les paroles : l'affichage suit sans perdre le curseur
+setInterval(()=>{if(COLLAB.on)try{refreshLyrics()}catch(e){}},400);
+
+// ---------- 🎤 prompteur (paroles en grand pendant la prise) ----------
+let PROMPT=null;
+function prompterSrc(){const armed=(P.tracks||[]).find(t=>t.arm&&(t.lyrics||'').trim());if(armed)return{txt:armed.lyrics,src:armed.name};
+  const s=findTrack(SEL);if(s&&(s.lyrics||'').trim())return{txt:s.lyrics,src:s.name};if((P.lyrics||'').trim())return{txt:P.lyrics,src:'Projet'};
+  const k=UI.lyr.tab;if(k!=='proj'&&(lyrGet(k)||'').trim())return{txt:lyrGet(k),src:(findTrack(k)||{}).name};return null}
+function showPrompter(manual){hidePrompter();const s=prompterSrc();if(!s){if(manual)toast('Écrivez d’abord des paroles (touche L)');return}
+  const lines=s.txt.split('\n').map(l=>{const m=/^\s*\[(\d+)\]\s*/.exec(l);return{bar:m?+m[1]:null,txt:m?l.slice(m[0].length):l}});
+  const box=h('div',{class:'pbody',style:{fontSize:Math.round((UI.lyr.font||16)*1.9)+'px'}},lines.map((l,i)=>h('div',{class:'pl','data-i':i},l.txt||' ')));
+  const el=h('div',{id:'prompter'},h('div',{class:'phd'},h('span',null,'🎤 '+s.src),h('div',{style:{flex:1}}),h('button',{title:'Plus petit',onclick:()=>{UI.lyr.font=Math.max(11,(UI.lyr.font||16)-2);saveUI();showPrompter(PROMPT&&PROMPT.manual)}},'A−'),
+    h('button',{title:'Plus grand',onclick:()=>{UI.lyr.font=Math.min(40,(UI.lyr.font||16)+2);saveUI();showPrompter(PROMPT&&PROMPT.manual)}},'A+'),h('button',{title:'Fermer',onclick:hidePrompter},'✕')),box);
+  document.body.append(el);let last=-1;
+  PROMPT={el,manual,t:setInterval(()=>{const pos=SCRUB!=null?SCRUB:E.playing?E.pos():PH,bar=Math.floor(Math.max(0,pos)/P.sig)+1;let cur=-1;lines.forEach((l,i)=>{if(l.bar!=null&&l.bar<=bar)cur=i});
+    if(cur!==last){last=cur;box.querySelectorAll('.pl.cur').forEach(x=>x.classList.remove('cur'));const c=box.querySelector('.pl[data-i="'+cur+'"]');if(c){c.classList.add('cur');c.scrollIntoView({block:'center',behavior:'smooth'})}}},120)}}
+function hidePrompter(){if(!PROMPT)return;clearInterval(PROMPT.t);PROMPT.el.remove();PROMPT=null}
+{const o=toggleRecord;toggleRecord=async function(){const wasRec=!!REC;const r=await o.apply(this,arguments);if(!wasRec&&REC&&UI.prompt&&prompterSrc()&&!PROMPT)showPrompter(false);return r}}
+
+// ---------- 🎙 prises multiples : ré-enregistrer par-dessus garde les anciennes prises ----------
+let COMP=null;
+{const o=carve;carve=function(t,a,b){if(COMP&&t.type==='audio'){const sp=spb();for(const r of t.regions){const s=r.start,e=s+r.dur/sp;if(e<=a||s>=b)continue;
+    (COMP[t.id]||(COMP[t.id]=[])).push(...(r.takes&&r.takes.length?r.takes.map(k=>Object.assign({},k)):[{buf:r.buf,at:r.start-r.offset/sp,name:r.name||'Prise'}]))}}return o.apply(this,arguments)}}
+{const o=stopRecord;stopRecord=function(){const rec=REC;COMP={};let res;try{res=o.apply(this,arguments)}finally{const comp=COMP;COMP=null;let n=0;
+  if(rec&&comp)for(const tid of rec.tracks){const t=findTrack(tid),old=comp[tid];if(!t||!old||!old.length)continue;const nr=t.regions[t.regions.length-1];if(!nr||Math.abs(nr.start-rec.start)>1e-6||!nr.buf)continue;
+    const seen=new Set(),takes=[];for(const k of old){const key=k.buf+'@'+(+k.at).toFixed(4);if(seen.has(key)||!k.buf)continue;seen.add(key);takes.push(k)}
+    takes.push({buf:nr.buf,at:nr.start-nr.offset/spb()});takes.forEach((k,i)=>k.name='Prise '+(i+1));nr.takes=takes;nr.take=takes.length-1;nr.name='Prise '+takes.length+' / '+takes.length;n=takes.length}
+  if(n){renderLanes();if(COLLAB.on)collabFlush();toast('🎙 Prise '+n+' enregistrée, les précédentes sont gardées : clic sur 🎙 dans la région pour choisir, ✂ (Ctrl+T) pour mélanger les meilleurs bouts.',6000)}
+  if(PROMPT&&!PROMPT.manual)hidePrompter()}return res}}
+function setTake(t,r,i){const k=r.takes&&r.takes[i];if(!k)return;if(COLLAB.on&&lockedByOther(t.id))return lockToast(t.id,lockedByOther(t.id));snapshot();r.buf=k.buf;r.offset=(r.start-k.at)*spb();r.take=i;r.name='Prise '+(i+1)+' / '+r.takes.length;renderLanes();if(COLLAB.on)collabFlush()}
+function takeMenu(e,t,r){menu(e,['Prises de cette région',...r.takes.map((k,i)=>[(i===r.take?'✔ ':'   ')+k.name,()=>setTake(t,r,i)]),'-',
+  ['✂ Couper à la tête de lecture (pour mélanger les prises)',()=>{SELR=new Set([r.id]);splitAtPH()}],['🧹 Garder seulement la prise choisie',()=>{snapshot();delete r.takes;delete r.take;r.name='Prise';renderLanes();if(COLLAB.on)collabFlush()}]])}
+{const o=regionEl;regionEl=function(t,r){const e=o.apply(this,arguments);if(r.takes&&r.takes.length>1)e.append(h('div',{class:'tk',title:'Prises : cliquer pour choisir',onpointerdown:ev=>ev.stopPropagation(),
+  onclick:ev=>{ev.stopPropagation();takeMenu(ev,t,r)}},'🎙 '+((r.take!=null?r.take:r.takes.length-1)+1)+'/'+r.takes.length));return e}}
+document.addEventListener('keydown',e=>{if(!(e.altKey&&(e.key==='ArrowUp'||e.key==='ArrowDown'))||/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))return; // Alt+↑/↓ : prise suivante / précédente
+  const ids=[...SELR];if(ids.length!==1)return;const f=findRegion(ids[0]);if(!f||!f[1].takes||f[1].takes.length<2)return;e.preventDefault();e.stopPropagation();const [t,r]=f,n=r.takes.length;setTake(t,r,((r.take||0)+(e.key==='ArrowUp'?-1:1)+n)%n)},true);
+
+// ---------- 📌 notes « tout le morceau » dans la règle + clic droit sur une piste ----------
+let NHITS=[];
+{const o=drawRuler;drawRuler=function(){const r=o.apply(this,arguments);try{drawNotePins()}catch(e){}return r}}
+function drawNotePins(){NHITS=[];const list=(P&&P.cmts||[]).filter(c=>!c.tid||!findTrack(c.tid));if(!list.length)return;const cv=$('#rulerCv'),R=$('#ruler');if(!cv||!R)return;
+  const dp=window.devicePixelRatio||1,g=cv.getContext('2d'),sl=$('#lanesWrap').scrollLeft,w=R.clientWidth;g.setTransform(dp,0,0,dp,0,0);g.font='700 8px -apple-system,Segoe UI,Roboto,sans-serif';g.textAlign='center';
+  for(const c of list){const x=c.beat*PPB-sl;if(x<-8||x>w+8)continue;g.fillStyle=c.done?'#6e6e73':(c.c||'#ffd60a');g.beginPath();g.arc(x,6,5.5,0,7);g.fill();g.fillStyle='#fff';g.fillText(c.done?'✔':(c.n||'?').slice(0,1).toUpperCase(),x,9);NHITS.push({c,x})}g.textAlign='left'}
+const notePinAt=e=>{const R=$('#ruler').getBoundingClientRect(),x=e.clientX-R.left,y=e.clientY-R.top;if(y>13)return null;let best=null,bd=8;for(const k of NHITS){const d=Math.abs(k.x-x);if(d<bd){bd=d;best=k.c}}return best};
+document.addEventListener('pointerdown',e=>{if(e.button||!e.target.closest||!e.target.closest('#ruler'))return;const c=notePinAt(e);if(!c)return;e.stopPropagation();e.preventDefault();C2.hi=c.id;openPanel('cmts');renderPins()},true);
+document.addEventListener('mousemove',e=>{let tip=_gid.call(document,'ntip');const inR=e.target.closest&&e.target.closest('#ruler'),c=inR&&notePinAt(e);
+  if(!c){if(tip)tip.remove();return}if(!tip){tip=h('div',{id:'ntip'});document.body.append(tip)}tip.textContent='📌 '+c.n+' · '+fmtBar(c.beat)+(c.done?' · ✔ résolue':'')+' — '+c.x+((c.rep||[]).length?' ('+c.rep.length+' réponse'+(c.rep.length>1?'s':'')+')':'');
+  tip.style.left=Math.min(e.clientX+12,innerWidth-tip.offsetWidth-8)+'px';tip.style.top=(e.clientY+16)+'px'});
+document.addEventListener('contextmenu',e=>{if(!e.target.closest||!e.target.closest('#lanes')||e.target.closest('.reg,.cpin'))return;const ln=e.target.closest('.lane');if(!ln)return;e.preventDefault();e.stopPropagation();
+  const t=findTrack(ln.dataset.t),L=$('#lanes').getBoundingClientRect(),b=Math.max(0,snapB((e.clientX-L.left)/PPB,1)),bm=snapB(b,P.sig);
+  menu(e,[t?t.name:'Piste',['📌 Ajouter une note ici, sur cette piste ('+fmtBar(b)+')',()=>askComment(b,t&&t.id)],['📌 Note pour tout le morceau ici',()=>askComment(b,'')],
+    !COLLAB.viewer&&['🏷 Ajouter un marqueur ici ('+fmtBar(bm)+')',()=>markAdd(bm)],t&&['📝 Paroles de cette piste',()=>{UI.lyr.tab=t.id;togglePanelK('lyr',true);renderLyrics()}]].filter(Boolean))},true);
+
+// ---------- 🎯 mode focus (F) ----------
+function toggleFocus(){UI.focus=!UI.focus;applyLayout();layoutPanel();toast(UI.focus?'🎯 Mode focus : seulement les pistes. F (ou Échap) pour tout réafficher.':'Mode focus désactivé',3000)}
+
+// ---------- 🖥 dispositions enregistrées (1, 2, 3) ----------
+const SCREEN_DEF={1:{n:'Écriture',insp:{open:false},lyr:{open:true,where:'side',side:'left',w:380},chat:{open:true,side:'right',tab:'chat'},bottom:{open:false}},
+  2:{n:'Enregistrement',insp:{open:true,side:'left'},lyr:{open:true,where:'side',side:'left',w:420,font:20},chat:{open:false},bottom:{open:false},prompt:true},
+  3:{n:'Mix',insp:{open:true,side:'left'},lyr:{open:false},chat:{open:false},bottom:{open:true,tab:'mixer',h:.55}}};
+const SCREENS=()=>{const s=JSON.parse(JSON.stringify(SCREEN_DEF));try{Object.assign(s,JSON.parse(localStorage.getItem('studio_screens')||'{}'))}catch(e){}return s};
+function captureScreen(n){const B=$('#bottom');return{n,insp:Object.assign({},UI.insp),lyr:Object.assign({},UI.lyr),prompt:UI.prompt,chat:{open:C2.open,side:C2.side,w:C2.w,tab:C2.tab},
+  bottom:{open:!!(B&&B.classList.contains('open')),tab:TAB,h:B?Math.round(B.offsetHeight/innerHeight*100)/100:.35}}}
+function saveScreen(i,name){const all=(()=>{try{return JSON.parse(localStorage.getItem('studio_screens')||'{}')}catch(e){return{}}})();all[i]=captureScreen(name||SCREENS()[i].n);try{localStorage.setItem('studio_screens',JSON.stringify(all))}catch(e){}toast('🖥 Disposition '+i+' « '+all[i].n+' » enregistrée')}
+function applyScreen(i){const s=SCREENS()[i];if(!s)return;UI.focus=false;Object.assign(UI.insp,s.insp||{});Object.assign(UI.lyr,s.lyr||{});if(s.prompt!=null)UI.prompt=s.prompt;
+  if(s.chat&&s.chat.open){if(s.chat.side)C2.side=s.chat.side;if(s.chat.w)C2.w=s.chat.w;savePanelPref();openPanel(s.chat.tab==='chat'&&!COLLAB.on?'cmts':(s.chat.tab||'cmts'))}else if(C2.open&&!isDetached('chat'))closePanel();
+  const B=$('#bottom');if(!isDetached('bottom')&&B){if(s.bottom&&s.bottom.open){if(s.bottom.h)document.documentElement.style.setProperty('--bh',Math.round(clamp(s.bottom.h,.15,.8)*innerHeight)+'px');
+      const tb=s.bottom.tab==='lyrics'&&UI.lyr.where!=='bottom'?'mixer':(s.bottom.tab||'mixer');TAB=tb;B.classList.add('open');renderBottom()}
+    else if(!(UI.lyr.where==='bottom'&&UI.lyr.open)){B.classList.remove('open');TAB=null;renderBottom()}}
+  if(UI.lyr.open&&UI.lyr.where==='bottom'){TAB=null;setTab('lyrics')}
+  applyLayout();renderLyrics();renderInspector();layoutPanel();saveUI();toast('🖥 Disposition '+i+' · '+s.n,2200)}
+function resetLayout(){for(const k of Object.keys(DET.w))detachClose(k);try{['studio_ui','studio_cpanel','studio_layout'].forEach(k=>localStorage.removeItem(k))}catch(e){}
+  Object.assign(UI.insp,{open:true,w:236,side:'left'});Object.assign(UI.lyr,{open:false,w:340,side:'left',where:'side',font:16});UI.focus=false;C2.w=330;C2.side='right';
+  document.documentElement.style.removeProperty('--bh');if(C2.open)closePanel();applyLayout();renderLyrics();renderInspector();toast('Disposition réinitialisée')}
+function screensModal(){const box=h('div'),m=modal(box);const draw=()=>{box.innerHTML='';const S=SCREENS();
+  box.append(h('h2',null,'🖥 Dispositions et panneaux'),h('p',{style:{color:'var(--dim)'}},'Une disposition retient quels panneaux sont ouverts, leur côté et leur taille. Passez de l’une à l’autre avec les touches 1, 2, 3.'),
+    [1,2,3].map(i=>{const nm=h('input',{type:'text',value:S[i].n,maxlength:30,style:{width:'150px'},onkeydown:e=>e.stopPropagation()});
+      return h('div',{class:'kv2'},h('span',null,h('kbd',null,i),' ',nm),h('span',{style:{display:'flex',gap:'6px'}},h('button',{onclick:()=>{m.remove();applyScreen(i)}},'Afficher'),h('button',{title:'Enregistrer la disposition actuelle à cette place',onclick:()=>{saveScreen(i,nm.value.trim()||S[i].n);draw()}},'💾 Mettre la disposition actuelle')))}),
+    h('h4',null,'Panneaux'),
+    h('div',{class:'kv2'},'ⓘ Inspecteur',h('kbd',null,'I')),h('div',{class:'kv2'},'📝 Paroles',h('kbd',null,'L')),h('div',{class:'kv2'},'🎚 Mixeur',h('kbd',null,'X')),h('div',{class:'kv2'},'💬 Chat (en session)',h('kbd',null,'T')),
+    h('div',{class:'kv2'},'📌 Notes et marqueurs',h('kbd',null,'N')),h('div',{class:'kv2'},'🎯 Mode focus (seulement les pistes)',h('kbd',null,'F')),
+    h('p',{style:{color:'var(--dim)',fontSize:'11px'}},'Chaque panneau : tirez son bord pour le redimensionner, glissez son titre vers la gauche / la droite (ou en bas pour les paroles) pour le ranger, ou hors de la fenêtre pour le détacher sur un 2ᵉ écran. Les pistes et leurs noms restent toujours à leur place.'),
+    h('div',{style:{display:'flex',gap:'8px',marginTop:'8px'}},h('button',{onclick:()=>{m.remove();toggleFocus()}},'🎯 Mode focus'),h('button',{onclick:()=>{m.remove();resetLayout()}},'↺ Réinitialiser la disposition')))};draw()}
+
+// ---------- raccourcis ----------
+document.addEventListener('keydown',e=>{
+  const tg=e.target.tagName;if(/^(INPUT|SELECT|TEXTAREA)$/.test(tg)&&e.target.type!=='range')return;if(e.ctrlKey||e.metaKey||e.altKey||TYPING)return;
+  const k=e.key.toLowerCase(),dg=/^(Digit|Numpad)([123])$/.exec(e.code||'');
+  if(dg&&!e.shiftKey){e.preventDefault();applyScreen(+dg[2]);return}
+  if(e.shiftKey)return;
+  if(k==='l'){e.preventDefault();togglePanelK('lyr');return}
+  if(k==='t'){e.preventDefault();if(COLLAB.on)C2.open&&C2.tab==='chat'?closePanel():openPanel('chat');else toast('Le chat marche en session : ☰ Fichier → 👥 Session à plusieurs');return}
+  if(k==='n'){e.preventDefault();C2.open&&C2.tab==='cmts'?closePanel():openPanel('cmts');return}
+  if(k==='f'){e.preventDefault();toggleFocus();return}
+  if(k==='escape'&&UI.focus){toggleFocus();return}});
+{const o=shortcutsModal;shortcutsModal=function(){const r=o.apply(this,arguments);const ms=document.querySelectorAll('.modal .box'),b=ms[ms.length-1];
+  if(b)b.append(h('h4',null,'Panneaux et dispositions (v3.7)'),h('p',null,h('kbd',null,'1'),' ',h('kbd',null,'2'),' ',h('kbd',null,'3'),' dispositions · ',h('kbd',null,'L'),' paroles · ',h('kbd',null,'T'),' chat · ',h('kbd',null,'N'),' notes · ',h('kbd',null,'F'),' mode focus · ',h('kbd',null,'Alt'),'+',h('kbd',null,'↑'),h('kbd',null,'↓'),' changer de prise'));return r}}
+
+// ---------- barre d'outils : ce qui ne tient pas va dans « ⋯ » ----------
+function fitTools(){const T=$('#arrtools');if(!T||T.closest('.detached'))return;let more=_gid.call(document,'bToolsMore');
+  if(!more){more=h('button',{id:'bToolsMore',title:'Plus d’outils',onclick:e=>{const items=[...T.children].filter(x=>x!==more&&x.dataset.hid&&x.tagName==='BUTTON');
+    menu(e,['Outils',...items.map(x=>[(x.textContent.trim()+' '+(x.title||'')).trim(),()=>x.click()])])}},'⋯');T.append(more)}
+  const kids=[...T.children].filter(x=>x!==more);kids.forEach(x=>{if(x.dataset.hid){x.style.display='';delete x.dataset.hid}});more.style.display='none';
+  if(T.scrollWidth<=T.clientWidth+1)return;more.style.display='';
+  for(let i=kids.length-1;i>=0&&T.scrollWidth>T.clientWidth+1;i--){const x=kids[i];if(x.tagName==='SELECT'||x.id==='bAdd')continue;x.style.display='none';x.dataset.hid='1'}}
+addEventListener('resize',()=>{clearTimeout(fitTools.t);fitTools.t=setTimeout(()=>{applyLayout();fitTools()},120)});
+
+// ---------- démarrage ----------
+addEventListener('load',function boot11(){if(typeof P==='undefined'||!P||!E)return setTimeout(boot11,60); // attendre que le projet soit chargé
+  setTimeout(()=>{
+  const T=$('#arrtools'),sn=$('#snapSel'),pin=$('#bNotes');
+  if(T&&sn){const after=sn.nextSibling;if(pin)T.insertBefore(pin,after);
+    T.insertBefore(h('button',{id:'bLyr',title:'Paroles du projet et des pistes (L)',onclick:()=>togglePanelK('lyr')},'📝'),pin?pin.nextSibling:after);
+    T.insertBefore(h('button',{id:'bScreens',title:'Dispositions et panneaux (1, 2, 3, F)',onclick:screensModal},'🖥'),$('#bLyr').nextSibling)}
+  const bt=$('#btabs');if(bt&&!bt.querySelector('[data-tab=lyrics]')){const b=h('button',{'data-tab':'lyrics',style:{display:UI.lyr.where==='bottom'?'':'none'},onclick:()=>setTab('lyrics')},'📝 Paroles');const ref=bt.querySelector('.sp');bt.insertBefore(b,ref||null)}
+  if(!UI.insp.open&&!isSmall())_gid.call(document,'main').classList.add('noinsp');
+  applyLayout();renderLyrics();renderInspector();fitTools();
+  if(UI.lyr.open&&UI.lyr.where==='bottom'&&!isSmall()){TAB=null;setTab('lyrics')}},50)});
+// bibliothèque de plugins : détachable aussi
+{const o=renderLibrary;renderLibrary=function(){const r=o.apply(this,arguments);const hd=$('#library .lib-hd');if(hd&&!hd.querySelector('.detb')&&!IS_TOUCH&&!isSmall()){const det=isDetached('library');
+  hd.append(h('button',{class:'detb',title:det?'Remettre dans la fenêtre principale':'Détacher dans une fenêtre (2ᵉ écran)',onclick:()=>isDetached('library')?detachClose('library'):detachOpen('library',_gid.call(document,'library'))},det?'⤓':'⧉'))}return r}}
 </script>
 </body></html>

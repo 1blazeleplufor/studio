@@ -108,11 +108,12 @@ function panelHost(){return isDetached('chat')?DET.w.chat.win.document.body:docu
 const LAY=()=>{try{return JSON.parse(localStorage.getItem('studio_layout')||'{}')}catch(e){return{}}};
 function laySet(k,o){const l=LAY();l[k]=Object.assign(l[k]||{},o);try{localStorage.setItem('studio_layout',JSON.stringify(l))}catch(e){}}
 function laySave(kind){const d=DET.w[kind];if(!d)return;try{const w=d.win;if(w.closed)return;laySet(d.lk,{x:w.screenX,y:w.screenY,w:w.outerWidth,h:w.outerHeight})}catch(e){}}
-const DET_TITLES={chat:'Chat · notes',bottom:'Mixeur · Piano Roll · Batterie',plug:'Effet'};
+const DET_TITLES={chat:'Chat · notes',bottom:'Mixeur · Piano Roll · Batterie',plug:'Effet',insp:'Inspecteur',lyr:'Paroles',library:'Bibliothèque de plugins'};
+const DET_HOME=['bottom','insp','lyr','library']; // ces panneaux reviennent à leur place quand on ferme la fenêtre
 function detachOpen(kind,el){
   if(IS_TOUCH||isSmall())return toast('Les fenêtres détachables sont disponibles sur ordinateur');
   if(isDetached(kind)){DET.w[kind].win.focus();return}
-  const lk=kind.startsWith('plug:')?'plug':kind,L=LAY()[lk]||{},def={chat:[400,720],bottom:[1180,460],plug:[620,520]}[lk];
+  const lk=kind.startsWith('plug:')?'plug':kind,L=LAY()[lk]||{},def={chat:[400,720],bottom:[1180,460],plug:[620,520],insp:[300,760],lyr:[460,760],library:[380,760]}[lk];
   const W=L.w||def[0],H=L.h||def[1],X=L.x!=null?L.x:screenX+80,Y=L.y!=null?L.y:screenY+80;
   const win=window.open('','studio_'+kind.replace(/\W/g,'_'),'popup=yes,width='+W+',height='+H+',left='+X+',top='+Y);
   if(!win)return toast('Le navigateur a bloqué la fenêtre : autorisez les fenêtres pop-up pour ce site, puis réessayez.',6000);
@@ -130,14 +131,16 @@ function detachOpen(kind,el){
   win.addEventListener('pointerdown',()=>{try{ctx.resume()}catch(e){}},true);
   win.addEventListener('pagehide',()=>{laySave(kind);setTimeout(()=>detachReturn(kind),0)});win.addEventListener('resize',()=>laySave(kind));
   laySet(lk==='plug'?'plugx':lk,{open:lk==='plug'?0:1});document.body.classList.add('det-'+lk);
-  if(kind==='chat'){C2.open=true;drawPanel();layoutPanel()}else if(kind==='bottom'){renderBottom();updDetBtn()}else el.style.left=el.style.top='';
+  if(kind==='chat'){C2.open=true;drawPanel();layoutPanel()}else if(kind==='bottom'){renderBottom();updDetBtn()}else{el.style.left=el.style.top='';el.style.display=''}
+  if(typeof applyLayout==='function')applyLayout();if(kind==='lyr'&&typeof renderLyrics==='function')renderLyrics();if(kind==='insp')renderInspector();
   try{drawRuler();schedulePaint()}catch(e){}toast('⧉ Fenêtre détachée : déplacez-la sur votre 2ᵉ écran. Fermez-la pour la remettre ici.',4500)}
 function detachReturn(kind){const d=DET.w[kind];if(!d)return;delete DET.w[kind];const el=d.el;
   if(!DET.unloading)laySet(d.lk,{open:0});document.body.classList.toggle('det-'+d.lk,Object.values(DET.w).some(x=>x.lk===d.lk));
   if(kind==='chat'){el.remove();if(C2.open)drawPanel();layoutPanel()}
-  else if(kind==='bottom'){try{d.home.parent.insertBefore(el,d.home.next&&d.home.next.parentNode===d.home.parent?d.home.next:null)}catch(e){_gid.call(document,'app').append(el)}renderBottom();updDetBtn()}
+  else if(DET_HOME.includes(kind)){try{d.home.parent.insertBefore(el,d.home.next&&d.home.next.parentNode===d.home.parent?d.home.next:null)}catch(e){_gid.call(document,'app').append(el)}
+    if(kind==='bottom'){renderBottom();updDetBtn()}if(kind==='insp')renderInspector();if(kind==='lyr'&&typeof renderLyrics==='function')renderLyrics()}
   else{el.remove();for(const k in WINS)if(WINS[k].el===el)delete WINS[k]}
-  try{drawRuler();schedulePaint()}catch(e){}}
+  if(typeof applyLayout==='function')applyLayout();try{drawRuler();schedulePaint()}catch(e){}}
 function detachClose(kind){const d=DET.w[kind];if(!d)return;laySave(kind);try{d.win.close()}catch(e){}detachReturn(kind)}
 function updDetBtn(){const b=$('#bDetBottom');if(b){const on=isDetached('bottom');b.textContent=on?'⤓':'⧉';b.title=on?'Remettre le panneau dans la fenêtre principale':'Détacher le panneau (mixeur, piano roll, batterie) dans une fenêtre : 2ᵉ écran'}}
 setInterval(()=>{for(const k in DET.w){const d=DET.w[k];let gone=false;try{gone=d.win.closed||!d.el.isConnected||d.el.ownerDocument!==d.win.document}catch(e){gone=true}
@@ -153,8 +156,8 @@ addEventListener('pagehide',()=>{DET.unloading=true;for(const k in DET.w)try{DET
   doc.body.append(m);const w=doc.defaultView,r=m.getBoundingClientRect();m.style.left=Math.min(e.clientX,w.innerWidth-r.width-6)+'px';m.style.top=Math.min(e.clientY,w.innerHeight-r.height-6)+'px';
   setTimeout(()=>doc.addEventListener('pointerdown',closeMenuOut,true),0)}}
 // disposition mémorisée : proposer de rouvrir les fenêtres qui étaient détachées (un clic = autorisé par le navigateur)
-function restoreBanner(){if(IS_TOUCH||isSmall())return;const l=LAY(),ks=['chat','bottom'].filter(k=>l[k]&&l[k].open);if(!ks.length)return;
-  const b=h('div',{id:'detBanner'},h('span',null,'⧉ Rouvrir vos fenêtres détachées :'),ks.map(k=>h('button',{onclick:e=>{e.target.remove();detachOpen(k);if(!b.querySelector('button.k'))b.remove()},class:'k'},k==='chat'?'💬 Chat':'🎚 Mixeur')),
+function restoreBanner(){if(IS_TOUCH||isSmall())return;const l=LAY(),ks=['chat','bottom','insp','lyr'].filter(k=>l[k]&&l[k].open);if(!ks.length)return;
+  const b=h('div',{id:'detBanner'},h('span',null,'⧉ Rouvrir vos fenêtres détachées :'),ks.map(k=>h('button',{onclick:e=>{e.target.remove();detachOpen(k,k==='insp'?_gid.call(document,'insp'):k==='lyr'?ensureLyr():undefined);if(!b.querySelector('button.k'))b.remove()},class:'k'},{chat:'💬 Chat',bottom:'🎚 Mixeur',insp:'ⓘ Inspecteur',lyr:'📝 Paroles'}[k])),
     window.getScreenDetails&&h('button',{title:'Permet de rouvrir les fenêtres directement sur le 2ᵉ écran',onclick:async()=>{try{await window.getScreenDetails();toast('2ᵉ écran autorisé ✔')}catch(e){toast('Autorisation refusée')}}},'🖥 Autoriser le 2ᵉ écran'),
     h('button',{title:'Ne plus proposer',onclick:()=>{ks.forEach(k=>laySet(k,{open:0}));b.remove()}},'✕'));
   document.body.append(b);setTimeout(()=>{if(b.isConnected)b.remove()},30000)}

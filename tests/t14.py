@@ -20,7 +20,7 @@ async def main():
     await c.add_init_script("localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.0');localStorage.setItem('studio_user',JSON.stringify({name:'X',color:'#30d158'}));localStorage.setItem('studio_supa',JSON.stringify({url:'http://localhost:8790',key:'test'}))")
     pages=[]
     for i in range(3):
-      pg=await c.new_page();pg.on('pageerror',lambda e,i=i: errs.append(f'{i}:{e}'));pages.append(pg)
+      pg=await c.new_page();pg.on('pageerror',lambda e,i=i: errs.append(f'{i}:{e} {e.stack[:600] if hasattr(e,"stack") and e.stack else ""}'));pages.append(pg)
     # 3 arrivées quasi simultanées dans une salle vide
     await asyncio.gather(*[pg.goto(URL+'#room=course1') for pg in pages]);await pages[0].wait_for_timeout(7000)
     st=await asyncio.gather(*[pg.evaluate("[COLLAB.synced,P.tracks.map(t=>t.id).join(','),Object.keys(COLLAB.peers).length]") for pg in pages])

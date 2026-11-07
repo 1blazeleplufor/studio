@@ -317,3 +317,36 @@ body.cp-open #bTyping,body.cp-open #bMidi{display:none}
 /* panneau latéral ouvert à côté de l'appli : barre du haut plus compacte */
 body.cp-open #bar{gap:4px;padding:0 6px}body.cp-open #lcd .cell.tm,body.cp-open #bCount,body.cp-open #bStart{display:none}
 body.cp-open #scaleSel{max-width:76px}body.cp-open #keySel{max-width:46px}body.cp-open #lcd .cell{padding-left:5px;padding-right:5px}
+/* v3.7 : panneaux fluides, paroles, prompteur, focus, prises, notes dans la règle */
+#main{position:relative}
+#main>.pgrip{position:absolute;top:0;bottom:0;width:6px;cursor:ew-resize;z-index:30}#main>.pgrip:hover,#main>.pgrip.on{background:rgba(79,163,255,.45)}
+#insp.pright,#lyr.pright{border-right:none;border-left:1px solid var(--line)}
+.phead{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:4px;padding:4px 6px 4px 10px;background:#2c2c30;border-bottom:1px solid var(--line);cursor:grab;user-select:none;min-height:28px}
+.phead b{font-size:11px;color:#cfcfd4;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}.phead button{font-size:11px;padding:1px 6px;min-height:0}
+#insp>.phead{margin-bottom:2px}
+#lyr{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+#lyr .lyrbar{display:flex;gap:5px;align-items:center;padding:6px 8px;flex-wrap:wrap}#lyr .lyrbar select{flex:1;min-width:0}
+#lyr .lyrbar label{display:flex;align-items:center;gap:3px;font-size:11px}
+#lyr .lyrtxt{flex:1;min-height:120px;margin:0 8px;background:#151517;color:#f2f2f4;border:1px solid #3a3a40;border-radius:6px;padding:10px 12px;line-height:1.5;resize:none;font-family:inherit}
+#lyr .lyrtxt:focus{outline:none;border-color:#4fa3ff}#lyr .lyrtxt[readonly]{opacity:.75}
+#lyr .lyrfs button{font-size:10px;padding:1px 5px}
+#bcontent>#lyr{height:100%;border:none}
+#lyr.mob{position:fixed;left:0;right:0;top:52px;bottom:0;z-index:41;box-shadow:0 0 30px rgba(0,0,0,.6)}
+#dockz{position:fixed;inset:0;z-index:90;pointer-events:none}#dockz .dz{position:absolute;display:flex;align-items:center;justify-content:center;color:#cfe3ff;font-weight:700;font-size:13px;
+  background:rgba(79,163,255,.12);border:2px dashed rgba(79,163,255,.5);border-radius:10px;transition:background .1s}
+#dockz .dz.left{left:8px;top:60px;bottom:8px;width:150px}#dockz .dz.right{right:8px;top:60px;bottom:8px;width:150px}#dockz .dz.bottom{left:170px;right:170px;bottom:8px;height:130px}
+#dockz .dz.hint{left:50%;top:60px;transform:translateX(-50%);padding:8px 14px;background:rgba(30,30,34,.9);border-style:solid}
+#dockz .dz.hot{background:rgba(79,163,255,.45);border-color:#4fa3ff;color:#fff}
+#prompter{position:fixed;left:50%;top:64px;transform:translateX(-50%);width:min(860px,80vw);max-height:46vh;z-index:58;background:rgba(14,14,16,.92);border:1px solid #3a3a40;border-radius:14px;
+  box-shadow:0 12px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;backdrop-filter:blur(6px)}
+#prompter .phd{display:flex;gap:6px;align-items:center;padding:6px 10px;color:var(--dim);font-size:12px;border-bottom:1px solid #2c2c30}#prompter .phd button{font-size:11px;padding:1px 6px}
+#prompter .pbody{overflow:auto;padding:12px 22px 40px;line-height:1.35;font-weight:600;color:#9a9aa2}#prompter .pl{padding:2px 0;transition:color .15s}#prompter .pl.cur{color:#fff;text-shadow:0 0 18px rgba(79,163,255,.6)}
+.reg .tk{position:absolute;right:3px;top:2px;z-index:3;background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:700;border-radius:8px;padding:1px 6px;cursor:pointer}.reg .tk:hover{background:#2b6fd6}
+#ntip{position:fixed;z-index:95;max-width:320px;background:#111;color:#eee;border:1px solid #3a3a40;border-radius:6px;padding:5px 8px;font-size:12px;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+#lanes .cpin.done{background:#6e6e73!important;opacity:.85}#lanes .cline.done{opacity:.3}
+#cpanel .ntrack{width:100%;margin:4px 0}
+#cpanel .ctabs{cursor:grab}
+body.focus #bottom,body.focus #resizer,body.focus #cpanel,body.focus #library{display:none!important}body.focus.cp-open #app{width:100vw;margin-left:0}
+body.detached.det-insp #insp,body.detached.det-lyr #lyr,body.detached.det-library #library{position:static!important;display:flex;width:100%!important;height:100vh;border:none;box-shadow:none;transform:none!important}
+body.detached.det-insp #insp{display:block;overflow:auto}
+@media (max-width:1500px){body.collab #bTyping,body.collab #bMidi{display:none}}

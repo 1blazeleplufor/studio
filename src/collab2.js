@@ -40,7 +40,7 @@ function chatSend(x,extra){x=(x||'').trim().slice(0,1000);if(!x&&!extra)return;i
 COLLAB_H.vmsg=(m,via)=>{if(via!=='v'||!isRelay()||!COLLAB.synced||!m.user)return;const who={u:m.user.id,n:(m.user.name||'?').slice(0,20)+' 👁',c:m.user.color,v:1};
   if(m.kind==='chat'&&m.x){const a=CHAT();COLLAB.doc.transact(()=>{a.push([Object.assign({id:uid('m'),t:Date.now(),x:String(m.x).slice(0,1000)},who)]);if(a.length>300)a.delete(0,a.length-300)},'chat')}
   if(m.kind==='voc'&&m.voc&&/^[a-z0-9]{12}$/.test(m.voc.f)&&/^(webm|m4a|ogg)$/.test(m.voc.ext)){const a=CHAT();COLLAB.doc.transact(()=>{a.push([Object.assign({id:uid('m'),t:Date.now(),x:'🎤 message vocal',voc:{f:m.voc.f,ext:m.voc.ext,type:String(m.voc.type||''),dur:+m.voc.dur||0}},who)]);if(a.length>300)a.delete(0,a.length-300)},'chat')}
-  if(m.kind==='cmt'&&m.x&&typeof m.beat==='number')cmtAdd(m.beat,String(m.x).slice(0,1000),who);
+  if(m.kind==='cmt'&&m.x&&typeof m.beat==='number')cmtAdd(m.beat,String(m.x).slice(0,1000),who,typeof m.tid==='string'?m.tid:'');
   if(m.kind==='rep'&&m.x&&m.cid)cmtReply(m.cid,String(m.x).slice(0,1000),who)};
 function onChatChange(ev){
   if(ev.transaction.origin==='remote'||ev.transaction.origin==='relay'){const added=[];ev.changes.added.forEach(it=>it.content.getContent().forEach(x=>added.push(x)));
@@ -51,8 +51,9 @@ function onChatChange(ev){
 // P.cmts = [{id,beat,u,n,c,t,x,done,rep:[{u,n,c,t,x}]}] ; P.marks = [{id,beat,name,color}] (marqueurs de structure)
 const cmtArr=()=>P&&(P.cmts||(P.cmts=[]));
 function cmtChanged(){DIRTY=true;if(COLLAB.on&&COLLAB.synced)collabFlush();renderPins();if(C2.open&&(C2.tab==='cmts'||C2.tab==='marks'))drawPanel()}
-function cmtAdd(beat,x,who){if(COLLAB.on&&COLLAB.viewer&&!who)return send({k:'vmsg',kind:'cmt',beat,x});
-  const w=who||meUser();snapshot();cmtArr().push({id:uid('c'),beat:Math.max(0,beat),u:w.u,n:w.n,c:w.c,t:Date.now(),x,done:false,rep:[]});cmtChanged()}
+function cmtAdd(beat,x,who,tid){if(COLLAB.on&&COLLAB.viewer&&!who)return send({k:'vmsg',kind:'cmt',beat,x,tid:tid||''});
+  const w=who||meUser(),o={id:uid('c'),beat:Math.max(0,beat),u:w.u,n:w.n,c:w.c,t:Date.now(),x,done:false,rep:[]};if(tid&&findTrack(tid))o.tid=tid;
+  snapshot();cmtArr().push(o);cmtChanged()}
 const cmtFind=id=>((P&&P.cmts)||[]).find(c=>c.id===id);
 function cmtReply(id,x,who){if(COLLAB.on&&COLLAB.viewer&&!who)return send({k:'vmsg',kind:'rep',cid:id,x});const c=cmtFind(id);if(!c)return;
   snapshot();(c.rep||(c.rep=[])).push(Object.assign({t:Date.now(),x},who||meUser()));cmtChanged()}
@@ -64,12 +65,13 @@ function renderPins(){
   const list=cmtList();
   if(C2.knownC){for(const c of list)if(!C2.knownC.has(c.id)&&c.u!==ME.id&&COLLAB.on)toast('📌 '+c.n+' a commenté '+fmtBar(c.beat)+' : '+String(c.x).slice(0,60),3500)}
   C2.knownC=new Set(list.map(c=>c.id));
-  for(const c of list){if(c.done&&!C2.showDone)continue;const x=c.beat*PPB;
-    L.append(h('div',{class:'cline'+(c.done?' done':''),style:{left:x+'px','--cc':c.c}}),
-      h('div',{class:'cpin'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{left:x+'px','--cc':c.c},title:c.n+' ('+fmtBar(c.beat)+') : '+c.x,
-        onpointerdown:e=>e.stopPropagation(),onclick:e=>{e.stopPropagation();C2.hi=c.id;openPanel('cmts')}},'📌 '+(c.n||'?').slice(0,1).toUpperCase()+((c.rep&&c.rep.length)?' '+(c.rep.length+1):'')))}
+  for(const c of list){const x=c.beat*PPB,ti=c.tid?P.tracks.findIndex(t=>t.id===c.tid):-1,pos=ti>=0?{top:ti*TH+'px',bottom:'auto',height:TH+'px'}:{};
+    L.append(h('div',{class:'cline'+(c.done?' done':''),style:Object.assign({left:x+'px','--cc':c.c},pos)}),
+      ti>=0&&h('div',{class:'cpin'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{left:x+'px',top:(ti*TH+2)+'px','--cc':c.c},title:c.n+' ('+fmtBar(c.beat)+', '+P.tracks[ti].name+') : '+c.x+(c.done?' ✔ résolue':''),
+        onpointerdown:e=>e.stopPropagation(),onclick:e=>{e.stopPropagation();C2.hi=c.id;openPanel('cmts')}},(c.done?'✔ ':'📌 ')+(c.n||'?').slice(0,1).toUpperCase()+((c.rep&&c.rep.length)?' '+(c.rep.length+1):'')))}
+  try{drawRuler()}catch(e){}
   for(const m of (P.marks||[]))L.append(h('div',{class:'mline',style:{left:m.beat*PPB+'px','--mc':m.color}}))}
-function askComment(beat){openPanel('cmts');C2.newAt=beat;drawPanel();setTimeout(()=>{const t=$('#cpanel textarea.newc');if(t)t.focus()},30)}
+function askComment(beat,tid){openPanel('cmts');C2.newAt=beat;C2.newTid=tid||'';drawPanel();setTimeout(()=>{const t=$('#cpanel textarea.newc');if(t)t.focus()},30)}
 
 // ---------- 🎤 Messages vocaux ----------
 const VOC={rec:null,chunks:[],t0:0,timer:null,stream:null,mime:''};
@@ -197,24 +199,24 @@ function drawPanel(){
       else if(m.b)content=h('div',{class:'ctxt'},m.x+' : ',h('a',{href:bounceLink(m.b.f,m.b.title),target:'_blank',rel:'noopener'},'📀 '+m.b.title+' ('+Math.floor(m.b.dur/60)+':'+String(m.b.dur%60).padStart(2,'0')+')'));
       else content=h('div',{class:'ctxt'},m.x);
       body.append(h('div',{class:'cmsg'+(mine?' me':'')},h('div',{class:'cmeta'},h('b',{style:{color:m.c}},m.n),' ',h('span',null,hhmm(m.t))),content))}
-    const inp=h('input',{type:'text',placeholder:'Écrire un message…',maxlength:1000,value:draft,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'){chatSend(inp.value);inp.value=''}}});
+    const inp=h('input',{type:'text',placeholder:'Écrire un message…',maxlength:1000,value:draft,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'){const v=inp.value;inp.value='';chatSend(v)}}});
     const recUI=VOC.rec?h('div',{class:'cin rec'},h('span',{class:'vtime'},'● 0:00 / 2:00'),h('div',{style:{flex:1}}),h('button',{title:'Annuler',onclick:()=>vocStop(false)},'✕'),h('button',{class:'send',onclick:()=>vocStop(true)},'➤ Envoyer'))
-      :h('div',{class:'cin'},h('button',{title:'Message vocal (2 min max)',onclick:vocStart},'🎤'),inp,h('button',{onclick:()=>{chatSend(inp.value);inp.value='';inp.focus()}},'➤'));
+      :h('div',{class:'cin'},h('button',{title:'Message vocal (2 min max)',onclick:vocStart},'🎤'),inp,h('button',{onclick:()=>{const v=inp.value;inp.value='';chatSend(v);const ni=$('#cpanel .cin input');if(ni)ni.focus()}},'➤'));
     p.append(h('div',{class:'cquick'},['🔥','👍','😂','🎧','💯','🙏'].map(x=>h('button',{onclick:()=>chatSend(x)},x))),recUI,h('span',{class:'vtime',style:{display:'none'}}));
     setTimeout(()=>{body.scrollTop=body.scrollHeight},0);if(!IS_TOUCH&&!VOC.rec)setTimeout(()=>inp.focus(),0)}
   else if(C2.tab==='cmts'){
-    const at=C2.newAt!=null?C2.newAt:(E.playing?E.pos():PH);
+    const curAt=()=>C2.newAt!=null?C2.newAt:(E.playing?E.pos():PH);
     const ta=h('textarea',{class:'newc',rows:2,placeholder:'Ex : refais ce couplet ici, drop trop tôt, ad-lib à ajouter…',onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();add()}}});
-    const add=()=>{const x=ta.value.trim();if(!x)return;cmtAdd(Math.max(0,at),x);C2.newAt=null;ta.value='';toast('📌 Note ajoutée '+fmtBar(at))};
-    body.append(h('div',{class:'cnew'},h('div',{class:'dim'},'📌 Nouvelle note '+fmtBar(at)+(C2.newAt==null?' (tête de lecture)':'')),ta,h('div',{style:{display:'flex',gap:'6px'}},h('button',{onclick:add},'Ajouter'),
-      C2.newAt!=null&&h('button',{onclick:()=>{C2.newAt=null;drawPanel()}},'Annuler'))),
-      h('label',{class:'dim',style:{display:'flex',gap:'6px',alignItems:'center',margin:'6px 0'}},h('input',{type:'checkbox',checked:C2.showDone,onchange:e=>{C2.showDone=e.target.checked;drawPanel();renderPins()}}),'Afficher les notes résolues'),
-      h('p',{class:'dim',style:{fontSize:'11px'}},'Astuce : clic droit (ou appui long) dans la règle pour noter à un endroit précis. Les notes sont enregistrées avec le projet'+(COLLAB.on?' et partagées avec la session.':'.')));
-    const list=cmtList().filter(c=>C2.showDone||!c.done);if(!list.length)body.append(h('p',{class:'dim'},'Aucune note.'));
+    const tsel=h('select',{class:'ntrack',title:'Sur quelle piste ?',onchange:e=>{C2.newTid=e.target.value}},h('option',{value:''},'🎼 Tout le morceau'),P.tracks.map(t=>h('option',{value:t.id,selected:t.id===C2.newTid},tIco(t)+' '+t.name)));
+    const add=()=>{const x=ta.value.trim();if(!x)return;const at=curAt(),tid=tsel.value;C2.newAt=null;C2.newTid='';cmtAdd(Math.max(0,at),x,null,tid);ta.value='';toast('📌 Note ajoutée '+fmtBar(at)+(tid?' sur « '+(findTrack(tid)||{}).name+' »':''))};
+    body.append(h('div',{class:'cnew'},h('div',{class:'dim cposlbl'},'📌 Nouvelle note '+fmtBar(curAt())+(C2.newAt==null?' (tête de lecture)':'')),tsel,ta,h('div',{style:{display:'flex',gap:'6px'}},h('button',{onclick:add},'Ajouter'),
+      C2.newAt!=null&&h('button',{onclick:()=>{C2.newAt=null;C2.newTid='';drawPanel()}},'Revenir à la tête de lecture'))),
+      h('p',{class:'dim',style:{fontSize:'11px'}},'Astuce : clic droit sur une piste (ou dans la règle) pour noter à cet endroit précis. Une note reste affichée sur la timeline jusqu’à ce que quelqu’un la supprime. Les notes sont enregistrées avec le projet'+(COLLAB.on?' et partagées avec la session.':'.')));
+    const list=cmtList();if(!list.length)body.append(h('p',{class:'dim'},'Aucune note.'));
     for(const c of list){const rep=h('input',{type:'text',placeholder:'Répondre…',maxlength:1000,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'&&rep.value.trim()){const v=rep.value.trim();rep.value='';rep.blur();cmtReply(c.id,v)}}});
       const canMod=!COLLAB.viewer;
       body.append(h('div',{class:'ccmt'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{'--cc':c.c}},
-        h('div',{class:'cmeta'},h('a',{href:'#',onclick:e=>{e.preventDefault();C2.hi=c.id;setPH(c.beat);renderPins();drawPanel()}},'▶ '+fmtBar(c.beat)),' · ',h('b',{style:{color:c.c}},c.n),' ',h('span',null,hhmm(c.t))),
+        h('div',{class:'cmeta'},h('a',{href:'#',onclick:e=>{e.preventDefault();C2.hi=c.id;setPH(c.beat);renderPins();drawPanel()}},'▶ '+fmtBar(c.beat)),c.tid&&findTrack(c.tid)?' · '+tIco(findTrack(c.tid))+' '+findTrack(c.tid).name:' · 🎼',' · ',h('b',{style:{color:c.c}},c.n),' ',h('span',null,hhmm(c.t)),c.done?' · ✔ résolue':''),
         h('div',{class:'ctxt'},c.x),(c.rep||[]).map(r=>h('div',{class:'crep'},h('b',{style:{color:r.c}},r.n),' ',r.x)),
         h('div',{class:'cact'},rep,canMod&&h('button',{title:c.done?'Rouvrir':'Marquer comme résolue',onclick:()=>cmtSet(c.id,'done',!c.done)},c.done?'↺':'✔'),
           canMod&&(c.u===ME.id||!COLLAB.on)&&h('button',{title:'Supprimer',onclick:e=>{if(e.target.dataset.sure){cmtDel(c.id)}else{e.target.dataset.sure=1;e.target.textContent='Sûr ?'}}},'🗑'))))}
@@ -253,3 +255,6 @@ COLLAB_H.bar=b=>{
     h('button',{class:'tbtn chatb',title:'Chat, notes, marqueurs et versions',onclick:()=>C2.open?closePanel():openPanel(C2.tab==='cmts'&&!C2.unread?'cmts':'chat')},'💬'));renderBadge()};
 {const o=renderLanes;renderLanes=function(){const r=o.apply(this,arguments);renderPins();return r}}
 {const o=afterLoad;afterLoad=function(){const r=o.apply(this,arguments);C2.knownC=null;renderPins();if(C2.open)drawPanel();try{drawRuler()}catch(e){}return r}}
+
+// la position « tête de lecture » de la nouvelle note se met à jour en direct
+setInterval(()=>{if(!C2.open||C2.tab!=='cmts'||C2.newAt!=null||!P)return;const l=$('#cpanel .cposlbl');if(l)l.textContent='📌 Nouvelle note '+fmtBar(E.playing?E.pos():PH)+' (tête de lecture)'},200);

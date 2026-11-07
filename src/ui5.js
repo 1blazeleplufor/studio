@@ -9,7 +9,7 @@ const IDB={db:null,
 let LAST_SAVED='',SAVED_BUFS=new Set(),SAVING=false,LAST_SAVE_T=0;
 function updateSaveState(){const b=$('#saveState');if(!b||!P)return;const ok=LAST_SAVED&&JSON.stringify(P)===LAST_SAVED;b.style.color=ok?'#30d158':'#ff9f0a';
   b.title=ok?'Projet sauvegardé'+(LAST_SAVE_T?' à '+new Date(LAST_SAVE_T).toLocaleTimeString():'')+' (cliquer pour sauvegarder)':'Modifications pas encore sauvegardées : cliquer pour sauvegarder maintenant'}
-function usedBufs(pr){const u=new Set();for(const t of pr.tracks)if(t.type==='audio')for(const r of t.regions)u.add(r.buf);return u}
+function usedBufs(pr){const u=new Set();for(const t of pr.tracks)if(t.type==='audio')for(const r of t.regions){u.add(r.buf);for(const k of r.takes||[])u.add(k.buf)}return u}
 async function saveLocal(force){
   if(SAVING||!P||REC)return;if(!P.id)P.id=uid('p');for(const k in EXT_SRC)P.ext[k]=EXT_SRC[k];
   const js=JSON.stringify(P);if(js===LAST_SAVED&&!force)return;SAVING=true;

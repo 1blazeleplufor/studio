@@ -77,6 +77,7 @@ class Engine{
           if(rs>=a&&rs<b)st=T(rs);else if(fresh&&rs<a&&re>a){st=T(a);off=r.offset+(a-rs)*spb}
           if(st===null)continue;
           let end=T(re);if(fresh&&rs<a)end=st+(re-a)*spb;end=Math.min(end,stopC);if(st<minT){off+=minT-st;st=minT}if(end<=st+.002)continue;
+          if(off<0){st-=off;off=0;if(end<=st+.002)continue} // prise qui commence plus tard dans la région (silence au début)
           const src=c.createBufferSource(),g=c.createGain();src.buffer=buf;src.connect(g);g.connect(dest);
           const G=r.gain!=null?dbToG(r.gain):1,fromStart=off<=r.offset+1e-4,toEnd=end>=T(re)-1e-4,span=end-st;
           const fi=Math.min(fromStart?Math.max(.005,r.fi||0):.005,span/2),fo=Math.min(toEnd?Math.max(.005,r.fo||0):.005,span/2);

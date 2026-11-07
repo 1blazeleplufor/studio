@@ -13,6 +13,8 @@ const COLLAB={on:false,synced:false,room:null,doc:null,root:null,locks:null,um:n
   queue:[],peers:{},waiting:{},lockSeen:{},bufWait:{},timers:[],pRef:null,projDirty:false,lockDirty:false,tT:0};
 let LAST_INPUT=Date.now(),POINTER_DOWN=false;
 
+// ---- append/prepend ignorent false et null (écrire cond&&h(...) dans un append ajoutait le texte « false ») ----
+for(const m of ['append','prepend']){const o=Element.prototype[m];Element.prototype[m]=function(...a){return o.apply(this,a.filter(x=>x!==false&&x!=null))}}
 // ---- outils de données ----
 const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 function deepEq(a,b){if(a===b)return true;if(typeof a!=='object'||typeof b!=='object'||!a||!b)return false;
@@ -22,14 +24,18 @@ function deepEq(a,b){if(a===b)return true;if(typeof a!=='object'||typeof b!=='ob
 const idArr=x=>x.length>0&&x.every(e=>isObj(e)&&typeof e.id==='string')&&new Set(x.map(e=>e.id)).size===x.length;
 function sharedView(p){const o={};for(const k in p)if(!SKIP_ROOT.includes(k))o[k]=p[k];
   o.tracks=(p.tracks||[]).map(t=>{const c={};for(const k in t)if(!SKIP_TRACK.includes(k))c[k]=t[k];return c});return o}
-function toY(v){if(Array.isArray(v)){const a=new Y.Array();a.push(v.map(toY));return a}
-  if(isObj(v)){const m=new Y.Map();for(const k in v)m.set(k,toY(v[k]));return m}return v}
+function toY(v,k){if(k==='lyrics'&&typeof v==='string')return new Y.Text(v); // paroles : texte collaboratif (fusion lettre par lettre)
+  if(Array.isArray(v)){const a=new Y.Array();a.push(v.map(x=>toY(x)));return a}
+  if(isObj(v)){const m=new Y.Map();for(const kk in v)m.set(kk,toY(v[kk],kk));return m}return v}
+function yTextDiff(yt,a,b){let s=0;while(s<a.length&&s<b.length&&a[s]===b[s])s++;let e=0;while(e<a.length-s&&e<b.length-s&&a[a.length-1-e]===b[b.length-1-e])e++;
+  if(a.length-s-e)yt.delete(s,a.length-s-e);if(b.length-s-e)yt.insert(s,b.slice(s,b.length-e))}
 // écrit dans le Y.Map `ym` (qui reflète `o`) ce qu'il faut pour obtenir `n`
 function yObj(ym,o,n){for(const k in o)if(!(k in n))ym.delete(k);
   for(const k in n){const a=o[k],b=n[k];if(deepEq(a,b))continue;const cur=ym.get(k);
     if(isObj(a)&&isObj(b)&&cur instanceof Y.Map)yObj(cur,a,b);
     else if(Array.isArray(a)&&Array.isArray(b)&&cur instanceof Y.Array)yArr(cur,a,b);
-    else ym.set(k,toY(b))}}
+    else if(k==='lyrics'&&typeof a==='string'&&typeof b==='string'&&cur instanceof Y.Text)yTextDiff(cur,a,b);
+    else ym.set(k,toY(b,k))}}
 function yArr(ya,o,n){
   if(idArr(o)&&idArr(n)){ // pistes, régions… : réconciliation par identifiant
     const keep=new Set(n.map(e=>e.id)),cur=o.slice();
@@ -96,7 +102,7 @@ function collabFlush(){
   const n=JSON.parse(str),o=COLLAB.last,bad=lockedChange(o,n);
   if(bad){revertToDoc();lockToast(bad.k,bad.L);return}
   COLLAB.doc.transact(()=>{try{yObj(COLLAB.root,o,n)}catch(e){console.warn('Session : resynchronisation complète',e);
-    for(const k of [...COLLAB.root.keys()])if(!(k in n))COLLAB.root.delete(k);for(const k in n)COLLAB.root.set(k,toY(n[k]))}},LOCAL_ORIGIN);
+    for(const k of [...COLLAB.root.keys()])if(!(k in n))COLLAB.root.delete(k);for(const k in n)COLLAB.root.set(k,toY(n[k],k))}},LOCAL_ORIGIN);
   COLLAB.last=n;COLLAB.lastStr=str}
 function revertToDoc(){patchRoot(COLLAB.root.toJSON());setBase();collabRefresh(true)}
 function pullFromDoc(){const s0=sigAll(P);patchRoot(COLLAB.root.toJSON());setBase();collabRefresh(s0!==sigAll(P));fetchMissingBufs()}
@@ -248,7 +254,7 @@ async function adoptDoc(){ // on rejoint : le projet de la session remplace l'af
   PH=0;SELR.clear();EDIT=null;SEL=P.tracks[0]&&P.tracks[0].id;LAST_SAVED='';closeAllPlugins();E.build(P);
   afterSync();renderAll();fetchMissingBufs();toast(COLLAB.viewer?'👁 Vous écoutez « '+P.name+' » (écoute seule)':'👥 Vous avez rejoint « '+P.name+' »',3500)}
 function seed(){
-  const v=JSON.parse(JSON.stringify(sharedView(P)));COLLAB.doc.transact(()=>{for(const k in v)COLLAB.root.set(k,toY(v[k]))},'seed');
+  const v=JSON.parse(JSON.stringify(sharedView(P)));COLLAB.doc.transact(()=>{for(const k in v)COLLAB.root.set(k,toY(v[k],k))},'seed');
   afterSync();renderAll();dbSave(true);uploadBufs()}
 function afterSync(){COLLAB.synced=true;setBase();UNDO=[];REDO=[];
   COLLAB.um=new Y.UndoManager(COLLAB.root,{trackedOrigins:new Set([LOCAL_ORIGIN]),captureTimeout:1e9});

@@ -1,4 +1,4 @@
-# Studio — Passation technique (v3.6)
+# Studio — Passation technique (v3.7)
 
 > Document de reprise pour continuer à développer **Studio** (DAW dans le navigateur, interface inspirée de Logic Pro)
 > et préparer le mode **multijoueur / édition collaborative en direct**.
@@ -12,7 +12,7 @@
 |---|---|
 | **Appli en ligne** | https://1blazeleplufor.github.io/studio/ |
 | **Dépôt** | `github.com/1blazeleplufor/studio` (public, GitHub Pages sur `main`, dossier racine) |
-| **Version** | 3.6 (`APP_VERSION` dans `src/ui6.js`) |
+| **Version** | 3.7 (`APP_VERSION` dans `src/ui6.js`) |
 | **Utilisateur** | Francophone, débutant en MAO mais à l’aise avec les logiciels, fait du rap/trap (références : Timar, Leto, Djadja & Dinaz, Bouss). Travaille surtout sur **Mac**, veut aussi téléphone/tablette/Windows/Android. |
 | **Langue de l’UI** | Français partout. |
 | **Stack** | HTML/CSS/JS **vanilla** (aucun framework, aucune dépendance npm), Web Audio API + AudioWorklet, PWA (manifest + service worker), IndexedDB. |
@@ -43,6 +43,7 @@
   collab.js             session à plusieurs : pont P ↔ Yjs, cadenas, présence, transport Supabase, sons, écoute seule
   collab2.js            v3.3 : écouter ensemble, chat, commentaires timeline, versions, bounce MP3
   ui10.js               v3.6 : défilement auto, suivi en lecture, roue de couleurs + pipette, préréglages ZZ, marqueurs dans la règle, fenêtres détachables
+  ui11.js               v3.7 : panneaux fluides (grille de #main calculée), paroles, prompteur, focus, dispositions, raccourcis, menu ⋯, notes dans la règle, prises multiples
   flac.js               v3.3 : encodeur FLAC 16 bits (sans perte) pour l’envoi des sons
   ecoute.html           page publique d’écoute d’un bounce MP3 (copiée à la racine)
   vendor/lame.min.js    lamejs (LGPL-3.0), encodeur MP3, copié à la racine et chargé à la demande
@@ -232,7 +233,7 @@ Tests : `tests/t17.py` (avec `LIMIT=400000 node tests/mock_supabase.js 8790`, mo
 - Tests : `tests/t18.py`.
 
 
-### 📝 Notes pour la v3.7 (à NE PAS publier tout de suite — attendre le feu vert de l’utilisateur)
+### ✅ Fait en v3.7 (publié le 07/11/2026, à la demande de l’utilisateur) — ce qui était noté :
 - **Chat : le texte envoyé reste dans le champ « Écrire un message… »** (signalé le 07/11/2026). Le message part bien, mais on doit pouvoir écrire le suivant dans un champ vide.
   - Cause : dans `drawPanel()` (`src/collab2.js`), `chatSend(inp.value)` ajoute le message au `Y.Array('chat')` → `onChatChange` → `drawPanel()` redessine **immédiatement** le panneau en recopiant le brouillon (`draft = … '.cin input' … .value`), qui contient encore le texte. Le `inp.value=''` qui suit vide l’ancien champ, déjà remplacé.
   - Correction prévue : vider le champ **avant** d’envoyer, dans les deux endroits (touche Entrée et bouton ➤) : `const v=inp.value;inp.value='';chatSend(v)`. Vérifier aussi le cas « fenêtre de chat détachée » et ajouter le contrôle dans `tests/t17.py` (le champ doit être vide après l’envoi).
@@ -253,6 +254,17 @@ Tests : `tests/t17.py` (avec `LIMIT=400000 node tests/mock_supabase.js 8790`, mo
   4. **Un raccourci par panneau** : I inspecteur, X mixeur, L paroles, T chat… (vérifier les conflits avec les raccourcis existants façon Logic et le clavier musical ; les afficher dans l’aide).
   5. **Prompteur pendant l’enregistrement** : les paroles de la piste armée s’affichent en gros pendant la prise.
   6. **Prises multiples (comping)** : plusieurs prises sur le même passage, puis on garde les meilleurs bouts de chacune.
+
+**Comment c’est fait (v3.7)** :
+- `#main` n’a plus deux colonnes fixes : `applyLayout()` (ui11) calcule `grid-template-columns` selon les panneaux ouverts (`UI.insp`, `UI.lyr` : `{open,w,side}` dans `localStorage.studio_ui`), avec `order` pour gauche/droite et des poignées `.pgrip` superposées (redimensionnement léger via `applyLayout(true)`, sans recréer les poignées). En dessous de 900 px (`isSmall()`), l’ancien comportement mobile est gardé.
+- En-tête `.phead` (titre glissable + ⇆ ⧉ ✕) ; glisser vers un bord affiche `#dockz` (zones gauche/droite, bas pour les paroles) ; relâcher hors de la fenêtre = détacher (`detachOpen`, ui10, étendu à `insp`, `lyr`, `library` qui reviennent à leur place, `DET_HOME`).
+- **Paroles** : `P.lyrics` et `track.lyrics` (dans le projet → sauvegarde, export, undo, partage). En session, la clé `lyrics` est stockée en `Y.Text` (`toY(v,k)` + `yTextDiff` dans `collab.js`) → deux personnes qui écrivent en même temps fusionnent lettre par lettre ; l’affichage se met à jour sans perdre le curseur (`refreshLyrics`). Piste verrouillée → lecture seule. Mode « en bas » = onglet 📝 du panneau du bas.
+- **Prompteur** `#prompter` : lignes `[n]` = mesure n ; affiché automatiquement à l’enregistrement (`UI.prompt`), fermé à l’arrêt.
+- **Prises** : `region.takes=[{buf,at,name}]` (`at` = temps où l’échantillon 0 du buffer tombe), `region.take` ; `carve` est intercepté pendant `stopRecord` pour récupérer l’audio recouvert. Choisir une prise = `buf` + `offset=(start−at)×spb` (décalage négatif autorisé dans `Engine.scheduleWindow` = silence au début). `usedBufs` inclut les prises (sauvegarde IndexedDB + envoi en session).
+- **Dispositions** `SCREEN_DEF` / `localStorage.studio_screens` (touches `Digit1-3`, AZERTY compris) ; **focus** = `body.focus`. Raccourcis ajoutés dans la fenêtre des raccourcis.
+- Barre d’outils `#arrtools` : `fitTools()` cache ce qui dépasse dans le menu « ⋯ ».
+- `Element.prototype.append/prepend` ignorent `false`/`null` (évite le texte « false » des `cond&&h(...)`).
+- Tests : `tests/t19.py`.
 
 ### Prochaines étapes
 - v3.4 : curseurs/sélections des autres, notifications, plugins externes partagés avec confirmation, appel vocal (WebRTC + TURN).
@@ -299,6 +311,7 @@ python3 tests/t13.py               # v3.0 : session à 2 fenêtres, cadenas, und
 python3 tests/t14.py               # v3.0 : arrivées simultanées, actions aléatoires, rechargement
 node tests/mock_supabase.js 8790   # faux Supabase (module ws requis : npm i ws, ou WS_MODULE=chemin)
 python3 tests/t16.py               # v3.2 : 2 appareils via le serveur, sons, coupure réseau, salle retrouvée
+python3 tests/t19.py               # v3.7 : paroles, panneaux, dispositions, focus, notes par piste, prompteur, prises multiples
 python3 tests/t18.py               # v3.6 : défilement auto, couleurs, ZZ, marqueurs, notes, vocaux, panneau, fenêtres détachées
 python3 tests/t17.py               # v3.3 : FLAC découpé, écouter ensemble, chat, commentaires, versions, écoute seule, bounce MP3
 ```
