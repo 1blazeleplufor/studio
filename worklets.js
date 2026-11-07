@@ -115,3 +115,14 @@ class GateProc extends AudioWorkletProcessor{
   }
 }
 registerProcessor('gate-proc',GateProc);
+
+class CrushProc extends AudioWorkletProcessor{
+  static get parameterDescriptors(){return[{name:'bits',defaultValue:8,minValue:1,maxValue:16},{name:'down',defaultValue:4,minValue:1,maxValue:64},{name:'mix',defaultValue:1,minValue:0,maxValue:1}]}
+  constructor(){super();this.h=[0,0];this.c=0}
+  process(inputs,outputs,P){const inp=inputs[0],out=outputs[0];if(!out[0])return true;
+    const q=Math.pow(2,P.bits[0]-1),dn=Math.max(1,Math.round(P.down[0])),mix=P.mix[0],n=out[0].length;
+    for(let i=0;i<n;i++){if(this.c<=0){for(let c=0;c<out.length;c++){const x=inp[c]?inp[c][i]:(inp[0]?inp[0][i]:0);this.h[c&1]=Math.round(x*q)/q}this.c=dn}this.c--;
+      for(let c=0;c<out.length;c++){const x=inp[c]?inp[c][i]:(inp[0]?inp[0][i]:0);out[c][i]=x*(1-mix)+this.h[c&1]*mix}}
+    return true}
+}
+registerProcessor('crush-proc',CrushProc);
