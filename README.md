@@ -6,6 +6,7 @@ Fonctionne hors ligne et s'installe comme une appli (iPhone, iPad, Android, Mac,
 **Ouvrir l'appli : https://1blazeleplufor.github.io/studio/**
 
 ## Versions
+- **v2.2** : navigation façon Logic (Suppr = supprimer la piste, Maj+D = dupliquer, Ctrl+T/✂ = couper, copier/coller, régions muettes, sélection rectangle), zoom horizontal/vertical et « tout voir » (Z), plus aucun effet imposé au démarrage, nouvelle icône mixeur.
 - **v2.1** : correction du grésillement des instrus (nouveau limiteur propre), instru importée sur sa propre piste sans effets, mode audio « Stable », explications Écho/Réverb.
 - **v2.0** : réglages rapides (écho, réverb, autotune, robot, basses, clarté, punch…), 20 préréglages voix,
   5 nouveaux effets (Pitch Shifter, Lo-Fi, Robot, Phaser, Trémolo), atelier instru (détection BPM/tonalité,
