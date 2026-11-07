@@ -236,6 +236,10 @@ Tests : `tests/t17.py` (avec `LIMIT=400000 node tests/mock_supabase.js 8790`, mo
 - **Chat : le texte envoyé reste dans le champ « Écrire un message… »** (signalé le 07/11/2026). Le message part bien, mais on doit pouvoir écrire le suivant dans un champ vide.
   - Cause : dans `drawPanel()` (`src/collab2.js`), `chatSend(inp.value)` ajoute le message au `Y.Array('chat')` → `onChatChange` → `drawPanel()` redessine **immédiatement** le panneau en recopiant le brouillon (`draft = … '.cin input' … .value`), qui contient encore le texte. Le `inp.value=''` qui suit vide l’ancien champ, déjà remplacé.
   - Correction prévue : vider le champ **avant** d’envoyer, dans les deux endroits (touche Entrée et bouton ➤) : `const v=inp.value;inp.value='';chatSend(v)`. Vérifier aussi le cas « fenêtre de chat détachée » et ajouter le contrôle dans `tests/t17.py` (le champ doit être vide après l’envoi).
+- **Fenêtre « Paroles »** (demandé le 07/11/2026) : des paroles pour **le projet entier** et des paroles **par piste** (ex. couplet de la Voix 1, ad-libs de la Voix 2).
+  - S’ouvre avec un bouton (barre du haut ou inspecteur de la piste), se **ferme** (✕) et se **détache** dans une fenêtre comme le chat / le mixeur (⧉, système `detachOpen/detachClose` de `src/ui10.js`, position mémorisée dans `studio_layout`).
+  - Onglets : « Projet » + un onglet par piste (ou liste de pistes à gauche). Texte libre, sauvegardé avec le projet (`P.lyrics` et `track.lyrics`) → partagé automatiquement en session (pont P ↔ Yjs), annulable, exporté dans le `.studio`.
+  - Points à trancher avec l’utilisateur avant de coder : édition à plusieurs en même temps sur le même texte (fusion caractère par caractère avec `Y.Text` plutôt qu’un simple champ texte remplacé en bloc) ; respect des cadenas (une piste verrouillée → ses paroles en lecture seule ?) ; repères de temps dans le texte (cliquer une ligne = aller à la mesure) ; taille de police / mode « prompteur » pendant l’enregistrement.
 
 ### Prochaines étapes
 - v3.4 : curseurs/sélections des autres, notifications, plugins externes partagés avec confirmation, appel vocal (WebRTC + TURN).
