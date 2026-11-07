@@ -291,3 +291,28 @@ class TuneProProc extends AudioWorkletProcessor{
     return true}
 }
 registerProcessor('tunepro-proc',TuneProProc);
+
+// ===== Studio Bridge : envoi du son vers un plugin de l'ordinateur et retour, avec latence fixe =====
+class BridgeProc extends AudioWorkletProcessor{
+  constructor(o){super();const po=(o&&o.processorOptions)||{};this.D=po.lat||4096;this.N=512;this.R=1<<17;
+    this.ring=[new Float32Array(this.R),new Float32Array(this.R)];this.stamp=new Float64Array(this.R).fill(-1);this.dry=[new Float32Array(this.R),new Float32Array(this.R)];
+    this.acc=new Float32Array(2*this.N);this.ap=0;this.n=0;this.cs=0;this.online=false;this.under=0;this.sil=0;
+    this.port.onmessage=e=>{const m=e.data;if(m.online!==undefined){this.online=m.online;return}
+      if(m.out){const d=m.out,N=m.frames;for(let i=0;i<N;i++){const k=(m.start+i)%this.R;this.ring[0][k]=d[i];this.ring[1][k]=d[N+i];this.stamp[k]=m.start+i}}}}
+  process(inputs,outputs){const inp=inputs[0],out=outputs[0];if(!out[0])return true;const n=out[0].length,R=this.R;
+    for(let s=0;s<n;s++){const x0=inp[0]?inp[0][s]:0,x1=inp[1]?inp[1][s]:x0,k=this.n%R;this.dry[0][k]=x0;this.dry[1][k]=x1;
+      if(this.ap===0)this.cs=this.n;this.acc[this.ap]=x0;this.acc[this.N+this.ap]=x1;this.ap++;
+      if(this.ap===this.N){if(this.online){const b=this.acc.slice(0);this.port.postMessage({start:this.cs,frames:this.N,data:b},[b.buffer])}this.ap=0}
+      const i=this.n-this.D;let y0=0,y1=0;
+      if(i>=0){const r=i%R;if(this.online&&this.stamp[r]===i){y0=this.ring[0][r];y1=this.ring[1][r]}else{y0=this.dry[0][r];y1=this.dry[1][r];if(this.online)this.under++}}
+      out[0][s]=y0;if(out[1])out[1][s]=y1;this.n++}
+    if(this.under&&(this.n%48000)<n){this.port.postMessage({under:this.under});this.under=0}
+    return true}
+}
+registerProcessor('bridge-proc',BridgeProc);
+// Capture stéréo de la sortie (bounce en temps réel)
+class CapProc extends AudioWorkletProcessor{
+  constructor(){super();this.on=true;this.port.onmessage=e=>{this.on=e.data.on}}
+  process(inputs){const i=inputs[0];if(this.on&&i&&i[0]){this.port.postMessage({t:currentFrame,l:i[0].slice(0),r:(i[1]||i[0]).slice(0)})}return true}
+}
+registerProcessor('cap-proc',CapProc);

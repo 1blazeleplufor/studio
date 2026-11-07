@@ -13,7 +13,7 @@ function makeWin(key,title,body,onClose){
 }
 function openPlugin(o,i){
   const pl=o.plugins[i],def=PLUGINS[pl.type];if(!def)return toast('Plugin introuvable : rechargez le fichier .js');
-  if(pl.type==='verbpro')return openVerbPro(o,i);if(pl.type==='tunepro')return openTunePro(o,i);
+  if(pl.type==='bridge')return openBridgePlugin(o,i);if(pl.type==='verbpro')return openVerbPro(o,i);if(pl.type==='tunepro')return openTunePro(o,i);
   const body=h('div');const w=makeWin(o.id+':'+i,def.name+' — '+o.name,body);if(!w)return;
   const upd=()=>{E.updateStrip(o);if(disp)drawDisp()};let disp=null,drawDisp=null;
   const strip=()=>E.strips[o.id]&&E.strips[o.id].plugins[i];

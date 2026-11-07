@@ -99,6 +99,7 @@ function onKey(e){
   if(c)return;
   if(e.shiftKey&&k==='d'){e.preventDefault();dupTrack(findTrack(SEL));return}
   if(e.altKey&&k==='arrowleft'){e.preventDefault();nudge(-1);return}if(e.altKey&&k==='arrowright'){e.preventDefault();nudge(1);return}
+  if(k==='y'){toggleLibrary();return}
   if(k==='z'){zoomFit();return}if(k==='u'){cycleToSel();return}
   if(k==='home'){setPH(0);return}if(k==='end'){let b=0;for(const t of P.tracks)for(const r of t.regions)b=Math.max(b,r.start+rLen(t,r));setPH(b);return}
   if(k===','){setPH(Math.max(0,(Math.ceil(PH/P.sig)-1)*P.sig));return}if(k==='.'){setPH((Math.floor(PH/P.sig)+1)*P.sig);return}
@@ -177,7 +178,7 @@ async function main(){
   let last=null;try{last=localStorage.getItem('studio_last')}catch(e){}
   newProject(true);P.id=uid('p');E.build(P);SEL=P.tracks[0].id;bindUI();renderAll();requestAnimationFrame(loop);
   if(last)try{await loadLocal(last)}catch(e){console.warn(e)}
-  initApp();showChangelog();collabBoot();if(!isSmall()&&!TAB)setTab('mixer');if(isSmall()&&innerHeight>innerWidth)toast('Astuce : tournez l’appareil à l’horizontale pour plus de place',4500);
+  initApp();showChangelog();setTimeout(()=>{BRIDGE.wanted=projectUsesBridge(P);if(BRIDGE.wanted)bridgeConnect()},600);collabBoot();if(!isSmall()&&!TAB)setTab('mixer');if(isSmall()&&innerHeight>innerWidth)toast('Astuce : tournez l’appareil à l’horizontale pour plus de place',4500);
   let seen=false;try{seen=localStorage.getItem('studio_seen')}catch(e){}
   if(!seen){try{localStorage.setItem('studio_seen','1')}catch(e){}modal(h('div',{html:`<h2>Bienvenue dans Studio 🎧</h2><p>Un projet démo trap est chargé : appuyez sur ▶ (ou <kbd>Espace</kbd>) pour l’écouter. Vos projets sont <b>sauvegardés automatiquement</b> dans l’appareil (bouton 📂).</p><ul><li>La piste <b>🎤 Voix 1</b> est prête avec un préréglage autotune : cliquez <b>R</b> puis ⏺ pour enregistrer (avec un casque).</li><li>Double-cliquez (ou double-touchez) sur la région « Rythme » pour éditer la batterie, ou sur « 808 » / « Arpège » pour le piano roll.</li><li>Fichier → Nouveau projet vide pour partir de zéro. Le bouton <b>?</b> ouvre l’aide.</li></ul>`}))}
 }

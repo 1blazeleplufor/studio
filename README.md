@@ -5,7 +5,10 @@ Fonctionne hors ligne et s'installe comme une appli (iPhone, iPad, Android, Mac,
 
 **Ouvrir l'appli : https://1blazeleplufor.github.io/studio/**
 
+**Plugins AU/VST3 de l'ordinateur** : voir [bridge/LISEZ-MOI.md](bridge/LISEZ-MOI.md).
+
 ## Versions
+- **v3.5** : 🔌 Bibliothèque de plugins (touche Y) + **Studio Bridge** (dossier `bridge/`) pour ouvrir les plugins AU/VST3 de l'ordinateur directement depuis Studio (latence compensée, réglages mémorisés, export en temps réel).
 - **v3.4** : 🍎 import depuis Logic Pro (glisser un .logicx : sons, tempo, tonalité, mesure, positions des prises), pistes exportées en lot, fichiers MIDI (notes + batterie), lecture AIFF/CAF.
 - **v3.3** : prods longues partagées (FLAC sans perte découpé, barre de progression), 🎧 écouter ensemble, 💬 chat, 📌 commentaires sur la timeline, 🕘 versions, 👁 lien écoute seule, 📋 Mes sessions, 📀 lien d’écoute MP3.
 - **v3.2** : 👥 session à plusieurs entre appareils différents (lien à partager), projet de la session sauvegardé en ligne, sons partagés automatiquement, pastille de connexion.

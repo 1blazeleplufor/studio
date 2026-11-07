@@ -219,7 +219,7 @@ function buildStrip(o,inInsp){
   (o.plugins||[]).forEach((pl,i)=>{const def=PLUGINS[pl.type];
     s.append(h('div',{class:'slot full'+(pl.byp?' byp':''),title:def?def.name:pl.type,onclick:()=>openPlugin(o,i),oncontextmenu:e=>{e.preventDefault();slotMenu(e,o,i)}},
       h('span',{class:'pw',title:'Activer / contourner',onclick:e=>{e.stopPropagation();snapshot();pl.byp=!pl.byp;E.updateStrip(o);rerenderStrips()}}),
-      h('span',null,def?def.name:'⚠ '+pl.type)))});
+      h('span',null,def?(pl.type==='bridge'?'🔌 '+(pl.params.name||'Plugin'):def.name):'⚠ '+pl.type)))});
   s.append(h('div',{class:'slot empty',title:'Ajouter un effet',onclick:e=>pluginMenu(e,o)},'+ effet'));
   if(o.sends&&P.auxes.length){const sd=h('div',{style:{display:'flex',justifyContent:'space-around'}});P.auxes.forEach((a,i)=>sd.append(knob({n:a.name.replace('Bus ',''),min:-60,max:6,def:-60,u:'dB'},()=>o.sends[i]??-60,v=>{o.sends[i]=v;E.updateStrip(o)},{size:28,key:'snd|'+o.id+'|'+i,color:'#9f7bff'})));s.append(sd)}
   if(!isMaster)s.append(h('div',{style:{display:'flex',justifyContent:'center'}},knob({n:'Pan',min:-1,max:1,def:0},()=>o.pan||0,v=>{o.pan=v;E.updateStrip(o)},{size:30,key:'pan|'+o.id})));
@@ -238,8 +238,8 @@ function slotMenu(e,o,i){menu(e,[['Ouvrir',()=>openPlugin(o,i)],['Monter',()=>{i
   ['Descendre',()=>{if(i<o.plugins.length-1){snapshot();const p=o.plugins.splice(i,1)[0];o.plugins.splice(i+1,0,p);closeAllPlugins();E.updateStrip(o);rerenderStrips()}}],
   ['Remplacer…',()=>pluginMenu(e,o,i)],'-',['Retirer l’effet',()=>{snapshot();closeAllPlugins();o.plugins.splice(i,1);E.updateStrip(o);rerenderStrips()}]])}
 function pluginMenu(e,o,replaceIdx){
-  const cats={};for(const id in PLUGINS){const p=PLUGINS[id];(cats[p.cat]=cats[p.cat]||[]).push([id,p.name])}
-  const items=[];for(const c in cats){items.push(c);for(const [id,n] of cats[c])items.push([n,()=>{snapshot();const pl=plug(id);if(replaceIdx!=null){closeAllPlugins();o.plugins[replaceIdx]=pl}else o.plugins.push(pl);E.updateStrip(o);rerenderStrips();openPlugin(o,replaceIdx!=null?replaceIdx:o.plugins.length-1)}])}
+  const cats={};for(const id in PLUGINS){const p=PLUGINS[id];if(p.hideInMenu)continue;(cats[p.cat]=cats[p.cat]||[]).push([id,p.name])}
+  const items=[['🔌 Bibliothèque (plugins de l’ordinateur…)',()=>{LIB_TARGET=o.id;toggleLibrary(true)}],'-'];for(const c in cats){items.push(c);for(const [id,n] of cats[c])items.push([n,()=>{snapshot();const pl=plug(id);if(replaceIdx!=null){closeAllPlugins();o.plugins[replaceIdx]=pl}else o.plugins.push(pl);E.updateStrip(o);rerenderStrips();openPlugin(o,replaceIdx!=null?replaceIdx:o.plugins.length-1)}])}
   items.push('-',['📂 Charger un plugin externe (.js)…',()=>$('#filePlug').click()]);menu(e,items);
 }
 function renderMixer(C){
