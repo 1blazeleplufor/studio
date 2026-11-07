@@ -373,6 +373,28 @@ class CrushProc extends AudioWorkletProcessor{
     return true}
 }
 registerProcessor('crush-proc',CrushProc);
+
+// Limiteur transparent à anticipation (lookahead)
+class LimitProc extends AudioWorkletProcessor{
+  static get parameterDescriptors(){return[{name:'gain',defaultValue:1},{name:'ceil',defaultValue:.89},{name:'rel',defaultValue:.08}]}
+  constructor(){super();this.L=Math.max(8,Math.round(sampleRate*.004));this.N=this.L+1;this.buf=[new Float32Array(this.N),new Float32Array(this.N)];this.tq=new Float32Array(this.N);
+    this.qi=new Int32Array(this.N*2);this.qv=new Float32Array(this.N*2);this.qh=0;this.qt=0;this.n=0;this.w=0;this.g=1;this.gr=0;this.k=0}
+  process(inputs,outputs,P){const inp=inputs[0],out=outputs[0];if(!out[0])return true;
+    const G=P.gain[0],C=P.ceil[0],rel=1-Math.exp(-1/(Math.max(.01,P.rel[0])*sampleRate)),att=1-Math.exp(-1/(this.L/4)),n=out[0].length,Q=this.N*2;
+    for(let i=0;i<n;i++){let pk=0;
+      for(let c=0;c<2;c++){const x=(inp[c]?inp[c][i]:(inp[0]?inp[0][i]:0))*G;this.buf[c][this.w]=x;const a=Math.abs(x);if(a>pk)pk=a}
+      const tg=pk>C?C/pk:1,idx=this.n++;
+      while(this.qt>this.qh&&this.qv[(this.qt-1)%Q]>=tg)this.qt--;this.qi[this.qt%Q]=idx;this.qv[this.qt%Q]=tg;this.qt++;
+      while(this.qi[this.qh%Q]<=idx-this.L-1)this.qh++;
+      const need=this.qv[this.qh%Q];
+      this.g=need<this.g?this.g+(need-this.g)*att:this.g+(need-this.g)*rel;if(this.g>need&&need<this.g*0.5)this.g=need;
+      const r=(this.w+1)%this.N;
+      for(let c=0;c<out.length;c++){let y=this.buf[c&1][r]*this.g;if(y>C)y=C;else if(y<-C)y=-C;out[c][i]=y}
+      this.w=r;this.gr=Math.min(this.gr,this.g)}
+    if(++this.k%16===0){this.port.postMessage(this.gr);this.gr=1}
+    return true}
+}
+registerProcessor('limit-proc',LimitProc);
 </script>
 <script>// ===== Plugins d'effets et instruments =====
 const NOTE_NAMES=['Do','Do#','Ré','Ré#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
@@ -472,10 +494,9 @@ const PLUGINS={
    const ll=ctx.createGain(),lr=ctx.createGain(),rl=ctx.createGain(),rr=ctx.createGain();sp.connect(ll,0);sp.connect(lr,0);sp.connect(rl,1);sp.connect(rr,1);
    ll.connect(mg,0,0);rl.connect(mg,0,0);lr.connect(dr);rr.connect(dr);dr.connect(mg,0,1);mg.connect(out);
    return{input,output:out,set(p){const w=p.w/100,a=(1+w)/2,b=(1-w)/2;ll.gain.value=a;rl.gain.value=b;lr.gain.value=b;rr.gain.value=a;dr.delayTime.value=p.haas/1000}}}},
- limiter:{name:'Limiteur',cat:'Dynamique',params:[{id:'gain',n:'Gain',min:0,max:18,def:0,u:'dB'},{id:'ceil',n:'Plafond',min:-12,max:0,def:-1,u:'dB'},{id:'rel',n:'Relâche',min:10,max:500,def:80,u:'ms',log:1}],
-  create(ctx){const g=ctx.createGain(),c=ctx.createDynamicsCompressor(),trim=ctx.createGain(),ws=ctx.createWaveShaper();g.connect(c);c.connect(trim);trim.connect(ws);c.ratio.value=20;c.knee.value=0;c.attack.value=.001;ws.oversample='2x';let last=null;
-   return{input:g,output:ws,comp:c,set(p){g.gain.value=dbToG(p.gain);c.threshold.value=p.ceil-2;c.release.value=p.rel/1000;trim.gain.value=dbToG(-6);
-    if(last!==p.ceil){last=p.ceil;const L=dbToG(p.ceil),k=.7,n=4096,cv=new Float32Array(n);for(let i=0;i<n;i++){const x=(i/(n-1)*2-1)*2,a=Math.abs(x);const y=a<k?a:k+(1-k)*Math.tanh((a-k)/(1-k));cv[i]=Math.sign(x)*Math.min(1,y)*L}ws.curve=cv}}}}},
+ limiter:{name:'Limiteur',cat:'Dynamique',params:[{id:'gain',n:'Gain',min:-12,max:18,def:0,u:'dB'},{id:'ceil',n:'Plafond',min:-12,max:0,def:-1,u:'dB'},{id:'rel',n:'Relâche',min:10,max:500,def:80,u:'ms',log:1}],
+  create(ctx){const n=new AudioWorkletNode(ctx,'limit-proc',{outputChannelCount:[2]});const comp={reduction:0};n.port.onmessage=e=>{comp.reduction=20*Math.log10(Math.max(1e-4,e.data))};
+   return{input:n,output:n,comp,set(p){const t=ctx.currentTime;n.parameters.get('gain').setValueAtTime(dbToG(p.gain),t);n.parameters.get('ceil').setValueAtTime(dbToG(p.ceil),t);n.parameters.get('rel').setValueAtTime(p.rel/1000,t)}}}},
 };
 // Plugins externes chargés par l'utilisateur
 const EXT_SRC={};
@@ -817,7 +838,7 @@ function newProject(demo){
   P={name:'Mon morceau',bpm:140,sig:4,key:0,scaleIdx:0,tracks:[],auxes:[],master:{id:'master',name:'Sortie stéréo',vol:0,pan:0,plugins:[]},cycle:{on:false,start:0,end:16},settings:{snap:.25,latencyMs:0,countIn:1,metro:true,metroPlay:false,inputDev:''},midiMap:{},ext:{}};
   P.auxes=[{id:'aux1',name:'Bus Réverb',color:'#5e5ce6',vol:0,pan:0,mute:false,plugins:[plug('eq',{hp:250,lp:12000}),plug('reverb',{mix:100,size:2.2,pre:25})]},
            {id:'aux2',name:'Bus Délai',color:'#5e5ce6',vol:0,pan:0,mute:false,plugins:[plug('delay',{mix:100,sync:6,fb:30,lp:4500}),plug('eq',{hp:300})]}];
-  P.master.plugins=[plug('eq',{hp:25}),plug('limiter',{gain:2,ceil:-1})];
+  P.master.plugins=[plug('eq',{hp:25}),plug('limiter',{gain:0,ceil:-1})];
   if(!demo){const v=newTrack('audio','Voix 1');P.tracks.push(v);v.plugins=VOCAL_PRESETS['Voix rap propre'].pl.map(([t,o])=>plug(t,o));v.sends=[-17,-24];v.preset='Voix rap propre';return}
   P.name='Démo trap';P.cycle={on:true,start:0,end:16};
   const d=newTrack('drums','Batterie');const pat=emptyPat(16),R=pat.rows,on=(row,i,v,r)=>R[row][i]={v:v||.85,r:r||1};
@@ -1256,8 +1277,8 @@ function stopRecord(){
 // ---- fichiers ----
 async function importAudio(files,atBeat,trackId){
   for(const f of files){try{toast('Import de '+f.name+'…');const ab=await f.arrayBuffer(),b=await ctx.decodeAudioData(ab);const id=addBuffer(b);snapshot();
-    const instru=INSTRU_MODE;INSTRU_MODE=false;let t=!instru&&trackId&&findTrack(trackId);
-    if(!t||t.type!=='audio'){t=newTrack('audio',instru?'🎵 Instru':f.name.replace(/\.[^.]+$/,'').slice(0,24));t.plugins=[];P.tracks.unshift(t);E.build(P)}
+    const instru=INSTRU_MODE;INSTRU_MODE=false;let t=!instru&&trackId&&findTrack(trackId);if(t&&(t.type!=='audio'||t.plugins.length))t=null;
+    if(!t){t=newTrack('audio',instru?'🎵 Instru':f.name.replace(/\.[^.]+$/,'').slice(0,24));t.plugins=[];t.sends=P.auxes.map(()=>-60);t.vol=-5;P.tracks.unshift(t);E.build(P)}
     const r={id:uid('r'),start:instru?0:(atBeat!=null?atBeat:0),offset:0,dur:b.duration,buf:id,name:f.name};t.regions.push(r);SEL=t.id;SELR=new Set([r.id]);renderAll();
     if(instru||b.duration>30)analyzeRegion(t,r,true);else toast('Importé : '+f.name)}
   catch(e){console.error(e);toast('Format non lu : '+f.name)}}
@@ -1446,6 +1467,8 @@ async function settingsModal(){
     h('div',{class:'kv2'},'Clavier musical AZERTY',h('input',{type:'checkbox',checked:P.settings.azerty!==false,onchange:e=>P.settings.azerty=e.target.checked})),
     h('div',{class:'kv2'},'Compensation de latence (ms)',h('input',{type:'number',value:P.settings.latencyMs||0,min:-300,max:300,style:{width:'70px'},onchange:e=>P.settings.latencyMs=+e.target.value})),
     h('div',{style:{color:'var(--dim)',fontSize:'11px'}},'Latence de sortie mesurée : ~'+lat+' ms (déjà compensée). Si vos prises sont en retard sur le beat, mettez une valeur positive (ex : 20) ; en avance : négative.'),
+    h('div',{class:'kv2'},'Mode audio',h('select',{onchange:async e=>{try{localStorage.setItem('studio_lat',e.target.value)}catch(err){}await saveLocal(true);location.reload()}},[['interactive','Réactif (faible latence)'],['balanced','Équilibré (conseillé)'],['playback','Stable (anti-grésillement)']].map(([v,n])=>h('option',{value:v,selected:(localStorage.getItem('studio_lat')||'balanced')===v},n)))),
+    h('div',{style:{color:'var(--dim)',fontSize:'11px'}},'Si le son grésille ou coupe pendant la lecture, choisissez « Stable ». L’appli redémarre (projet sauvegardé).'),
     h('div',{class:'kv2'},'Contrôleur MIDI',h('button',{onclick:()=>initMIDI(true)},MIDI?'MIDI actif ('+MIDI.inputs.size+')':'Activer le MIDI')),
     h('div',{class:'kv2'},'Assignations MIDI',h('button',{onclick:()=>{P.midiMap={};toast('Assignations effacées')}},'Tout effacer ('+Object.keys(P.midiMap).length+')'))]);
 }
@@ -1462,7 +1485,7 @@ function helpModal(){modal(h('div',{html:`<h2>Aide rapide</h2>
 <h4>Contrôleur MIDI</h4><p>Bouton 🎛 MIDI pour l’activer. Les notes jouent la piste sélectionnée. <b>Clic droit sur un bouton ou un fader → MIDI Learn</b>, puis bougez un potard.</p>
 <h4>Appli et appareils</h4><p>Installez l’appli (Fichier → Installer) : elle marche ensuite sans internet. Projets sauvegardés automatiquement dans l’appareil. Pour changer d’appareil : Fichier → Exporter le projet (.studio), puis Importer sur l’autre.</p><h4>Sur écran tactile</h4><p>Appui long = clic droit (menus, roulements, MIDI Learn) · double-tap = double-clic · dans le Piano Roll, basculez ✋ Défiler / ✏️ Écrire.</p>`}))}
 async function main(){
-  ctx=new AudioContext({latencyHint:'interactive'});E=new Engine(ctx,true);
+  let lh='balanced';try{lh=localStorage.getItem('studio_lat')||'balanced'}catch(e){}ctx=new AudioContext({latencyHint:lh});E=new Engine(ctx,true);
   try{await E.init()}catch(e){alert('Votre navigateur ne gère pas AudioWorklet. Utilisez Chrome, Edge ou Firefox récent.');throw e}
   let last=null;try{last=localStorage.getItem('studio_last')}catch(e){}
   newProject(true);P.id=uid('p');E.build(P);SEL=P.tracks[0].id;bindUI();renderAll();requestAnimationFrame(loop);
@@ -1550,15 +1573,15 @@ function initApp(){
 }
 
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='2.0';
+const APP_VERSION='2.1';
 const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
   let at=t.plugins.findIndex(p=>PLUG_ORDER.indexOf(p.type)>oi);if(at<0)at=t.plugins.length;t.plugins.splice(at,0,pl);closeAllPlugins();return[pl,true]}
 const sendPct=db=>db<=-59.5?0:clamp((db+40)/40*100,0,100),pctSend=v=>v<=0?-60:-40+40*v/100;
 const QUICK=[
- {n:'🔁 Écho',min:0,max:100,get:t=>sendPct(t.sends[1]??-60),set:(t,v)=>{t.sends[1]=pctSend(v)}},
- {n:'🌫 Réverb',min:0,max:100,get:t=>sendPct(t.sends[0]??-60),set:(t,v)=>{t.sends[0]=pctSend(v)}},
+ {n:'🔁 Écho',tip:'Répète la voix en rythme (yeah… yeah… yeah)',min:0,max:100,get:t=>sendPct(t.sends[1]??-60),set:(t,v)=>{t.sends[1]=pctSend(v)}},
+ {n:'🌫 Réverb',tip:'Met la voix dans une pièce : effet d’espace, sans répétitions',min:0,max:100,get:t=>sendPct(t.sends[0]??-60),set:(t,v)=>{t.sends[0]=pctSend(v)}},
  {n:'🎯 Autotune',min:0,max:100,get:t=>{const p=findPlug(t,'pitch');return p&&!p.byp?p.params.amount:0},set:(t,v)=>{const p=findPlug(t,'pitch');if(!p&&v<=0)return;const [pl,a]=ensurePlug(t,'pitch',{amount:v,speed:20});pl.params.amount=v;pl.byp=v<=0;return a||pl._b!==pl.byp}},
  {n:'🤖 Naturel ↔ Robot',min:0,max:100,get:t=>{const p=findPlug(t,'pitch');return p?clamp(100-p.params.speed/80*100,0,100):50},set:(t,v)=>{const p=findPlug(t,'pitch');if(p)p.params.speed=80*(1-v/100)}},
  {n:'🔈 Basses',min:-12,max:12,get:t=>{const p=findPlug(t,'eq');return p?p.params.lowG:0},set:(t,v)=>{const p=findPlug(t,'eq');if(!p&&v===0)return;const [pl,a]=ensurePlug(t,'eq');pl.params.lowG=v;return a}},
@@ -1576,12 +1599,12 @@ function quickControls(t){
       onpointerdown:()=>snapshot(),
       oninput:e=>{const v=+e.target.value;const pl=findPlug(t,'pitch');if(pl)pl._b=pl.byp;if(q.set(t,v))changed=true;val.textContent=fmt(v);E.updateStrip(t)},
       onchange:()=>{if(changed){changed=false;renderInspector()}},ondblclick:()=>{snapshot();q.set(t,q.min<0?0:0);renderInspector();E.updateStrip(t)}});
-    val.textContent=fmt(q.get(t));box.append(h('div',{class:'qrow'},h('span',{class:'qn'},q.n),r,val))}
+    val.textContent=fmt(q.get(t));box.append(h('div',{class:'qrow',title:q.tip||''},h('span',{class:'qn'},q.n),r,val))}
   const dl=P.auxes[1]&&findPlug(P.auxes[1],'delay');
   if(dl)box.append(h('div',{class:'qrow'},h('span',{class:'qn'},'⏱ Rythme écho'),h('select',{onchange:e=>{snapshot();dl.params.sync=+e.target.value;E.updateStrip(P.auxes[1])}},SYNC.map((s,i)=>i?h('option',{value:i,selected:(dl.params.sync|0)===i},s[0]):null))));
   const rv=P.auxes[0]&&findPlug(P.auxes[0],'reverb');
   if(rv)box.append(h('div',{class:'qrow'},h('span',{class:'qn'},'🏛 Taille réverb'),h('input',{type:'range',min:.3,max:6,step:.1,value:rv.params.size,onpointerdown:()=>snapshot(),onchange:e=>{rv.params.size=+e.target.value;E.updateStrip(P.auxes[0])}}),h('span',{class:'qv'},'')));
-  box.append(h('div',{style:{color:'var(--dim)',fontSize:'10px',marginTop:'4px'}},'Écho et réverb sont partagés entre les voix (bus). Double-clic = remettre à zéro.'));
+  box.append(h('div',{style:{color:'var(--dim)',fontSize:'10px',marginTop:'4px'}},'Écho = la voix se répète en rythme. Réverb = la voix sonne dans une pièce (espace). Conseil rap : réverb 15-30 %, écho 10-25 %. Double-clic = remettre à zéro.'));
   return box;
 }
 // ===== Analyse audio =====
@@ -1683,7 +1706,7 @@ function showChangelog(force){
   let seen='',old=null;try{seen=localStorage.getItem('studio_ver')||'';old=localStorage.getItem('studio_seen')}catch(e){}
   if(!force&&(seen===APP_VERSION||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><ul>
+  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
 <li><b>Réglages rapides</b> pour chaque voix : Écho, Réverb, Autotune, Naturel↔Robot, Basses, Clarté, Brillance, Punch, Doublage, Chaleur… de simples curseurs dans l’inspecteur (ⓘ).</li>
 <li><b>20 préréglages voix</b> classés : Base, Autotune (mélodieux, aérien, robot…), Créatif (grave démon, aiguë, lo-fi, stade, écho slap, phaser…), Ad-libs &amp; backs.</li>
 <li><b>5 nouveaux effets</b> : Pitch Shifter, Lo-Fi/Bitcrusher, Robot, Phaser, Trémolo.</li>

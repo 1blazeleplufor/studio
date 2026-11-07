@@ -126,3 +126,25 @@ class CrushProc extends AudioWorkletProcessor{
     return true}
 }
 registerProcessor('crush-proc',CrushProc);
+
+// Limiteur transparent à anticipation (lookahead)
+class LimitProc extends AudioWorkletProcessor{
+  static get parameterDescriptors(){return[{name:'gain',defaultValue:1},{name:'ceil',defaultValue:.89},{name:'rel',defaultValue:.08}]}
+  constructor(){super();this.L=Math.max(8,Math.round(sampleRate*.004));this.N=this.L+1;this.buf=[new Float32Array(this.N),new Float32Array(this.N)];this.tq=new Float32Array(this.N);
+    this.qi=new Int32Array(this.N*2);this.qv=new Float32Array(this.N*2);this.qh=0;this.qt=0;this.n=0;this.w=0;this.g=1;this.gr=0;this.k=0}
+  process(inputs,outputs,P){const inp=inputs[0],out=outputs[0];if(!out[0])return true;
+    const G=P.gain[0],C=P.ceil[0],rel=1-Math.exp(-1/(Math.max(.01,P.rel[0])*sampleRate)),att=1-Math.exp(-1/(this.L/4)),n=out[0].length,Q=this.N*2;
+    for(let i=0;i<n;i++){let pk=0;
+      for(let c=0;c<2;c++){const x=(inp[c]?inp[c][i]:(inp[0]?inp[0][i]:0))*G;this.buf[c][this.w]=x;const a=Math.abs(x);if(a>pk)pk=a}
+      const tg=pk>C?C/pk:1,idx=this.n++;
+      while(this.qt>this.qh&&this.qv[(this.qt-1)%Q]>=tg)this.qt--;this.qi[this.qt%Q]=idx;this.qv[this.qt%Q]=tg;this.qt++;
+      while(this.qi[this.qh%Q]<=idx-this.L-1)this.qh++;
+      const need=this.qv[this.qh%Q];
+      this.g=need<this.g?this.g+(need-this.g)*att:this.g+(need-this.g)*rel;if(this.g>need&&need<this.g*0.5)this.g=need;
+      const r=(this.w+1)%this.N;
+      for(let c=0;c<out.length;c++){let y=this.buf[c&1][r]*this.g;if(y>C)y=C;else if(y<-C)y=-C;out[c][i]=y}
+      this.w=r;this.gr=Math.min(this.gr,this.g)}
+    if(++this.k%16===0){this.port.postMessage(this.gr);this.gr=1}
+    return true}
+}
+registerProcessor('limit-proc',LimitProc);
