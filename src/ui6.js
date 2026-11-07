@@ -1,0 +1,161 @@
+// ===== v2 : Réglages rapides, atelier instru, version =====
+const APP_VERSION='2.4';
+const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
+function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
+function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
+  let at=t.plugins.findIndex(p=>PLUG_ORDER.indexOf(p.type)>oi);if(at<0)at=t.plugins.length;t.plugins.splice(at,0,pl);closeAllPlugins();return[pl,true]}
+const sendPct=db=>db<=-59.5?0:clamp((db+40)/40*100,0,100),pctSend=v=>v<=0?-60:-40+40*v/100;
+const QUICK=[
+ {n:'🔁 Écho',tip:'Répète la voix en rythme (yeah… yeah… yeah)',min:0,max:100,get:t=>sendPct(t.sends[1]??-60),set:(t,v)=>{t.sends[1]=pctSend(v)}},
+ {n:'🌫 Réverb',tip:'Met la voix dans une pièce : effet d’espace, sans répétitions',min:0,max:100,get:t=>sendPct(t.sends[0]??-60),set:(t,v)=>{t.sends[0]=pctSend(v)}},
+ {n:'🎯 Autotune',min:0,max:100,get:t=>{const p=findPlug(t,'pitch');return p&&!p.byp?p.params.amount:0},set:(t,v)=>{const p=findPlug(t,'pitch');if(!p&&v<=0)return;const [pl,a]=ensurePlug(t,'pitch',{amount:v,speed:20});pl.params.amount=v;pl.byp=v<=0;return a||pl._b!==pl.byp}},
+ {n:'🤖 Naturel ↔ Robot',min:0,max:100,get:t=>{const p=findPlug(t,'pitch');return p?clamp(100-p.params.speed/80*100,0,100):50},set:(t,v)=>{const p=findPlug(t,'pitch');if(p)p.params.speed=80*(1-v/100)}},
+ {n:'🔈 Basses',min:-12,max:12,get:t=>{const p=findPlug(t,'eq');return p?p.params.lowG:0},set:(t,v)=>{const p=findPlug(t,'eq');if(!p&&v===0)return;const [pl,a]=ensurePlug(t,'eq');pl.params.lowG=v;return a}},
+ {n:'✨ Clarté',min:-6,max:12,get:t=>{const p=findPlug(t,'eq');return p?p.params.m2G:0},set:(t,v)=>{const p=findPlug(t,'eq');if(!p&&v===0)return;const [pl,a]=ensurePlug(t,'eq');pl.params.m2G=v;return a}},
+ {n:'💎 Brillance',min:-12,max:12,get:t=>{const p=findPlug(t,'eq');return p?p.params.hiG:0},set:(t,v)=>{const p=findPlug(t,'eq');if(!p&&v===0)return;const [pl,a]=ensurePlug(t,'eq');pl.params.hiG=v;return a}},
+ {n:'👊 Punch',min:0,max:100,get:t=>{const p=findPlug(t,'comp');return p&&!p.byp?clamp((-p.params.thr-8)/30*100,0,100):0},set:(t,v)=>{const p=findPlug(t,'comp');if(!p&&v<=0)return;const [pl,a]=ensurePlug(t,'comp');pl.params.thr=-8-30*v/100;pl.params.ratio=2+6*v/100;pl.params.gain=10*v/100;pl.byp=v<=0;return a}},
+ {n:'👥 Doublage',min:0,max:100,get:t=>{const p=findPlug(t,'chorus');return p&&!p.byp?p.params.mix:0},set:(t,v)=>{const p=findPlug(t,'chorus');if(!p&&v<=0)return;const [pl,a]=ensurePlug(t,'chorus');pl.params.mix=v;pl.byp=v<=0;return a}},
+ {n:'🔥 Chaleur',min:0,max:100,get:t=>{const p=findPlug(t,'sat');return p&&!p.byp?p.params.mix:0},set:(t,v)=>{const p=findPlug(t,'sat');if(!p&&v<=0)return;const [pl,a]=ensurePlug(t,'sat',{drive:25,type:1,out:-2});pl.params.mix=v;pl.byp=v<=0;return a}},
+ {n:'🔊 Volume',min:-30,max:6,get:t=>t.vol,set:(t,v)=>{t.vol=v;syncFaders(t.id)}},
+];
+function quickControls(t){
+  const box=h('div',{class:'sec quick'});let changed=false;
+  for(const q of QUICK){const val=h('span',{class:'qv'}),fmt=v=>q.min<0?(v>0?'+':'')+Math.round(v)+(q.n.includes('Volume')?' dB':''):Math.round(v)+'%';
+    const r=h('input',{type:'range',min:q.min,max:q.max,step:1,value:q.get(t),
+      onpointerdown:()=>snapshot(),
+      oninput:e=>{const v=+e.target.value;const pl=findPlug(t,'pitch');if(pl)pl._b=pl.byp;if(q.set(t,v))changed=true;val.textContent=fmt(v);E.updateStrip(t)},
+      onchange:()=>{if(changed){changed=false;renderInspector()}},ondblclick:()=>{snapshot();q.set(t,q.min<0?0:0);renderInspector();E.updateStrip(t)}});
+    val.textContent=fmt(q.get(t));box.append(h('div',{class:'qrow',title:q.tip||''},h('span',{class:'qn'},q.n),r,val))}
+  const dl=P.auxes[1]&&findPlug(P.auxes[1],'delay');
+  if(dl)box.append(h('div',{class:'qrow'},h('span',{class:'qn'},'⏱ Rythme écho'),h('select',{onchange:e=>{snapshot();dl.params.sync=+e.target.value;E.updateStrip(P.auxes[1])}},SYNC.map((s,i)=>i?h('option',{value:i,selected:(dl.params.sync|0)===i},s[0]):null))));
+  const rv=P.auxes[0]&&findPlug(P.auxes[0],'reverb');
+  if(rv)box.append(h('div',{class:'qrow'},h('span',{class:'qn'},'🏛 Taille réverb'),h('input',{type:'range',min:.3,max:6,step:.1,value:rv.params.size,onpointerdown:()=>snapshot(),onchange:e=>{rv.params.size=+e.target.value;E.updateStrip(P.auxes[0])}}),h('span',{class:'qv'},'')));
+  box.append(h('div',{style:{color:'var(--dim)',fontSize:'10px',marginTop:'4px'}},'Écho = la voix se répète en rythme. Réverb = la voix sonne dans une pièce (espace). Conseil rap : réverb 15-30 %, écho 10-25 %. Double-clic = remettre à zéro.'));
+  return box;
+}
+// ===== Analyse audio =====
+function fftMag(re,im){const n=re.length;for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]]}}
+  for(let len=2;len<=n;len<<=1){const a=-2*Math.PI/len,wr=Math.cos(a),wi=Math.sin(a);for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let j=0;j<len/2;j++){const ur=re[i+j],ui=im[i+j],k=i+j+len/2,vr=re[k]*cr-im[k]*ci,vi=re[k]*ci+im[k]*cr;re[i+j]=ur+vr;im[i+j]=ui+vi;re[k]=ur-vr;im[k]=ui-vi;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t}}}}
+function monoSlice(buf,off,dur,maxS,targetSr){const sr=buf.sampleRate,st=Math.floor(off*sr),n=Math.min(buf.length-st,Math.floor(Math.min(dur,maxS)*sr)),dec=Math.max(1,Math.round(sr/targetSr)),m=Math.floor(n/dec),out=new Float32Array(m);
+  const chs=[];for(let c=0;c<buf.numberOfChannels;c++)chs.push(buf.getChannelData(c));
+  for(let i=0;i<m;i++){let s=0;for(let k=0;k<dec;k++){const j=st+i*dec+k;for(const d of chs)s+=d[j]}out[i]=s/(dec*chs.length)}return{d:out,sr:sr/dec}}
+function detectBPM(buf,off,dur){
+  const {d,sr}=monoSlice(buf,off,dur,75,11025),hop=64,fps=sr/hop,nF=Math.floor(d.length/hop),env=new Float32Array(nF);
+  let prev=0;for(let f=0;f<nF;f++){let e=0;for(let i=0;i<hop;i++){const v=d[f*hop+i];e+=v*v}const le=Math.log(1e-6+e);env[f]=Math.max(0,le-prev);prev=le}
+  const best=[];for(let bpm=60;bpm<=200;bpm+=.5){const lag=60*fps/bpm;let s=0;const L=Math.floor(lag);const fr=lag-L;
+    for(let f=0;f+L+1<nF;f++)s+=env[f]*(env[f+L]*(1-fr)+env[f+L+1]*fr);best.push([bpm,s/(nF-L)])}
+  // privilégier 70-180, pondérer les harmoniques
+  const sc=best.map(([b,s])=>{const h2=best.find(x=>Math.abs(x[0]-b*2)<.3),hh=best.find(x=>Math.abs(x[0]-b/2)<.3);return[b,s+(h2?h2[1]*.5:0)+(hh?hh[1]*.25:0)-(b<70||b>180?s*.3:0)]});
+  sc.sort((a,b)=>b[1]-a[1]);let bpm=Math.round(sc[0][0]);if(bpm<85&&bpm*2<=190)bpm*=2;return{bpm,alt:bpm>=120?Math.round(bpm/2):bpm<100?bpm*2:null};
+}
+const KP_MAJ=[6.35,2.23,3.48,2.33,4.38,4.09,2.52,5.19,2.39,3.66,2.29,2.88],KP_MIN=[6.33,2.68,3.52,5.38,2.6,3.53,2.54,4.75,3.98,2.69,3.34,3.17];
+function detectKey(buf,off,dur){
+  const {d,sr}=monoSlice(buf,off,dur,90,11025),N=4096,ch=new Float64Array(12),re=new Float64Array(N),im=new Float64Array(N);
+  for(let st=0;st+N<=d.length;st+=N){for(let i=0;i<N;i++){re[i]=d[st+i]*(.5-.5*Math.cos(2*Math.PI*i/N));im[i]=0}fftMag(re,im);
+    const fr=new Float64Array(12);let tot=0;
+    for(let k=Math.ceil(130*N/sr);k<Math.min(N/2-1,2100*N/sr);k++){const m=Math.hypot(re[k],im[k]),ml=Math.hypot(re[k-1],im[k-1]),mr=Math.hypot(re[k+1],im[k+1]);if(m<ml||m<mr)continue;
+      const f=k*sr/N,cents=12*Math.log2(f/440),nn=Math.round(cents);if(Math.abs(cents-nn)>.35)continue;const pc=((nn+69)%12+12)%12;fr[pc]+=m;tot+=m}
+    if(tot>0)for(let i=0;i<12;i++)ch[i]+=fr[i]/tot}
+  const corr=(p,r)=>{let mx=0,mp=0;for(let i=0;i<12;i++){mx+=ch[(i+r)%12];mp+=p[i]}mx/=12;mp/=12;let a=0,b=0,c=0;for(let i=0;i<12;i++){const x=ch[(i+r)%12]-mx,y=p[i]-mp;a+=x*y;b+=x*x;c+=y*y}return a/Math.sqrt(b*c||1)};
+  let best=[-2,0,0];for(let r=0;r<12;r++){const a=corr(KP_MAJ,r),b=corr(KP_MIN,r);if(a>best[0])best=[a,r,1];if(b>best[0])best=[b,r,0]}
+  return{key:best[1],scale:best[2]?'Majeur':'Mineur',scaleIdx:best[2]?1:0,conf:best[0]};
+}
+// ===== Traitements (nouveau buffer) =====
+const pause=()=>new Promise(r=>setTimeout(r,0));
+async function wsola(buf,f,prog){ // étirement temporel sans changer la hauteur
+  const sr=buf.sampleRate,N=Math.round(sr*.046/2)*2,Hs=N/2,Ha=Hs/f,delta=Math.round(sr*.009),len=buf.length,outLen=Math.ceil(len*f),C=buf.numberOfChannels;
+  const chs=[],outs=[];for(let c=0;c<C;c++){chs.push(buf.getChannelData(c));outs.push(new Float32Array(outLen+N))}
+  const mono=new Float32Array(len);for(const d of chs)for(let i=0;i<len;i++)mono[i]+=d[i];
+  const win=new Float32Array(N);for(let i=0;i<N;i++)win[i]=.5-.5*Math.cos(2*Math.PI*i/N);
+  let prev=0;
+  for(let k=0;k*Hs<outLen;k++){let pos=Math.round(k*Ha);
+    if(k>0){const nat=prev+Hs;if(nat+Hs<len){let best=-Infinity,bp=pos;for(let dd=-delta;dd<=delta;dd+=2){const p=pos+dd;if(p<0||p+N>len)continue;let s=0;for(let i=0;i<Hs;i+=4)s+=mono[nat+i]*mono[p+i];if(s>best){best=s;bp=p}}pos=bp}}
+    pos=clamp(pos,0,Math.max(0,len-N));const o=k*Hs;
+    for(let c=0;c<C;c++){const x=chs[c],y=outs[c];for(let i=0;i<N&&pos+i<len;i++)y[o+i]+=x[pos+i]*win[i]}prev=pos;
+    if(k%300===0){if(prog)prog(o/outLen);await pause()}}
+  const nb=ctx.createBuffer(C,outLen,sr);for(let c=0;c<C;c++)nb.copyToChannel(outs[c].subarray(0,outLen),c);return nb;
+}
+async function resample(buf,rate){const n=Math.max(1,Math.round(buf.length/rate)),oc=new OfflineAudioContext(buf.numberOfChannels,n,buf.sampleRate),s=oc.createBufferSource();s.buffer=buf;s.playbackRate.value=rate;s.connect(oc.destination);s.start();return await oc.startRendering()}
+function sliceBuf(buf,off,dur){const sr=buf.sampleRate,a=Math.max(0,Math.floor(off*sr)),n=Math.max(1,Math.min(buf.length-a,Math.round(dur*sr))),nb=ctx.createBuffer(buf.numberOfChannels,n,sr);
+  for(let c=0;c<buf.numberOfChannels;c++)nb.copyToChannel(buf.getChannelData(c).subarray(a,a+n),c);return nb}
+function karaoke(buf){
+  if(buf.numberOfChannels<2)throw new Error('L’instru est en mono : impossible d’enlever la voix');
+  const L=buf.getChannelData(0),R=buf.getChannelData(1),n=buf.length,sr=buf.sampleRate,nb=ctx.createBuffer(2,n,sr),oL=nb.getChannelData(0),oR=nb.getChannelData(1);
+  const a=Math.exp(-2*Math.PI*180/sr);let l1=0,l2=0;
+  for(let i=0;i<n;i++){const m=(L[i]+R[i])*.5,s=(L[i]-R[i])*.5;l1=(1-a)*m+a*l1;l2=(1-a)*l1+a*l2;oL[i]=s+l2;oR[i]=-s+l2}return nb}
+async function processRegion(t,r,label,fn){
+  const busy=modal([h('h2',null,'⏳ '+label),h('p',{id:'busyTxt'},'Traitement en cours…')]);await pause();
+  try{const src=sliceBuf(BUFS[r.buf],r.offset,r.dur);const nb=await fn(src,p=>{const e=document.getElementById('busyTxt');if(e)e.textContent=Math.round(p*100)+' %'});
+    snapshot();r.buf=addBuffer(nb);r.offset=0;r.dur=nb.duration;busy.remove();renderLanes();renderInspector();toast(label+' ✔ (Ctrl+Z pour annuler)')}
+  catch(e){busy.remove();console.error(e);alert('Erreur : '+e.message)}
+}
+function analyzeRegion(t,r,auto){
+  const busy=modal([h('h2',null,'🔍 Analyse de l’instru…')]);
+  setTimeout(()=>{let b,k;try{b=detectBPM(BUFS[r.buf],r.offset,r.dur);k=detectKey(BUFS[r.buf],r.offset,r.dur)}catch(e){busy.remove();return alert('Analyse impossible : '+e.message)}busy.remove();
+    r.bpm=b.bpm;r.key=k.key;r.scale=k.scaleIdx;renderInspector();
+    const apply=(bpm)=>{snapshot();P.bpm=bpm;P.key=k.key;P.scaleIdx=k.scaleIdx;for(const o of [...P.tracks,...P.auxes])o.plugins.forEach(pl=>{if(pl.type==='pitch'){pl.params.key=P.key;pl.params.scale=P.scaleIdx}});
+      r.bpm=bpm;E.updateAll();renderAll();toast('Projet réglé sur '+bpm+' BPM, '+NOTE_NAMES[k.key]+' '+k.scale+' (autotune inclus)')};
+    const m=modal([h('h2',null,'🎵 Instru analysée'),h('p',null,'Tempo détecté : ',h('b',null,b.bpm+' BPM'),b.alt?' (ou '+b.alt+' BPM)':''),
+      h('p',null,'Tonalité détectée : ',h('b',null,NOTE_NAMES[k.key]+' '+k.scale),h('span',{style:{color:'var(--dim)'}},k.conf<.6?' (incertaine)':'')),
+      h('p',{style:{color:'var(--dim)',fontSize:'11px'}},'Régler le projet aligne la grille, le métronome, les échos et l’autotune sur l’instru. Si la grille ne tombe pas pile, utilisez « Couper le silence du début ».'),
+      h('div',{style:{display:'flex',gap:'6px',flexWrap:'wrap'}},h('button',{class:'on',onclick:()=>{m.remove();apply(b.bpm)}},'Régler le projet sur '+b.bpm+' BPM'),b.alt&&h('button',{onclick:()=>{m.remove();apply(b.alt)}},'Plutôt '+b.alt+' BPM'),h('button',{onclick:()=>m.remove()},auto?'Plus tard':'Fermer'))])},60);
+}
+function trimSilence(t,r){const b=BUFS[r.buf],sr=b.sampleRate,st=Math.floor(r.offset*sr),end=st+Math.floor(r.dur*sr),th=dbToG(-45);let i=st;
+  outer:for(;i<end;i++)for(let c=0;c<b.numberOfChannels;c++)if(Math.abs(b.getChannelData(c)[i])>th)break outer;
+  const cut=(i-st)/sr;if(cut<.01)return toast('Pas de silence au début');snapshot();r.offset+=cut;r.dur-=cut;renderLanes();renderInspector();toast('Silence coupé : '+cut.toFixed(2)+' s')}
+function regionTools(t,r){
+  const box=h('div',{class:'sec'}),B=(lab,fn,tip)=>h('button',{title:tip||'',onclick:fn},lab);
+  box.append(h('div',{style:{fontWeight:600,marginBottom:'4px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},r.name||'Région'),
+    h('div',{style:{color:'var(--dim)',fontSize:'11px',marginBottom:'6px'}},r.dur.toFixed(1)+' s'+(r.bpm?' · '+r.bpm+' BPM':'')+(r.key!=null?' · '+NOTE_NAMES[r.key]+' '+(r.scale?'Majeur':'Mineur'):'')));
+  const g=h('div',{class:'tools'});
+  g.append(B('🔍 Détecter BPM & tonalité',()=>analyzeRegion(t,r)));
+  const src=h('input',{type:'number',min:40,max:250,value:r.bpm||P.bpm,style:{width:'52px'}}),dst=h('input',{type:'number',min:40,max:250,value:P.bpm,style:{width:'52px'}});
+  g.append(h('div',{class:'kv2'},'Tempo',src,'→',dst,B('OK',()=>{const a=+src.value,b=+dst.value;if(!a||!b||a===b)return toast('Indiquez deux tempos différents');
+    processRegion(t,r,'Changement de tempo '+a+'→'+b+' BPM',(buf,pr)=>wsola(buf,a/b,pr)).then(()=>{r.bpm=b})},'Change la vitesse sans changer la hauteur')));
+  const tr=n=>processRegion(t,r,'Transposition '+(n>0?'+':'')+n+' demi-ton'+(Math.abs(n)>1?'s':''),async(buf,pr)=>{const rt=Math.pow(2,n/12);return await resample(await wsola(buf,rt,pr),rt)}).then(()=>{if(r.key!=null)r.key=(r.key+n+12)%12});
+  g.append(h('div',{class:'kv2'},'Transposer',h('span',null,B('−1',()=>tr(-1)),' ',B('+1',()=>tr(1)),' ',B('−12',()=>tr(-12)),' ',B('+12',()=>tr(12)))));
+  g.append(B('🎤 Enlever la voix (karaoké)',()=>processRegion(t,r,'Suppression de la voix',async b=>karaoke(b)),'Retire ce qui est au centre du mix (voix), garde les basses. Le résultat dépend du mix.'));
+  g.append(B('✂ Couper le silence du début',()=>trimSilence(t,r)),B('🔁 Boucler ×2',()=>{SELR=new Set([r.id]);dupRegions()}),B('⇆ Inverser',()=>{snapshot();const b=BUFS[r.buf],nb=ctx.createBuffer(b.numberOfChannels,b.length,b.sampleRate);for(let c=0;c<b.numberOfChannels;c++){const s=b.getChannelData(c),d=nb.getChannelData(c);for(let i=0;i<s.length;i++)d[i]=s[s.length-1-i]}r.buf=addBuffer(nb);r.offset=Math.max(0,b.duration-r.offset-r.dur);renderLanes()}));
+  const sl=(lab,min,max,step,get,set,fmt)=>{const v=h('span',{class:'qv'},fmt(get()));return h('div',{class:'qrow'},h('span',{class:'qn'},lab),h('input',{type:'range',min,max,step,value:get(),onpointerdown:()=>snapshot(),oninput:e=>{set(+e.target.value);v.textContent=fmt(+e.target.value)},onchange:()=>renderLanes()}),v)};
+  g.append(sl('Volume',-24,12,.5,()=>r.gain||0,v=>r.gain=v,v=>(v>0?'+':'')+v+' dB'),sl('Fondu début',0,8,.1,()=>r.fi||0,v=>r.fi=v,v=>v.toFixed(1)+' s'),sl('Fondu fin',0,8,.1,()=>r.fo||0,v=>r.fo=v,v=>v.toFixed(1)+' s'));
+  box.append(g);return box;
+}
+function importInstruDialog(){
+  modal([h('h2',null,'🎵 Importer une instru'),
+    h('p',null,'Choisissez le fichier audio du beat (MP3, WAV, M4A…). Studio détecte ensuite son tempo et sa tonalité pour régler le projet.'),
+    h('h4',null,'Et YouTube ?'),
+    h('p',{style:{color:'var(--dim)'}},'Studio ne peut pas télécharger directement depuis YouTube : c’est bloqué par YouTube et interdit par ses règles. La plupart des « type beats » donnent un lien de téléchargement (gratuit ou payant) dans la description de la vidéo, souvent sur BeatStars ou chez le beatmaker. Téléchargez le fichier, puis importez-le ici. Pensez à respecter la licence du beatmaker si vous publiez le son.'),
+    h('button',{class:'on',style:{fontSize:'15px',padding:'8px 14px'},onclick:e=>{e.target.closest('.modal').remove();INSTRU_MODE=true;$('#fileAudio').click()}},'📂 Choisir le fichier de l’instru')]);
+}
+let INSTRU_MODE=false;
+function showChangelog(force){
+  let seen='',old=null;try{seen=localStorage.getItem('studio_ver')||'';old=localStorage.getItem('studio_seen')}catch(e){}
+  if(!force&&(seen===APP_VERSION||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
+  try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
+  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v2.4</h4><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
+<li><b>Réglages rapides</b> pour chaque voix : Écho, Réverb, Autotune, Naturel↔Robot, Basses, Clarté, Brillance, Punch, Doublage, Chaleur… de simples curseurs dans l’inspecteur (ⓘ).</li>
+<li><b>20 préréglages voix</b> classés : Base, Autotune (mélodieux, aérien, robot…), Créatif (grave démon, aiguë, lo-fi, stade, écho slap, phaser…), Ad-libs &amp; backs.</li>
+<li><b>5 nouveaux effets</b> : Pitch Shifter, Lo-Fi/Bitcrusher, Robot, Phaser, Trémolo.</li>
+<li><b>Atelier instru</b> (bouton 🎵 Instru) : détection du BPM et de la tonalité, réglage du projet en 1 clic, changement de tempo sans changer la hauteur, transposition, suppression de la voix (karaoké), fondus, coupe du silence.</li>
+<li><b>Mises à jour automatiques</b> : actualisez la page pour avoir la dernière version.</li></ul>`}));
+}
+// ===== v2.2 : navigation façon Logic =====
+let CLIP=[];
+function muteRegions(){if(!SELR.size)return toast('Sélectionnez une région');snapshot();const items=[...SELR].map(findRegion).filter(Boolean);const m=!items[0][1].mute;items.forEach(([t,r])=>r.mute=m);renderLanes();toast(m?'Région muette':'Région réactivée')}
+function copyRegions(){const items=[...SELR].map(findRegion).filter(Boolean);if(!items.length)return toast('Sélectionnez une région');const a=Math.min(...items.map(([t,r])=>r.start));CLIP=items.map(([t,r])=>({tid:t.id,type:t.type,r:deep(r),rel:r.start-a}));toast(items.length+' région(s) copiée(s)')}
+function pasteRegions(){if(!CLIP.length)return toast('Rien à coller');snapshot();const ns=new Set();const single=CLIP.every(c=>c.tid===CLIP[0].tid),sel=findTrack(SEL);
+  for(const c of CLIP){let t=single&&sel&&sel.type===c.type?sel:findTrack(c.tid);if(!t||t.type!==c.type)continue;const r=deep(c.r);r.id=uid('r');r.start=PH+c.rel;t.regions.push(r);ns.add(r.id)}SELR=ns;renderLanes();toast('Collé à la tête de lecture')}
+function nudge(d){if(!SELR.size)return;snapshot();const s=P.settings.snap||.25;for(const id of SELR){const fr=findRegion(id);if(fr)fr[1].start=Math.max(0,fr[1].start+d*s)}renderLanes()}
+function zoomV(f){const W=$('#lanesWrap'),mid=(W.scrollTop+W.clientHeight/2)/TH;TH=clamp(Math.round(TH*f),36,220);renderLanes();renderHeads();W.scrollTop=mid*TH-W.clientHeight/2}
+function zoomFit(){const W=$('#lanesWrap');let a=0,b=0;const items=[...SELR].map(findRegion).filter(Boolean);
+  if(items.length){a=Math.min(...items.map(([t,r])=>r.start));b=Math.max(...items.map(([t,r])=>r.start+rLen(t,r)))}
+  else{for(const t of P.tracks)for(const r of t.regions)b=Math.max(b,r.start+rLen(t,r));b=Math.max(b,P.sig*4)}
+  PPB=clamp((W.clientWidth-40)/Math.max(1,b-a),2,4000);if(!items.length)TH=clamp(Math.floor((W.clientHeight-50)/Math.max(1,P.tracks.length)),36,160);
+  renderLanes();renderHeads();W.scrollLeft=a*PPB-10;if(!items.length)W.scrollTop=0;drawRuler();toast(items.length?'Zoom sur la sélection':'Vue d’ensemble du projet',1200)}
+function cycleToSel(){const items=[...SELR].map(findRegion).filter(Boolean);if(!items.length)return toast('Sélectionnez une région');P.cycle.start=Math.min(...items.map(([t,r])=>r.start));P.cycle.end=Math.max(...items.map(([t,r])=>r.start+rLen(t,r)));P.cycle.on=true;renderBar();updateCycleShade();drawRuler()}
+function shortcutsModal(){modal(h('div',{html:`<h2>⌨ Raccourcis clavier</h2><p style="color:var(--dim)">Sur Mac, Ctrl = ⌘ Cmd.</p>
+<h4>Lecture</h4><p><kbd>Espace</kbd> lecture/stop · <kbd>R</kbd> enregistrer · <kbd>C</kbd> cycle · <kbd>U</kbd> cycle sur la sélection · <kbd>K</kbd> métronome · <kbd>Entrée</kbd>/<kbd>Début</kbd> retour au début · <kbd>Fin</kbd> fin du projet · <kbd>←</kbd><kbd>→</kbd> ou <kbd>,</kbd><kbd>.</kbd> mesure précédente/suivante</p>
+<h4>Zoom</h4><p><kbd>Ctrl+→</kbd>/<kbd>Ctrl+←</kbd> zoom horizontal · <kbd>Ctrl+↑</kbd>/<kbd>Ctrl+↓</kbd> hauteur des pistes · <kbd>Z</kbd> tout voir (ou zoom sur la sélection) · <kbd>Ctrl+molette</kbd> zoom · <kbd>Alt+molette</kbd> hauteur des pistes</p>
+<h4>Pistes</h4><p><kbd>↑</kbd><kbd>↓</kbd> piste précédente/suivante · <kbd>Suppr</kbd> supprimer la piste (si aucune région sélectionnée) · <kbd>Ctrl+Suppr</kbd> supprimer la piste · <kbd>Maj+D</kbd> dupliquer la piste · <kbd>M</kbd> muet · <kbd>S</kbd> solo · <kbd>Ctrl+Alt+A</kbd> nouvelle piste voix · <kbd>Ctrl+Alt+S</kbd> nouvel instrument · <kbd>Ctrl+Alt+D</kbd> nouvelle batterie</p>
+<h4>Régions</h4><p><kbd>Ctrl+T</kbd> couper à la tête de lecture (✂) · <kbd>Ctrl+C</kbd> copier · <kbd>Ctrl+X</kbd> couper · <kbd>Ctrl+V</kbd> coller à la tête de lecture · <kbd>Ctrl+D</kbd> dupliquer · <kbd>Ctrl+M</kbd> rendre muette · <kbd>Suppr</kbd> effacer · <kbd>Alt+←</kbd>/<kbd>Alt+→</kbd> décaler d’un pas de grille · <kbd>Ctrl+A</kbd> tout sélectionner · <kbd>Alt+glisser</kbd> copier · glisser dans le vide = sélection rectangle · <kbd>Maj+clic</kbd> ajouter à la sélection</p>
+<h4>Fenêtres</h4><p><kbd>X</kbd> mixeur · <kbd>E</kbd> éditeur · <kbd>P</kbd> piano roll · <kbd>I</kbd> inspecteur · <kbd>Ctrl+K</kbd> clavier musical · <kbd>Ctrl+Z</kbd> annuler · <kbd>Ctrl+Maj+Z</kbd> rétablir · <kbd>Ctrl+S</kbd> sauvegarder</p>`}))}
