@@ -12,7 +12,7 @@
 |---|---|
 | **Appli en ligne** | https://1blazeleplufor.github.io/studio/ |
 | **Dépôt** | `github.com/1blazeleplufor/studio` (public, GitHub Pages sur `main`, dossier racine) |
-| **Version** | 3.3 (`APP_VERSION` dans `src/ui6.js`) |
+| **Version** | 3.4 (`APP_VERSION` dans `src/ui6.js`) |
 | **Utilisateur** | Francophone, débutant en MAO mais à l’aise avec les logiciels, fait du rap/trap (références : Timar, Leto, Djadja & Dinaz, Bouss). Travaille surtout sur **Mac**, veut aussi téléphone/tablette/Windows/Android. |
 | **Langue de l’UI** | Français partout. |
 | **Stack** | HTML/CSS/JS **vanilla** (aucun framework, aucune dépendance npm), Web Audio API + AudioWorklet, PWA (manifest + service worker), IndexedDB. |
@@ -127,6 +127,7 @@ Region drums = { id, start, len, pat:{ steps, rows:{ kick:[0|{v,r /*roulement 1-
 | **ui3.js** | Fenêtres de plugins/instruments, panneau du bas (mixeur, **piano roll**, **step sequencer**), transport, enregistrement, import audio, `.studio`, export WAV/stems, modèle de plugin externe. |
 | **ui4.js** | `bindUI`, menu Fichier, **raccourcis clavier**, clavier musical, règle (cycle + scrub), boucle d’affichage (`loop` : tête de lecture, vumètres, LCD), réglages, aide, `main()`. |
 | **ui5.js** | IndexedDB, sauvegarde auto, « Mes projets », installation PWA, appui long tactile, enregistrement du service worker. |
+| **ui8.js** | v3.4 — Import Logic Pro & co : parcours des dossiers glissés (`dropEntries`/`walkEntries`, un `.logicx` est un dossier), lecture de `Alternatives/000/MetaData.plist` (plist XML ou binaire : BeatsPerMinute, SongKey, SongGenderKey, SongSignatureNumerator, AudioFiles), décodeurs de secours AIFF/AIFC/CAF/WAV, horodatage BWF (`bext` TimeReference, départ Logic à 01:00:00:00) pour replacer les prises, regroupement des prises `Nom#NN` (seule la dernière active), import MIDI SMF (pistes synth + batterie canal 10 → patterns). Le format interne `ProjectData` de Logic est fermé : arrangement/plugins/automation non récupérables. |
 | **ui7.js** | Fenêtres dédiées des plugins pro : `openVerbPro` (Réverb « Ères ») et `openTunePro` (Pitch Pro, graphique de hauteur en direct alimenté par `inst.graph`). |
 | **ui6.js** | Version + nouveautés, réglages rapides (`QUICK`), atelier instru, analyses, navigation Logic (copier/coller, zoom, fit, nudge, mute région), modale des raccourcis. |
 
@@ -252,6 +253,7 @@ python3 tests/t7.py                # instru : BPM/tonalité, time-stretch, trans
 python3 tests/t9.py                # raccourcis : piste dupliquer/supprimer/annuler, zoom, sélection rectangle, couper/copier/coller
 python3 tests/t10.py               # barre du haut sans débordement, piste instru dédiée, zoom HD
 python3 tests/t12.py               # déplacement de la tête de lecture pendant la lecture
+python3 tests/t17.py               # v3.4 : import Logic (.logicx factice dans tests/fixtures_logic), plist binaire/XML, AIFF/CAF, MIDI
 python3 tests/t15.py               # v3.1 : Pitch Pro (justesse, latence compensée), Réverb Pro, fenêtres
 python3 tests/t13.py               # v3.0 : session à 2 fenêtres, cadenas, undo par personne, sons
 python3 tests/t14.py               # v3.0 : arrivées simultanées, actions aléatoires, rechargement

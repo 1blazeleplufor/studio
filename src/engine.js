@@ -28,7 +28,7 @@ class Engine{
   }
   rebuildChain(s,obj){
     try{s.input.disconnect()}catch(e){}
-    for(const p of s.plugins){try{p.output.disconnect()}catch(e){}if(p.dispose)p.dispose()}
+    for(const p of s.plugins){if(!p)continue;try{p.output.disconnect()}catch(e){}if(p.dispose)p.dispose()}
     s.plugins=[];let prev=s.input;
     for(const pl of obj.plugins||[]){
       if(!PLUGINS[pl.type]){s.plugins.push(null);continue}

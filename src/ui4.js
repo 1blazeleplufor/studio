@@ -16,7 +16,7 @@ function bindUI(){
   B('#bFile',e=>menu(e,['Projet',['📂 Mes projets…',projectsModal],['👥 Session à plusieurs…',collabModal],['📀 Partager un lien d’écoute (MP3)…',bounceModal],['Nouveau projet vide',()=>switchProject(()=>newProject(false))],['Nouveau projet démo (trap)',()=>switchProject(()=>newProject(true))],
     ['Exporter le projet (.studio) pour un autre appareil',saveProject],['Importer un projet (.studio)…',()=>$('#fileProj').click()],'-','Exporter l’audio',
     ['Exporter le morceau en WAV',()=>exportMix('all')],['Exporter la zone de cycle en WAV',()=>exportMix('cycle')],['Exporter chaque piste séparément (stems)',()=>exportMix('stems')],'-',
-    ['🎵 Importer une instru…',importInstruDialog],['Importer un son…',()=>$('#fileAudio').click()],['⌨ Raccourcis clavier',shortcutsModal],['Charger un plugin externe (.js)…',()=>$('#filePlug').click()],['Télécharger le modèle de plugin',()=>download(new Blob([PLUGIN_TEMPLATE],{type:'text/javascript'}),'mon-plugin.js')],'-',['📲 Installer l’appli sur cet appareil',installApp]]));
+    ['🎵 Importer une instru…',importInstruDialog],['🍎 Importer depuis Logic Pro…',logicImportDialog],['Importer un son…',()=>$('#fileAudio').click()],['⌨ Raccourcis clavier',shortcutsModal],['Charger un plugin externe (.js)…',()=>$('#filePlug').click()],['Télécharger le modèle de plugin',()=>download(new Blob([PLUGIN_TEMPLATE],{type:'text/javascript'}),'mon-plugin.js')],'-',['📲 Installer l’appli sur cet appareil',installApp]]));
   B('#bAdd',addTrackMenu);B('#zIn',()=>zoom(1.25));B('#zOut',()=>zoom(.8));B('#vIn',()=>zoomV(1.2));B('#vOut',()=>zoomV(1/1.2));B('#zFit',zoomFit);B('#bSplit',splitAtPH);
   $('#snapSel').addEventListener('change',e=>{P.settings.snap=+e.target.value});
   $('#bpm').addEventListener('change',e=>{snapshot();P.bpm=clamp(+e.target.value||120,40,250);e.target.value=P.bpm;const was=E.playing;let pos=PH;if(was){pos=E.pos();E.stop()}E.updateAll();renderLanes();if(was)E.play(pos)});
@@ -43,7 +43,10 @@ function bindUI(){
   // glisser-déposer
   let dc=0;document.addEventListener('dragenter',e=>{e.preventDefault();dc++;$('#drop').style.display='flex'});document.addEventListener('dragleave',()=>{if(--dc<=0){dc=0;$('#drop').style.display='none'}});
   document.addEventListener('dragover',e=>e.preventDefault());
-  document.addEventListener('drop',async e=>{e.preventDefault();dc=0;$('#drop').style.display='none';const fs=[...e.dataTransfer.files];
+  document.addEventListener('drop',async e=>{e.preventDefault();dc=0;$('#drop').style.display='none';const fs=[...e.dataTransfer.files],ents=dropEntries(e.dataTransfer);
+    const Lr=$('#lanes').getBoundingClientRect();let dBeat=null,dTr=null;if(e.clientX>Lr.left&&e.clientY>Lr.top){dBeat=snapB((e.clientX-Lr.left)/PPB,P.sig);const t=P.tracks[Math.floor((e.clientY-Lr.top)/TH)];dTr=t?t.id:null}
+    const hasDir=ents.some(x=>x.isDirectory),special=fs.some(f=>MIDI_RE.test(f.name)||/\.(aif|aiff|aifc|caf|logicx)$/i.test(f.name)),nAudio=fs.filter(f=>AUDIO_RE.test(f.name)).length;
+    if(hasDir||special||nAudio>1){const items=await walkEntries(ents);return importDropped(items,dBeat,dTr)}
     for(const f of fs){if(/\.studio$/i.test(f.name))return openProject(f);if(/\.js$/i.test(f.name)){try{const id=loadExternalPlugin(await f.text());P.ext[id]=EXT_SRC[id];toast('Plugin chargé : '+PLUGINS[id].name)}catch(err){alert(err.message)}return}}
     const L=$('#lanes').getBoundingClientRect();let beat=PH,tid=SEL;if(e.clientX>L.left&&e.clientY>L.top){beat=snapB((e.clientX-L.left)/PPB,P.sig);const t=P.tracks[Math.floor((e.clientY-L.top)/TH)];tid=t?t.id:null}
     importAudio(fs.filter(f=>/audio|\.(wav|mp3|ogg|m4a|flac|aac)$/i.test(f.type+f.name)),beat,tid)});

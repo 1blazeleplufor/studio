@@ -340,7 +340,7 @@ body.viewer .head.lk-other,body.viewer .strip.lk-other{box-shadow:none}
 <input type="file" id="fileAudio" accept="audio/*,.wav,.mp3,.ogg,.m4a,.flac" multiple hidden>
 <input type="file" id="fileProj" hidden>
 <input type="file" id="filePlug" accept=".js,text/javascript" hidden>
-<div id="toast"></div><div id="drop">Déposez vos sons, un projet .studio ou un plugin .js</div>
+<div id="toast"></div><div id="drop">Déposez vos sons, un projet Logic (.logicx), des pistes exportées, un MIDI, un projet .studio ou un plugin .js</div>
 <script type="text/worklet" id="worklet-src">// ===== AudioWorklet processors (chargés via Blob URL) =====
 class RecProcessor extends AudioWorkletProcessor{
   constructor(){super();this.on=false;this.port.onmessage=e=>{this.on=e.data.rec};this.n=0;this.peak=0}
@@ -920,7 +920,7 @@ class Engine{
   }
   rebuildChain(s,obj){
     try{s.input.disconnect()}catch(e){}
-    for(const p of s.plugins){try{p.output.disconnect()}catch(e){}if(p.dispose)p.dispose()}
+    for(const p of s.plugins){if(!p)continue;try{p.output.disconnect()}catch(e){}if(p.dispose)p.dispose()}
     s.plugins=[];let prev=s.input;
     for(const pl of obj.plugins||[]){
       if(!PLUGINS[pl.type]){s.plugins.push(null);continue}
@@ -1710,7 +1710,7 @@ function bindUI(){
   B('#bFile',e=>menu(e,['Projet',['📂 Mes projets…',projectsModal],['👥 Session à plusieurs…',collabModal],['📀 Partager un lien d’écoute (MP3)…',bounceModal],['Nouveau projet vide',()=>switchProject(()=>newProject(false))],['Nouveau projet démo (trap)',()=>switchProject(()=>newProject(true))],
     ['Exporter le projet (.studio) pour un autre appareil',saveProject],['Importer un projet (.studio)…',()=>$('#fileProj').click()],'-','Exporter l’audio',
     ['Exporter le morceau en WAV',()=>exportMix('all')],['Exporter la zone de cycle en WAV',()=>exportMix('cycle')],['Exporter chaque piste séparément (stems)',()=>exportMix('stems')],'-',
-    ['🎵 Importer une instru…',importInstruDialog],['Importer un son…',()=>$('#fileAudio').click()],['⌨ Raccourcis clavier',shortcutsModal],['Charger un plugin externe (.js)…',()=>$('#filePlug').click()],['Télécharger le modèle de plugin',()=>download(new Blob([PLUGIN_TEMPLATE],{type:'text/javascript'}),'mon-plugin.js')],'-',['📲 Installer l’appli sur cet appareil',installApp]]));
+    ['🎵 Importer une instru…',importInstruDialog],['🍎 Importer depuis Logic Pro…',logicImportDialog],['Importer un son…',()=>$('#fileAudio').click()],['⌨ Raccourcis clavier',shortcutsModal],['Charger un plugin externe (.js)…',()=>$('#filePlug').click()],['Télécharger le modèle de plugin',()=>download(new Blob([PLUGIN_TEMPLATE],{type:'text/javascript'}),'mon-plugin.js')],'-',['📲 Installer l’appli sur cet appareil',installApp]]));
   B('#bAdd',addTrackMenu);B('#zIn',()=>zoom(1.25));B('#zOut',()=>zoom(.8));B('#vIn',()=>zoomV(1.2));B('#vOut',()=>zoomV(1/1.2));B('#zFit',zoomFit);B('#bSplit',splitAtPH);
   $('#snapSel').addEventListener('change',e=>{P.settings.snap=+e.target.value});
   $('#bpm').addEventListener('change',e=>{snapshot();P.bpm=clamp(+e.target.value||120,40,250);e.target.value=P.bpm;const was=E.playing;let pos=PH;if(was){pos=E.pos();E.stop()}E.updateAll();renderLanes();if(was)E.play(pos)});
@@ -1737,7 +1737,10 @@ function bindUI(){
   // glisser-déposer
   let dc=0;document.addEventListener('dragenter',e=>{e.preventDefault();dc++;$('#drop').style.display='flex'});document.addEventListener('dragleave',()=>{if(--dc<=0){dc=0;$('#drop').style.display='none'}});
   document.addEventListener('dragover',e=>e.preventDefault());
-  document.addEventListener('drop',async e=>{e.preventDefault();dc=0;$('#drop').style.display='none';const fs=[...e.dataTransfer.files];
+  document.addEventListener('drop',async e=>{e.preventDefault();dc=0;$('#drop').style.display='none';const fs=[...e.dataTransfer.files],ents=dropEntries(e.dataTransfer);
+    const Lr=$('#lanes').getBoundingClientRect();let dBeat=null,dTr=null;if(e.clientX>Lr.left&&e.clientY>Lr.top){dBeat=snapB((e.clientX-Lr.left)/PPB,P.sig);const t=P.tracks[Math.floor((e.clientY-Lr.top)/TH)];dTr=t?t.id:null}
+    const hasDir=ents.some(x=>x.isDirectory),special=fs.some(f=>MIDI_RE.test(f.name)||/\.(aif|aiff|aifc|caf|logicx)$/i.test(f.name)),nAudio=fs.filter(f=>AUDIO_RE.test(f.name)).length;
+    if(hasDir||special||nAudio>1){const items=await walkEntries(ents);return importDropped(items,dBeat,dTr)}
     for(const f of fs){if(/\.studio$/i.test(f.name))return openProject(f);if(/\.js$/i.test(f.name)){try{const id=loadExternalPlugin(await f.text());P.ext[id]=EXT_SRC[id];toast('Plugin chargé : '+PLUGINS[id].name)}catch(err){alert(err.message)}return}}
     const L=$('#lanes').getBoundingClientRect();let beat=PH,tid=SEL;if(e.clientX>L.left&&e.clientY>L.top){beat=snapB((e.clientX-L.left)/PPB,P.sig);const t=P.tracks[Math.floor((e.clientY-L.top)/TH)];tid=t?t.id:null}
     importAudio(fs.filter(f=>/audio|\.(wav|mp3|ogg|m4a|flac|aac)$/i.test(f.type+f.name)),beat,tid)});
@@ -1953,7 +1956,7 @@ function initApp(){
 }
 
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='3.3';
+const APP_VERSION='3.4';
 const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
@@ -2087,7 +2090,7 @@ function showChangelog(force){
   let seen='',old=null;try{seen=localStorage.getItem('studio_ver')||'';old=localStorage.getItem('studio_seen')}catch(e){}
   if(!force&&(seen===APP_VERSION||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v3.3</h4><ul><li><b>Les prods passent enfin</b> : les sons sont compressés sans perte (FLAC, ~2× plus légers) et découpés en morceaux, donc même une longue prod arrive chez les autres. Une barre en bas à gauche montre l’envoi et la réception.</li><li><b>🎧 Écouter ensemble</b> : ▶ / ■ et la tête de lecture sont partagés, tout le monde entend le même passage au même moment. Bouton 🎧 pour écouter en solo.</li><li><b>💬 Chat</b> en direct (bouton 💬, pastille rouge = messages non lus).</li><li><b>📌 Commentaires sur la timeline</b> : clic droit dans la règle → « Commenter ici », ou onglet 📌 du panneau. Réponses, « résolu ».</li><li><b>🕘 Versions</b> : sauvegardez une version nommée (« avant le mix ») et revenez-y quand vous voulez.</li><li><b>👁 Lien écoute seule</b> : à donner à quelqu’un qui doit écouter, discuter et commenter sans rien modifier.</li><li><b>📋 Mes sessions</b> : toutes vos sessions, à rouvrir sans retrouver le lien (☰ Fichier → Session à plusieurs).</li><li><b>📀 Lien d’écoute MP3</b> (☰ Fichier) : le morceau en MP3 avec un lien à envoyer, qui s’écoute sur téléphone sans l’appli.</li></ul><h4>v3.2</h4><ul><li><b>👥 Session à plusieurs entre appareils</b> : ☰ Fichier → Session à plusieurs → Partager, puis envoyez le lien. Vos amis vous rejoignent depuis leur ordinateur, téléphone ou tablette, où qu’ils soient.</li><li>Le projet de la session est <b>sauvegardé en ligne</b> : rouvrez le même lien plus tard pour continuer, même si tout le monde était parti.</li><li>Les <b>sons enregistrés ou importés</b> sont envoyés automatiquement aux autres.</li><li>Pastille de connexion à côté des participants : 🟢 connecté, 🟠 connexion, 🔴 hors ligne (vos modifications partent au retour de la connexion).</li></ul><h4>v3.1</h4><ul><li><b>Réverb Pro « Ères »</b> (catégorie Espace) : réverb algorithmique vintage, 14 modes (plaque, hall, chambre, chorus, aléatoire, cathédrale, versions sales, gated…), couleurs Années 70 / 80 / Moderne, pré-délai, decay, taille, attaque, diffusion, modulation, EQ, decay par fréquence, 11 préréglages. C’est aussi la nouvelle réverb du Bus Réverb des nouveaux projets.</li><li><b>Pitch Pro</b> (catégorie Voix) : autotune avancé avec graphique de hauteur en direct, type de voix, tracking, éditeur de notes, vitesse de correction, Humanize, Flex-Tune, vibrato naturel, formants + gorge, transposition, désaccord, mode classique, préréglages. Latence compensée automatiquement.</li></ul><h4>v3.0</h4><ul><li><b>👥 Session à plusieurs</b> (☰ Fichier → Session à plusieurs) : plusieurs personnes sur le même projet, chacun voit en direct les modifications des autres et écoute sur son appareil. <i>Version d’essai : entre fenêtres d’un même navigateur ; la connexion entre appareils arrive dans une prochaine version.</i></li><li><b>🔒 Cadenas</b> : en session, cliquez le cadenas d’une piste (en haut à droite de son nom, ou dans le mixeur) pour que personne d’autre ne la modifie. Plusieurs cadenas possibles, aussi sur les bus, la sortie et le tempo/tonalité. Il se retire en recliquant ou tout seul après 2 min sans activité.</li><li>En session, <b>Ctrl+Z n’annule que vos propres actions</b>. Solo, armement R et retour micro restent personnels.</li></ul><h4>v2.4</h4><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
+  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v3.4</h4><ul><li><b>🍎 Import depuis Logic Pro</b> : glissez un projet <b>.logicx</b> dans Studio → tous ses sons, le tempo, la tonalité et la mesure sont récupérés, chaque son sur sa piste (prises replacées à leur position quand Logic l’a noté). Glissez aussi des <b>pistes exportées</b> (plusieurs fichiers d’un coup → une piste chacun, calées au début) ou un <b>fichier MIDI</b> (notes → pistes instrument, batterie → patterns).</li><li>Lecture des formats Apple <b>AIFF</b> et <b>CAF</b>. Guide dans ☰ Fichier → Importer depuis Logic Pro.</li></ul><h4>v3.3</h4><ul><li><b>Les prods passent enfin</b> : les sons sont compressés sans perte (FLAC, ~2× plus légers) et découpés en morceaux, donc même une longue prod arrive chez les autres. Une barre en bas à gauche montre l’envoi et la réception.</li><li><b>🎧 Écouter ensemble</b> : ▶ / ■ et la tête de lecture sont partagés, tout le monde entend le même passage au même moment. Bouton 🎧 pour écouter en solo.</li><li><b>💬 Chat</b> en direct (bouton 💬, pastille rouge = messages non lus).</li><li><b>📌 Commentaires sur la timeline</b> : clic droit dans la règle → « Commenter ici », ou onglet 📌 du panneau. Réponses, « résolu ».</li><li><b>🕘 Versions</b> : sauvegardez une version nommée (« avant le mix ») et revenez-y quand vous voulez.</li><li><b>👁 Lien écoute seule</b> : à donner à quelqu’un qui doit écouter, discuter et commenter sans rien modifier.</li><li><b>📋 Mes sessions</b> : toutes vos sessions, à rouvrir sans retrouver le lien (☰ Fichier → Session à plusieurs).</li><li><b>📀 Lien d’écoute MP3</b> (☰ Fichier) : le morceau en MP3 avec un lien à envoyer, qui s’écoute sur téléphone sans l’appli.</li></ul><h4>v3.2</h4><ul><li><b>👥 Session à plusieurs entre appareils</b> : ☰ Fichier → Session à plusieurs → Partager, puis envoyez le lien. Vos amis vous rejoignent depuis leur ordinateur, téléphone ou tablette, où qu’ils soient.</li><li>Le projet de la session est <b>sauvegardé en ligne</b> : rouvrez le même lien plus tard pour continuer, même si tout le monde était parti.</li><li>Les <b>sons enregistrés ou importés</b> sont envoyés automatiquement aux autres.</li><li>Pastille de connexion à côté des participants : 🟢 connecté, 🟠 connexion, 🔴 hors ligne (vos modifications partent au retour de la connexion).</li></ul><h4>v3.1</h4><ul><li><b>Réverb Pro « Ères »</b> (catégorie Espace) : réverb algorithmique vintage, 14 modes (plaque, hall, chambre, chorus, aléatoire, cathédrale, versions sales, gated…), couleurs Années 70 / 80 / Moderne, pré-délai, decay, taille, attaque, diffusion, modulation, EQ, decay par fréquence, 11 préréglages. C’est aussi la nouvelle réverb du Bus Réverb des nouveaux projets.</li><li><b>Pitch Pro</b> (catégorie Voix) : autotune avancé avec graphique de hauteur en direct, type de voix, tracking, éditeur de notes, vitesse de correction, Humanize, Flex-Tune, vibrato naturel, formants + gorge, transposition, désaccord, mode classique, préréglages. Latence compensée automatiquement.</li></ul><h4>v3.0</h4><ul><li><b>👥 Session à plusieurs</b> (☰ Fichier → Session à plusieurs) : plusieurs personnes sur le même projet, chacun voit en direct les modifications des autres et écoute sur son appareil. <i>Version d’essai : entre fenêtres d’un même navigateur ; la connexion entre appareils arrive dans une prochaine version.</i></li><li><b>🔒 Cadenas</b> : en session, cliquez le cadenas d’une piste (en haut à droite de son nom, ou dans le mixeur) pour que personne d’autre ne la modifie. Plusieurs cadenas possibles, aussi sur les bus, la sortie et le tempo/tonalité. Il se retire en recliquant ou tout seul après 2 min sans activité.</li><li>En session, <b>Ctrl+Z n’annule que vos propres actions</b>. Solo, armement R et retour micro restent personnels.</li></ul><h4>v2.4</h4><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
 <li><b>Réglages rapides</b> pour chaque voix : Écho, Réverb, Autotune, Naturel↔Robot, Basses, Clarté, Brillance, Punch, Doublage, Chaleur… de simples curseurs dans l’inspecteur (ⓘ).</li>
 <li><b>20 préréglages voix</b> classés : Base, Autotune (mélodieux, aérien, robot…), Créatif (grave démon, aiguë, lo-fi, stade, écho slap, phaser…), Ad-libs &amp; backs.</li>
 <li><b>5 nouveaux effets</b> : Pitch Shifter, Lo-Fi/Bitcrusher, Robot, Phaser, Trémolo.</li>
@@ -2174,6 +2177,137 @@ function openTunePro(o,i){
     const plot=(k,col)=>{g.strokeStyle=col;g.lineWidth=2;g.beginPath();let pen=false;data.forEach((d,j)=>{const x=40+j/(560)*(W-44),v=d[k];if(v>0){const yy=y(v);pen?g.lineTo(x,yy):g.moveTo(x,yy);pen=true}else pen=false});g.stroke()};
     plot(0,'#ff8a65');plot(1,'#5ee0c6');if(!data.length){g.fillStyle='#5b6b70';g.font='12px sans-serif';g.fillText('Chantez ou lancez la lecture : la courbe de hauteur s’affiche ici.',60,H/2)}
     requestAnimationFrame(tick)};tick();
+}
+
+// ===== v3.3 : import depuis Logic Pro (projets .logicx, stems, MIDI, AIFF/CAF) =====
+const AUDIO_RE=/\.(wav|wave|bwf|aif|aiff|aifc|caf|mp3|m4a|aac|flac|ogg|opus)$/i,MIDI_RE=/\.(mid|midi|smf)$/i;
+// --- lecture récursive des dossiers glissés (paquet .logicx = dossier) ---
+function dropEntries(dt){const out=[];for(const it of dt.items||[]){if(it.kind!=='file')continue;const en=it.webkitGetAsEntry&&it.webkitGetAsEntry();if(en)out.push(en);else{const f=it.getAsFile();if(f)out.push({file:f,path:f.name})}}return out}
+async function walkEntries(list){const files=[];
+  const readAll=dir=>new Promise(res=>{const r=dir.createReader(),acc=[];const next=()=>r.readEntries(es=>{if(!es.length)return res(acc);acc.push(...es);next()},()=>res(acc));next()});
+  const fileOf=en=>new Promise(res=>en.file(f=>res(f),()=>res(null)));
+  async function walk(en,path){if(en.file&&!en.isFile&&!en.isDirectory){files.push(en);return}
+    if(en.isFile){const f=await fileOf(en);if(f)files.push({file:f,path:path+en.name})}
+    else if(en.isDirectory){if(/^(Undo Data|Freeze Files|\.)/i.test(en.name))return;for(const c of await readAll(en))await walk(c,path+en.name+'/')}}
+  for(const en of list)await walk(en,'');return files}
+// --- décodeurs de secours (AIFF/AIFC, CAF, WAV) ---
+function ext80(dv,o){const e=((dv.getUint8(o)&0x7f)<<8)|dv.getUint8(o+1),hi=dv.getUint32(o+2),lo=dv.getUint32(o+6);if(!e&&!hi&&!lo)return 0;return(hi*4294967296+lo)*Math.pow(2,e-16383-63)}
+function pcmToBuffer(dv,off,frames,ch,bits,float,little,sr){
+  const b=ctx.createBuffer(ch,Math.max(1,frames),sr),outs=[];for(let c=0;c<ch;c++)outs.push(b.getChannelData(c));const by=bits/8;
+  for(let i=0;i<frames;i++)for(let c=0;c<ch;c++){const o=off+(i*ch+c)*by;if(o+by>dv.byteLength)return b;let v;
+    if(float)v=bits===64?dv.getFloat64(o,little):dv.getFloat32(o,little);
+    else if(bits===8)v=(dv.getInt8(o))/128;else if(bits===16)v=dv.getInt16(o,little)/32768;
+    else if(bits===24){const b0=dv.getUint8(o),b1=dv.getUint8(o+1),b2=dv.getUint8(o+2);let x=little?(b2<<16)|(b1<<8)|b0:(b0<<16)|(b1<<8)|b2;if(x&0x800000)x-=0x1000000;v=x/8388608}
+    else v=dv.getInt32(o,little)/2147483648;outs[c][i]=v}
+  return b}
+function parseAIFF(ab){const dv=new DataView(ab),tag=s=>String.fromCharCode(...new Uint8Array(ab,s,4));if(tag(0)!=='FORM')return null;const kind=tag(8);let p=12,ch,frames,bits,sr,comp='NONE',ss=-1;
+  while(p+8<=ab.byteLength){const id=tag(p),sz=dv.getUint32(p+4),d=p+8;
+    if(id==='COMM'){ch=dv.getUint16(d);frames=dv.getUint32(d+2);bits=dv.getUint16(d+6);sr=ext80(dv,d+8);if(kind==='AIFC'&&sz>=22)comp=tag(d+18)}
+    if(id==='SSND')ss=d+8+dv.getUint32(d);p=d+sz+(sz&1)}
+  if(ss<0||!ch)return null;const c=comp.toLowerCase();if(!['none','sowt','fl32','fl64','in24','in32','twos'].includes(c))throw new Error('AIFF compressé ('+comp+') non pris en charge');
+  const fl=c==='fl32'||c==='fl64';return pcmToBuffer(dv,ss,frames,ch,c==='fl64'?64:c==='fl32'?32:bits,fl,c==='sowt',sr)}
+function parseCAF(ab){const dv=new DataView(ab),tag=s=>String.fromCharCode(...new Uint8Array(ab,s,4));if(tag(0)!=='caff')return null;let p=8,desc=null,data=-1,dlen=0;
+  while(p+12<=ab.byteLength){const id=tag(p),hi=dv.getInt32(p+4),lo=dv.getUint32(p+8),sz=hi<0?ab.byteLength-p-12:hi*4294967296+lo,d=p+12;
+    if(id==='desc')desc={sr:dv.getFloat64(d),fmt:tag(d+8),flags:dv.getUint32(d+12),bpp:dv.getUint32(d+16),ch:dv.getUint32(d+24),bits:dv.getUint32(d+28)};
+    if(id==='data'){data=d+4;dlen=sz-4}p=d+sz}
+  if(!desc||data<0)return null;if(desc.fmt!=='lpcm')throw new Error('CAF compressé ('+desc.fmt+') non pris en charge');
+  const fl=!!(desc.flags&1),little=!!(desc.flags&2),frames=Math.floor(dlen/(desc.ch*desc.bits/8));return pcmToBuffer(dv,data,frames,desc.ch,desc.bits,fl,little,desc.sr)}
+function parseWAV(ab){const dv=new DataView(ab),tag=s=>String.fromCharCode(...new Uint8Array(ab,s,4));if(tag(0)!=='RIFF'&&tag(0)!=='RF64')return null;let p=12,fmt=null,data=-1,dlen=0;
+  while(p+8<=ab.byteLength){const id=tag(p),sz=dv.getUint32(p+4,true),d=p+8;if(id==='fmt '){let f=dv.getUint16(d,true);if(f===0xFFFE)f=dv.getUint16(d+24,true);fmt={f,ch:dv.getUint16(d+2,true),sr:dv.getUint32(d+4,true),bits:dv.getUint16(d+14,true)}}
+    if(id==='data'){data=d;dlen=sz===0xffffffff?ab.byteLength-d:Math.min(sz,ab.byteLength-d)}p=d+sz+(sz&1)}
+  if(!fmt||data<0)return null;return pcmToBuffer(dv,data,Math.floor(dlen/(fmt.ch*fmt.bits/8)),fmt.ch,fmt.bits,fmt.f===3,true,fmt.sr)}
+function wavTimeRef(ab){try{const dv=new DataView(ab),tag=s=>String.fromCharCode(...new Uint8Array(ab,s,4));if(tag(0)!=='RIFF')return null;let p=12,sr=0,tr=null;
+  while(p+8<=ab.byteLength){const id=tag(p),sz=dv.getUint32(p+4,true),d=p+8;if(id==='fmt ')sr=dv.getUint32(d+4,true);if(id==='bext'&&sz>=346)tr=dv.getUint32(d+338,true)+dv.getUint32(d+342,true)*4294967296;if(id==='data')break;p=d+sz+(sz&1)}
+  return tr!=null&&sr?tr/sr:null}catch(e){return null}}
+async function decodeAny(file){const ab=await file.arrayBuffer();let b=null;
+  try{b=await ctx.decodeAudioData(ab.slice(0))}catch(e){}
+  if(!b){b=parseAIFF(ab)||parseCAF(ab)||parseWAV(ab)}
+  if(!b)throw new Error('format non reconnu');return{buf:b,tref:wavTimeRef(ab)}}
+// --- plist (XML ou binaire) pour MetaData.plist de Logic ---
+function parsePlist(ab){const u=new Uint8Array(ab);if(String.fromCharCode(...u.slice(0,6))==='bplist')return parseBplist(ab);
+  const doc=new DOMParser().parseFromString(new TextDecoder().decode(u),'application/xml');const conv=n=>{if(!n)return null;switch(n.tagName){
+    case'dict':{const o={},ks=[...n.children];for(let i=0;i<ks.length;i+=2)o[ks[i].textContent]=conv(ks[i+1]);return o}
+    case'array':return[...n.children].map(conv);case'integer':case'real':return+n.textContent;case'true':return true;case'false':return false;default:return n.textContent}};
+  return conv(doc.querySelector('plist>*'))}
+function parseBplist(ab){const dv=new DataView(ab),n=ab.byteLength,offSz=dv.getUint8(n-26),refSz=dv.getUint8(n-25),num=Number(dv.getBigUint64(n-24)),top=Number(dv.getBigUint64(n-16)),tbl=Number(dv.getBigUint64(n-8));
+  const rd=(o,s)=>{let v=0;for(let i=0;i<s;i++)v=v*256+dv.getUint8(o+i);return v},offs=[];for(let i=0;i<num;i++)offs.push(rd(tbl+i*offSz,offSz));
+  const obj=i=>{const o=offs[i],m=dv.getUint8(o),t=m>>4;let c=m&15,p=o+1;const len=()=>{if(c===15){const k=dv.getUint8(p)&15,s=1<<k;c=rd(p+1,s);p+=1+s}return c};
+    if(t===0)return m===8?false:m===9?true:null;if(t===1)return rd(p,1<<c);if(t===2)return c===2?dv.getFloat32(p):dv.getFloat64(p);
+    if(t===5){const l=len();return String.fromCharCode(...new Uint8Array(ab,p,l))}if(t===6){const l=len(),a=[];for(let k=0;k<l;k++)a.push(dv.getUint16(p+2*k));return String.fromCharCode(...a)}
+    if(t===10){const l=len(),a=[];for(let k=0;k<l;k++)a.push(obj(rd(p+k*refSz,refSz)));return a}
+    if(t===13){const l=len(),r={};for(let k=0;k<l;k++)r[obj(rd(p+k*refSz,refSz))]=obj(rd(p+(l+k)*refSz,refSz));return r}return null};
+  return obj(top)}
+// --- MIDI (.mid) ---
+function parseMIDI(ab){const dv=new DataView(ab),u=new Uint8Array(ab),tag=p=>String.fromCharCode(...u.slice(p,p+4));if(tag(0)!=='MThd')throw new Error('pas un fichier MIDI');
+  const ntr=dv.getUint16(10),div=dv.getUint16(12);if(div&0x8000)throw new Error('MIDI en temps SMPTE non pris en charge');let p=14,tempo=null,sig=null;const tracks=[];
+  for(let t=0;t<ntr&&p+8<=u.length;t++){if(tag(p)!=='MTrk')break;const len=dv.getUint32(p+4),end=p+8+len;let q=p+8,tick=0,rs=0,name='';const on={},notes=[],prog={};
+    const vlq=()=>{let v=0,b;do{b=u[q++];v=(v<<7)|(b&127)}while(b&128);return v};
+    while(q<end){tick+=vlq();let st=u[q];if(st&128){q++;if(st<0xF0)rs=st}else st=rs;
+      if(st===0xFF){const ty=u[q++],l=vlq();if(ty===0x51&&tempo==null)tempo=60000000/((u[q]<<16)|(u[q+1]<<8)|u[q+2]);if(ty===0x58&&!sig)sig=u[q];if(ty===0x03&&!name)name=new TextDecoder().decode(u.slice(q,q+l));q+=l;continue}
+      if(st===0xF0||st===0xF7){q+=vlq();continue}
+      const c=st&15,ty=st>>4,a=u[q++],b=(ty===0xC||ty===0xD)?0:u[q++];
+      if(ty===0x9&&b>0){(on[c+':'+a]=on[c+':'+a]||[]).push([tick,b])}
+      else if(ty===0x8||(ty===0x9&&b===0)){const s=on[c+':'+a]&&on[c+':'+a].shift();if(s)notes.push({c,p:a,s:s[0]/div,l:Math.max(.01,(tick-s[0])/div),v:s[1]/127})}
+      else if(ty===0xC)prog[c]=a}
+    tracks.push({name,notes,prog});p=end}
+  return{tempo,sig,tracks}}
+const GM_DRUM={35:'kick',36:'kick',38:'snare',40:'snare',39:'clap',42:'hat',44:'hat',46:'ohat',37:'rim',56:'rim',75:'rim'};
+function importMIDIData(m,base){
+  let made=0;const startIdx=P.tracks.length;
+  m.tracks.forEach((tr,ti)=>{const byCh={};for(const n of tr.notes)(byCh[n.c]=byCh[n.c]||[]).push(n);
+    for(const c in byCh){const ns=byCh[c],last=Math.max(...ns.map(n=>n.s+n.l)),len=Math.max(P.sig,Math.ceil(last/P.sig)*P.sig),nm=(tr.name||base||'MIDI').slice(0,22)+(Object.keys(byCh).length>1?' ch'+(+c+1):'');
+      if(+c===9){const t=newTrack('drums',nm);for(let b0=0;b0<len;b0+=16){const pat=emptyPat(64);for(const n of ns){if(n.s<b0||n.s>=b0+16)continue;const row=GM_DRUM[n.p]||'perc',k=Math.round((n.s-b0)*4);if(k<64){const cur=pat.rows[row][k];pat.rows[row][k]=cur?{v:Math.max(cur.v,n.v),r:Math.min(4,(cur.r||1)+1)}:{v:Math.max(.3,n.v),r:1}}}
+          t.regions.push({id:uid('r'),start:b0,len:Math.min(16,len-b0),pat,name:'Rythme '+(b0/16+1)})}P.tracks.push(t);made++}
+      else{const t=newTrack('synth',nm),pg=tr.prog[c];const preset=pg>=32&&pg<=39?'Basse 808':pg>=88&&pg<=95?'Pad nuage':pg>=80&&pg<=87?'Lead':pg>=8&&pg<=15?'Cloche':pg>=72&&pg<=79?'Flûte':'Piano doux';
+        t.instr=deep(SYNTH_PRESETS[preset]);t.preset=preset;t.regions.push({id:uid('r'),start:0,len,notes:ns.map(n=>({p:n.p,s:n.s,l:n.l,v:+n.v.toFixed(2)})),name:nm});P.tracks.push(t);made++}}});
+  P.tracks.slice(startIdx).forEach((t,i)=>t.color=PALETTE[(i*3+4)%PALETTE.length]);return made}
+// --- import global (glisser-déposer, sélecteur de dossier ou de fichiers) ---
+async function importDropped(items,dropBeat,dropTrack){
+  const files=items.filter(x=>x&&x.file),isLogic=files.some(x=>/\.logicx\//i.test(x.path)||/(^|\/)Alternatives\/\d+\//.test(x.path)||/ProjectData$/.test(x.path));
+  const busy=modal([h('h2',null,isLogic?'🍎 Import du projet Logic…':'📥 Import…'),h('p',{id:'impTxt'},'Lecture des fichiers…')]);const say=t=>{const e=document.getElementById('impTxt');if(e)e.textContent=t};
+  try{
+    let meta=null;const mp=files.filter(x=>/Alternatives\/(\d+)\/MetaData\.plist$/.test(x.path)).sort((a,b)=>a.path.localeCompare(b.path))[0];
+    if(mp)try{meta=parsePlist(await mp.file.arrayBuffer())}catch(e){console.warn('MetaData.plist',e)}
+    let audio=files.filter(x=>AUDIO_RE.test(x.file.name)&&!/(^|\/)(Bounces|Undo Data|Freeze Files|Samples?\/|Sampler Files|Impulse Responses)\//i.test(x.path));
+    if(meta&&Array.isArray(meta.AudioFiles)&&meta.AudioFiles.length){const used=new Set(meta.AudioFiles.map(s=>String(s).split('/').pop()));const f2=audio.filter(x=>used.has(x.file.name));if(f2.length)audio=f2}
+    const midi=files.filter(x=>MIDI_RE.test(x.file.name));
+    if(!audio.length&&!midi.length){busy.remove();return toast(isLogic?'Aucun fichier audio trouvé dans ce projet Logic (voir ☰ Fichier → Importer depuis Logic Pro)':'Aucun fichier audio ou MIDI reconnu',6000)}
+    snapshot();
+    if(meta){const bpm=+meta.BeatsPerMinute;if(bpm>=40&&bpm<=250)P.bpm=Math.round(bpm*100)/100;
+      const k=String(meta.SongKey||'').replace('♯','#').replace('♭','b').trim(),EN=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],FL={Db:1,Eb:3,Gb:6,Ab:8,Bb:10};
+      const ki=EN.indexOf(k)>=0?EN.indexOf(k):FL[k];if(ki!=null){P.key=ki;P.scaleIdx=/minor|mineur/i.test(meta.SongGenderKey||'')?0:1}
+      const num=+meta.SongSignatureNumerator;if([3,4,6].includes(num))P.sig=num}
+    let made=0;
+    for(const x of midi){say('MIDI : '+x.file.name);try{const m=parseMIDI(await x.file.arrayBuffer());if(m.tempo&&!meta)P.bpm=Math.round(m.tempo*100)/100;if(m.sig&&[3,4,6].includes(m.sig)&&!meta)P.sig=m.sig;made+=importMIDIData(m,x.file.name.replace(MIDI_RE,''))}catch(e){toast(x.file.name+' : '+e.message,5000)}}
+    // audio : une piste par nom (prises « Nom#03 » regroupées), position d'origine si horodatage BWF
+    const dec=[];let i=0;for(const x of audio){say('Audio '+(++i)+'/'+audio.length+' : '+x.file.name);try{const d=await decodeAny(x.file);dec.push(Object.assign(d,{name:x.file.name}))}catch(e){console.warn(e);toast(x.file.name+' : '+e.message,4000)}await pause()}
+    const trs=dec.filter(d=>d.tref!=null).map(d=>d.tref);let base=null;
+    if(trs.length){const mn=Math.min(...trs);base=trs.every(t=>t>=3600&&t<7200)?3600:mn}
+    const placeSingle=dec.length===1&&!isLogic&&dropBeat!=null;
+    const groups={};for(const d of dec){const key=d.name.replace(AUDIO_RE,'').replace(/#\d+$/,'').trim()||'Audio';(groups[key]=groups[key]||[]).push(d)}
+    let ci=0;
+    for(const g in groups){let t=placeSingle&&dropTrack&&findTrack(dropTrack);if(t&&!isInstru(t))t=null;
+      if(!t){t=newTrack('audio',g.slice(0,24));t.role='instru';t.plugins=[];t.sends=P.auxes.map(()=>-60);t.vol=-3;t.color=PALETTE[(ci++*3+1)%PALETTE.length];P.tracks.push(t)}
+      const regs=groups[g].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(d=>{const secs=base!=null&&d.tref!=null?Math.max(0,d.tref-base):0;const id=addBuffer(d.buf);
+        return{id:uid('r'),start:placeSingle?dropBeat:+(secs/spb()).toFixed(4),offset:0,dur:d.buf.duration,buf:id,name:d.name}});
+      regs.forEach((r,k)=>{const ov=regs.slice(k+1).some(o=>o.start<r.start+r.dur/spb()&&r.start<o.start+o.dur/spb());if(ov)r.mute=true;t.regions.push(r)});made++}
+    busy.remove();E.build(P);renderAll();zoomFit();
+    toast((isLogic?'Projet Logic importé : ':'Importé : ')+made+' piste'+(made>1?'s':'')+(meta?' · '+P.bpm+' BPM · '+NOTE_NAMES[P.key]+' '+Object.keys(SCALES)[P.scaleIdx]:'')+' — Ctrl+Z pour annuler',7000);
+    if(isLogic)setTimeout(()=>modal([h('h2',null,'🍎 Projet Logic importé'),h('p',null,'Studio a récupéré '+dec.length+' fichier'+(dec.length>1?'s':'')+' audio'+(meta?', le tempo, la tonalité et la mesure':'')+'.'),
+      h('p',{style:{color:'var(--dim)'}},'Le montage interne de Logic (découpes, plugins, automation, instruments Logic) est dans un format fermé d’Apple qu’aucun autre logiciel ne peut relire. Pour retrouver exactement votre arrangement : dans Logic, Fichier → Exporter → « Toutes les pistes en fichiers audio » (et « Sélection en fichier MIDI » pour les instruments), puis glissez ces fichiers ici.'),
+      h('p',{style:{color:'var(--dim)'}},'Les prises qui se chevauchent sur une même piste sont gardées, seule la dernière est active (les autres sont muettes : Ctrl+M pour en changer).')]),400);
+  }catch(e){busy.remove();console.error(e);alert('Import impossible : '+e.message)}
+}
+function logicImportDialog(){
+  const pick=(dir)=>{const inp=h('input',{type:'file',multiple:true,style:{display:'none'}});if(dir){inp.webkitdirectory=true;inp.setAttribute('webkitdirectory','')}else inp.accept='audio/*,.wav,.aif,.aiff,.caf,.mp3,.m4a,.mid,.midi';
+    inp.onchange=()=>{const items=[...inp.files].map(f=>({file:f,path:f.webkitRelativePath||f.name}));inp.remove();if(items.length)importDropped(items,null,null)};document.body.append(inp);inp.click()};
+  const m=modal([h('h2',null,'🍎 Importer depuis Logic Pro'),
+    h('h4',null,'1. Le projet Logic entier'),h('p',null,'Glissez le fichier ',h('b',null,'.logicx'),' directement dans la fenêtre de Studio. Studio récupère tous les sons, le tempo, la tonalité et la mesure, et replace les prises à leur position quand c’est possible.'),
+    h('button',{onclick:()=>{m.remove();pick(true)}},'📁 Choisir le dossier du projet…'),h('p',{style:{color:'var(--dim)',fontSize:'11px'}},'Si le sélecteur n’accepte pas le .logicx : clic droit dessus dans le Finder → « Afficher le contenu du paquet », puis choisissez ce dossier — ou glissez simplement le .logicx dans Studio.'),
+    h('h4',null,'2. Le plus fidèle : les pistes exportées'),h('p',null,'Dans Logic : ',h('b',null,'Fichier → Exporter → Toutes les pistes en fichiers audio…'),' Puis glissez tous les fichiers ici : chaque piste arrive sur sa propre piste, calée au début.'),
+    h('h4',null,'3. Les instruments en MIDI'),h('p',null,'Dans Logic : sélectionnez les régions MIDI → ',h('b',null,'Fichier → Exporter → Sélection en fichier MIDI…'),' Studio crée des pistes 🎹 avec les notes (et 🥁 pour la batterie), au bon tempo.'),
+    h('button',{onclick:()=>{m.remove();pick(false)}},'🎵 Choisir des fichiers audio / MIDI…'),
+    h('p',{style:{color:'var(--dim)',fontSize:'11px',marginTop:'8px'}},'Formats lus : WAV/BWF, AIFF, CAF, MP3, M4A, FLAC, MIDI. Les plugins et l’automation de Logic ne peuvent pas être repris (format fermé d’Apple).')]);
 }
 
 // ===== Encodeur FLAC (sans perte, 16 bits) — pour envoyer les sons en session ~2× plus légers que le WAV =====
