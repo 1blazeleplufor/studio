@@ -13,7 +13,7 @@ function bindUI(){
   B('#saveState',()=>saveLocal(true).then(()=>{updateSaveState();toast('Projet sauvegardé ✔')}));
   B('#bTyping',()=>{TYPING=!TYPING;renderBar();toast(TYPING?'Clavier musical : touches Q Z S E D F T G Y H U J K (AZERTY) · W/X = octave · Échap pour quitter':'Clavier musical désactivé',5000)});
   B('#bMidi',()=>initMIDI(true));B('#bSettings',settingsModal);B('#bHelp',helpModal);
-  B('#bFile',e=>menu(e,['Projet',['📂 Mes projets…',projectsModal],['Nouveau projet vide',()=>switchProject(()=>newProject(false))],['Nouveau projet démo (trap)',()=>switchProject(()=>newProject(true))],
+  B('#bFile',e=>menu(e,['Projet',['📂 Mes projets…',projectsModal],['👥 Session à plusieurs…',collabModal],['Nouveau projet vide',()=>switchProject(()=>newProject(false))],['Nouveau projet démo (trap)',()=>switchProject(()=>newProject(true))],
     ['Exporter le projet (.studio) pour un autre appareil',saveProject],['Importer un projet (.studio)…',()=>$('#fileProj').click()],'-','Exporter l’audio',
     ['Exporter le morceau en WAV',()=>exportMix('all')],['Exporter la zone de cycle en WAV',()=>exportMix('cycle')],['Exporter chaque piste séparément (stems)',()=>exportMix('stems')],'-',
     ['🎵 Importer une instru…',importInstruDialog],['Importer un son…',()=>$('#fileAudio').click()],['⌨ Raccourcis clavier',shortcutsModal],['Charger un plugin externe (.js)…',()=>$('#filePlug').click()],['Télécharger le modèle de plugin',()=>download(new Blob([PLUGIN_TEMPLATE],{type:'text/javascript'}),'mon-plugin.js')],'-',['📲 Installer l’appli sur cet appareil',installApp]]));
@@ -174,7 +174,7 @@ async function main(){
   let last=null;try{last=localStorage.getItem('studio_last')}catch(e){}
   newProject(true);P.id=uid('p');E.build(P);SEL=P.tracks[0].id;bindUI();renderAll();requestAnimationFrame(loop);
   if(last)try{await loadLocal(last)}catch(e){console.warn(e)}
-  initApp();showChangelog();if(!isSmall()&&!TAB)setTab('mixer');if(isSmall()&&innerHeight>innerWidth)toast('Astuce : tournez l’appareil à l’horizontale pour plus de place',4500);
+  initApp();showChangelog();collabBoot();if(!isSmall()&&!TAB)setTab('mixer');if(isSmall()&&innerHeight>innerWidth)toast('Astuce : tournez l’appareil à l’horizontale pour plus de place',4500);
   let seen=false;try{seen=localStorage.getItem('studio_seen')}catch(e){}
   if(!seen){try{localStorage.setItem('studio_seen','1')}catch(e){}modal(h('div',{html:`<h2>Bienvenue dans Studio 🎧</h2><p>Un projet démo trap est chargé : appuyez sur ▶ (ou <kbd>Espace</kbd>) pour l’écouter. Vos projets sont <b>sauvegardés automatiquement</b> dans l’appareil (bouton 📂).</p><ul><li>La piste <b>🎤 Voix 1</b> est prête avec un préréglage autotune : cliquez <b>R</b> puis ⏺ pour enregistrer (avec un casque).</li><li>Double-cliquez (ou double-touchez) sur la région « Rythme » pour éditer la batterie, ou sur « 808 » / « Arpège » pour le piano roll.</li><li>Fichier → Nouveau projet vide pour partir de zéro. Le bouton <b>?</b> ouvre l’aide.</li></ul>`}))}
 }

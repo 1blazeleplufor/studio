@@ -189,3 +189,22 @@ select,input[type=text],input[type=number]{background:#161618;border:1px solid #
 .colrow{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--dim)}
 .swatch{width:16px;height:12px;min-height:0!important;padding:0;border-radius:3px;border:1px solid rgba(0,0,0,.6);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25);cursor:pointer}
 .swatch.big{width:28px;height:22px;border-radius:5px}.swatch.cur{outline:2px solid #fff;outline-offset:1px}.swatch:hover{filter:brightness(1.15)}
+/* v3.0 : session à plusieurs, cadenas */
+#collabBar .avs{display:flex;align-items:center;cursor:pointer;padding:0 2px}
+#collabBar .av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;border:2px solid #2c2c2f;margin-left:-6px;text-shadow:0 1px 1px rgba(0,0,0,.4)}
+#collabBar .av:first-child{margin-left:0}
+#collabBar .lkproj{font-size:13px}
+.chip{padding:2px 8px;border-radius:10px;color:#fff;font-size:12px;font-weight:600}
+.lkb{position:absolute;top:3px;right:3px;z-index:4;font-size:10px;line-height:1;min-height:0;height:auto;padding:2px 4px;border-radius:9px;background:#2a2a2e;border:1px solid #48484e;color:#ccc;opacity:.5;cursor:pointer;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis}
+.lkb:hover{opacity:1}
+.lkb.me,.lkb.other{opacity:1;background:var(--lkc,#666);border-color:transparent;color:#fff;font-weight:700}
+.head[data-lk] .info{padding-right:20px}
+.strip{position:relative}.strip>.lkb{top:2px;right:2px;font-size:9px}
+.head.lk-other,.strip.lk-other{box-shadow:inset 3px 0 0 var(--lkc)}
+.head.lk-me,.strip.lk-me{box-shadow:inset 3px 0 0 var(--lkc)}
+.head.lk-other .info,.strip.lk-other>:not(.lkb),.pwin.lk-other .pb,#bcontent.lk-other>*,#insp.lk-other>*,.cell.lk-other{opacity:.55}
+.lane.lk-other::after{content:attr(data-lkn);position:absolute;inset:0;z-index:3;pointer-events:none;box-shadow:inset 0 0 0 1px var(--lkc);
+  background:repeating-linear-gradient(135deg,rgba(0,0,0,.28) 0 7px,transparent 7px 14px);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;text-shadow:0 1px 2px #000}
+.lane.lk-me::after{content:'';position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 0 1px var(--lkc);z-index:3}
+.lane.lk-other::after{display:flex;align-items:flex-end;justify-content:flex-end}
+.strip[data-lk]>.nm{padding-right:16px}

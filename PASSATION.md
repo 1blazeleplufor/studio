@@ -1,4 +1,4 @@
-# Studio — Passation technique (v2.4)
+# Studio — Passation technique (v3.0)
 
 > Document de reprise pour continuer à développer **Studio** (DAW dans le navigateur, interface inspirée de Logic Pro)
 > et préparer le mode **multijoueur / édition collaborative en direct**.
@@ -12,7 +12,7 @@
 |---|---|
 | **Appli en ligne** | https://1blazeleplufor.github.io/studio/ |
 | **Dépôt** | `github.com/1blazeleplufor/studio` (public, GitHub Pages sur `main`, dossier racine) |
-| **Version** | 2.4 (`APP_VERSION` dans `src/ui6.js`) |
+| **Version** | 3.0 (`APP_VERSION` dans `src/ui6.js`) |
 | **Utilisateur** | Francophone, débutant en MAO mais à l’aise avec les logiciels, fait du rap/trap (références : Timar, Leto, Djadja & Dinaz, Bouss). Travaille surtout sur **Mac**, veut aussi téléphone/tablette/Windows/Android. |
 | **Langue de l’UI** | Français partout. |
 | **Stack** | HTML/CSS/JS **vanilla** (aucun framework, aucune dépendance npm), Web Audio API + AudioWorklet, PWA (manifest + service worker), IndexedDB. |
@@ -40,6 +40,8 @@
   dsp.js                plugins d’effets + instruments (synthé, batterie)
   engine.js             moteur audio (graphe, lecture, enregistrement, rendu offline, WAV)
   ui1.js … ui6.js       interface (voir §5)
+  collab.js             v3.0 : session à plusieurs (pont P ↔ Yjs, cadenas, présence, transport)
+  vendor/yjs.min.js     Yjs 13.6.33 + lib0 0.2.119 (MIT), bundle IIFE → global `Y` (esbuild, ~95 Ko)
   build.py              concatène tout → fichiers à la racine
 /tests                  scripts Playwright de non-régression (voir §9)
 ```
@@ -49,7 +51,7 @@
 python3 src/build.py          # génère index.html, sw.js, worklets.js, icônes… à la racine
 git add -A && git commit -m "Studio vX.Y : …" && git push origin main
 ```
-GitHub Pages republie en 1–2 min. Le JS est concaténé dans cet ordre : `dsp.js, engine.js, ui1.js … ui6.js` (portée globale partagée, pas de modules ES). Le build nécessite Python 3 + Pillow (icônes).
+GitHub Pages republie en 1–2 min. Le JS est concaténé dans cet ordre : `vendor/yjs.min.js, dsp.js, engine.js, ui1.js … ui6.js, collab.js` (portée globale partagée, pas de modules ES). Le build nécessite Python 3 + Pillow (icônes).
 
 ### Procédure de nouvelle version (à respecter)
 1. Incrémenter `APP_VERSION` dans `src/ui6.js`.
@@ -167,7 +169,24 @@ Plusieurs personnes ouvrent le même projet via un lien et voient en direct les 
 - **Présence** : avatar + couleur par personne, curseur/sélection de régions, tête de lecture des autres, « X modifie l’EQ de Voix 1 ». Option « écouter ensemble » : diffuser play/stop/position via awareness.
 - **Salles & accès** : URL `…/studio/#room=<id>` ; v1 = lien secret ; plus tard comptes + droits (lecture seule / édition).
 
-### Refactor indispensable avant le réseau
+
+### ✅ Fait en v3.0 (`src/collab.js`)
+Choix de l’utilisateur pour les cadenas : **toute la piste** (volume, pan, régions, notes, effets, envois), libération **manuelle ou automatique après 2 min d’inactivité**, **personne ne peut forcer** le cadenas d’un autre. Plusieurs cadenas par personne. Cibles : chaque piste (id), chaque bus (`aux1`, `aux2`), `master`, et `proj` (nom, BPM, mesure, tonalité).
+
+Implémentation (différente du « refactor store » prévu ci-dessous, pour ne rien casser) :
+- **Pont par différence** : `P` reste le modèle local de toute l’UI. `collabFlush()` (toutes les 100 ms + à chaque `snapshot()`) compare `sharedView(P)` à la dernière base (`COLLAB.last`) et écrit le diff dans le `Y.Doc` (`yObj`/`yArr` : réconciliation par `id` pour pistes/régions, par index sinon). Les changements des autres sont appliqués **en place** dans `P` (`patchRoot`, même identité d’objets → fenêtres et boutons restent branchés), puis `E.build(P)` + `renderAll()` (la lecture ne s’arrête pas).
+- Mises à jour distantes **différées** pendant un glisser, un enregistrement ou une saisie (`busy()`), pour ne jamais casser une interaction en cours.
+- **Non partagé** (propre à chacun) : `settings`, `midiMap`, `ext` (plugins externes : exécution de code → à traiter avec confirmation en v3.1), `cycle`, et sur les pistes `arm`, `mon`, `solo`.
+- **Cadenas** : `Y.Map('locks')` `{u, n, c, t}`. Vérifiés dans `collabFlush` (une action touchant une cible verrouillée par un autre est annulée entièrement et `P` revient à l’état partagé) + blocage préventif des clics (capture sur `[data-lk]`) + champs désactivés. Expiration : chez les autres, 2 min sans nouvelle du propriétaire (`lockSeen`, horloge locale, pas de souci de décalage d’horloge) ; chez le propriétaire, battement toutes les 20 s s’il a été actif, sinon il libère lui-même. Libérés aussi en quittant / fermant la fenêtre.
+- **Undo** : en session, `snapshot/undo/redo` sont remplacés par `Y.UndoManager` (origine locale seulement). Hors session, l’ancien undo JSON est inchangé.
+- **Transport v3.0** : `BroadcastChannel('studio-room-<id>')` → fonctionne entre fenêtres du même navigateur (essai). Messages : `hello`/`sync` (vecteurs d’état), `up` (updates Yjs), `pres` (présence, 4 s), `bye`, `bufq`/`buf` (sons). Le premier arrivé partage son projet (départage par id si arrivées simultanées) ; les suivants l’adoptent (leur projet perso reste dans 📂 Mes projets).
+- **Sons** : un client qui voit un `buf` inconnu le cherche dans IndexedDB puis le demande aux autres (`Float32Array` envoyés tels quels).
+- Tests : `tests/t13.py` (2 fenêtres : synchro, cadenas, refus, undo par personne, sons, expiration, départ) et `tests/t14.py` (3 arrivées simultanées, 250 actions aléatoires → même projet partout, rechargement).
+
+### Prochaine étape : v3.1 (réseau)
+Remplacer `send()`/`onMsg()` par un vrai transport (PartyKit / y-websocket) — le protocole de messages ci-dessus peut être gardé tel quel. À prévoir : compte chez l’hébergeur (choix de l’utilisateur), persistance du document de la salle côté serveur, envoi des sons par stockage objet (hash) plutôt qu’en direct, confirmation avant d’exécuter un plugin externe reçu.
+
+### (Plan initial) Refactor store avant le réseau
 Aujourd’hui l’UI **mute `P` directement** puis appelle `snapshot()` / `E.updateStrip()` / `renderX()`. Pour le multijoueur :
 1. Créer une **couche de store** : toutes les mutations passent par des fonctions (`store.setTrackVol(id,v)`, `store.moveRegion(id,start,trackId)`…) qui écrivent dans le `Y.Doc` (dans une transaction).
 2. **Observer** le `Y.Doc` (`observeDeep`) → reconstruire/mettre à jour `P` (ou lire directement le Y.Doc) → `E.updateStrip` / rendu ciblé de la zone touchée.
@@ -199,6 +218,8 @@ python3 tests/t7.py                # instru : BPM/tonalité, time-stretch, trans
 python3 tests/t9.py                # raccourcis : piste dupliquer/supprimer/annuler, zoom, sélection rectangle, couper/copier/coller
 python3 tests/t10.py               # barre du haut sans débordement, piste instru dédiée, zoom HD
 python3 tests/t12.py               # déplacement de la tête de lecture pendant la lecture
+python3 tests/t13.py               # v3.0 : session à 2 fenêtres, cadenas, undo par personne, sons
+python3 tests/t14.py               # v3.0 : arrivées simultanées, actions aléatoires, rechargement
 ```
 (Les chemins `/home/claude/...` et le chemin de Chrome dans les scripts sont à adapter à la machine.)
 
