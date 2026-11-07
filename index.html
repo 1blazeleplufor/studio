@@ -80,7 +80,8 @@ select,input[type=text],input[type=number]{background:#161618;border:1px solid #
 .reg canvas{position:absolute;left:0;top:14px;pointer-events:none}
 .reg .eh{position:absolute;top:0;bottom:0;width:7px;cursor:ew-resize}
 .reg .eh.l{left:0}.reg .eh.r{right:0}
-#playhead{position:absolute;top:0;width:1px;background:#fff;pointer-events:none;z-index:5;box-shadow:0 0 3px #fff}
+#playhead{position:absolute;top:0;width:11px;margin-left:-5px;background:transparent;z-index:5;cursor:ew-resize;touch-action:none}
+#playhead::after{content:'';position:absolute;left:5px;top:0;bottom:0;width:1px;background:#fff;box-shadow:0 0 3px #fff;pointer-events:none}
 #cycleShade{position:absolute;top:0;background:rgba(255,214,10,.06);pointer-events:none;border-left:1px solid rgba(255,214,10,.4);border-right:1px solid rgba(255,214,10,.4)}
 .grid{position:absolute;inset:0;pointer-events:none}
 /* bottom */
@@ -1056,7 +1057,7 @@ function drawRuler(){
   for(let b=Math.floor(sl/bar);b*bar<sl+w;b++){const x=b*bar-sl;g.fillStyle='#666';g.fillRect(x,b%stepBars?20:12,1,hh);if(b%stepBars===0){g.fillStyle='#ccc';g.fillText(b+1,x+3,22)}
     if(bar>60)for(let q=1;q<P.sig;q++){g.fillStyle='#55555a';g.fillRect(x+q*PPB,21,1,7);if(PPB>55){g.fillStyle='#8a8a90';g.fillText((b+1)+'.'+(q+1),x+q*PPB+3,22)}}
     if(PPB>110)for(let q=0;q<P.sig*4;q++){if(q%4===0)continue;g.fillStyle='#3e3e42';g.fillRect(x+q*PPB/4,24,1,4)}}
-  const px=(E&&E.playing?E.pos():PH)*PPB-sl;g.fillStyle='#fff';g.beginPath();g.moveTo(px-5,12);g.lineTo(px+5,12);g.lineTo(px,20);g.fill();
+  const px=(typeof SCRUB!=='undefined'&&SCRUB!=null?SCRUB:E&&E.playing?E.pos():PH)*PPB-sl;g.fillStyle='#fff';g.beginPath();g.moveTo(px-5,12);g.lineTo(px+5,12);g.lineTo(px,20);g.fill();
 }
 function lanesPointer(){
   const L=$('#lanes');let drag=null;
@@ -1435,7 +1436,7 @@ function bindUI(){
   const W=$('#lanesWrap');W.addEventListener('scroll',()=>{$('#heads').scrollTop=W.scrollTop;drawRuler();schedulePaint()});
   W.addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey){e.preventDefault();zoom(e.deltaY<0?1.15:.87,e.clientX)}else if(e.altKey){e.preventDefault();zoomV(e.deltaY<0?1.12:1/1.12)}},{passive:false});
   $('#heads').addEventListener('wheel',e=>{if(e.altKey||e.ctrlKey||e.metaKey){e.preventDefault();zoomV(e.deltaY<0?1.12:1/1.12)}else{W.scrollTop+=e.deltaY}},{passive:false});
-  lanesPointer();rulerPointer();
+  lanesPointer();rulerPointer();playheadDrag();
   // redimensionner le panneau du bas
   let rz=null;$('#resizer').addEventListener('pointerdown',e=>{rz={y:e.clientY,h:$('#bottom').offsetHeight};$('#resizer').setPointerCapture(e.pointerId)});
   $('#resizer').addEventListener('pointermove',e=>{if(!rz)return;const nh=clamp(rz.h+rz.y-e.clientY,120,innerHeight-200);document.documentElement.style.setProperty('--bh',nh+'px');if(!$('#bottom').classList.contains('open'))setTab('mixer')});
@@ -1456,9 +1457,18 @@ function rulerPointer(){const R=$('#ruler');let d=null;
   const beatAt=e=>(e.clientX-R.getBoundingClientRect().left+$('#lanesWrap').scrollLeft)/PPB;
   R.addEventListener('pointerdown',e=>{R.setPointerCapture(e.pointerId);const b=beatAt(e);
     if(e.offsetY<11){const s=Math.floor(b);d={cyc:true,s};P.cycle.start=s;P.cycle.end=s+1;P.cycle.on=true;renderBar();updateCycleShade();drawRuler()}
-    else{d={cyc:false};setPH(snapB(b))}});
-  R.addEventListener('pointermove',e=>{if(!d)return;const b=beatAt(e);if(d.cyc){const x=Math.round(b);P.cycle.start=Math.max(0,Math.min(d.s,x));P.cycle.end=Math.max(d.s+1,x,P.cycle.start+1);updateCycleShade();drawRuler()}else if(!E.playing){PH=Math.max(0,snapB(b));updatePlayhead(PH);drawRuler()}});
-  R.addEventListener('pointerup',()=>d=null)}
+    else{d={cyc:false};scrubTo(snapB(b),true)}});
+  R.addEventListener('pointermove',e=>{if(!d)return;const b=beatAt(e);if(d.cyc){const x=Math.round(b);P.cycle.start=Math.max(0,Math.min(d.s,x));P.cycle.end=Math.max(d.s+1,x,P.cycle.start+1);updateCycleShade();drawRuler()}else scrubTo(snapB(b))});
+  R.addEventListener('pointerup',()=>{if(d&&!d.cyc)scrubEnd();d=null});R.addEventListener('pointercancel',()=>{if(d&&!d.cyc)scrubEnd();d=null})}
+// Déplacement de la tête de lecture, aussi pendant la lecture (la lecture suit en direct)
+let SCRUB=null,scrubT=0;
+function scrubTo(b,now){b=Math.max(0,b);SCRUB=b;PH=b;updatePlayhead(b);lcd(b);drawRuler();
+  if(E.playing&&!REC){const t=performance.now();if(now||t-scrubT>140){scrubT=t;E.stop();E.play(b)}}}
+function scrubEnd(){if(SCRUB==null)return;const b=SCRUB;SCRUB=null;if(E.playing&&!REC){E.stop();E.play(b)}PH=b;updatePlayhead(b);drawRuler()}
+function playheadDrag(){const ph=()=>$('#playhead');let on=false;
+  document.addEventListener('pointerdown',e=>{if(e.target.id!=='playhead'||e.button)return;e.stopPropagation();e.preventDefault();on=true;e.target.setPointerCapture(e.pointerId)},true);
+  document.addEventListener('pointermove',e=>{if(!on)return;const L=$('#lanes').getBoundingClientRect();scrubTo(snapB((e.clientX-L.left)/PPB))},true);
+  const up=()=>{if(on){on=false;scrubEnd()}};document.addEventListener('pointerup',up,true);document.addEventListener('pointercancel',up,true)}
 function onKey(e){
   const tg=e.target.tagName;if((tg==='INPUT'&&e.target.type!=='range')||tg==='SELECT'||tg==='TEXTAREA')return;
   const k=e.key.toLowerCase(),c=e.ctrlKey||e.metaKey;
@@ -1516,8 +1526,8 @@ function lcd(pos){const b=Math.max(0,pos);const bar=Math.floor(b/P.sig)+1,beat=M
   $('#lcdPos').textContent=`${String(bar).padStart(3,' ')} ${beat} ${six}`;$('#lcdTime').textContent=`${String(Math.floor(s/60)).padStart(2,'0')}:${(s%60).toFixed(1).padStart(4,'0')}`}
 let lastRecDraw=0;
 function loop(){
-  const pos=E.playing?E.pos():PH;updatePlayhead(pos);lcd(pos);
-  if(E.playing){drawRuler();const W=$('#lanesWrap'),x=pos*PPB;if(x>W.scrollLeft+W.clientWidth-40||x<W.scrollLeft)W.scrollLeft=Math.max(0,x-60)}
+  const pos=SCRUB!=null?SCRUB:E.playing?E.pos():PH;updatePlayhead(pos);lcd(pos);
+  if(E.playing&&SCRUB==null){drawRuler();const W=$('#lanesWrap'),x=pos*PPB;if(x>W.scrollLeft+W.clientWidth-40||x<W.scrollLeft)W.scrollLeft=Math.max(0,x-60)}
   document.querySelectorAll('.meter i[data-id]').forEach(i=>{const s=E.strips[i.dataset.id];if(!s)return;const l=meterLevel(s.an),db=l>0?20*Math.log10(l):-80;let v=clamp((db+60)/66*100,0,100);const pv=+i.dataset.v||0;v=Math.max(v,pv-2.5);i.dataset.v=v;i.style.height=v+'%'});
   const im=$('#inMeter');if(im){const p=E.inPeak||0,db=p>0?20*Math.log10(p):-80;im.style.width=clamp((db+60)/60*100,0,100)+'%';im.style.background=db>-3?'#ff3b30':db>-12?'#ffd60a':'#30d158'}
   if(TAB==='steps'&&EDIT){const fr=findRegion(EDIT.r);document.querySelectorAll('.step.cur').forEach(x=>x.classList.remove('cur'));
@@ -1652,7 +1662,7 @@ function initApp(){
 }
 
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='2.3';
+const APP_VERSION='2.4';
 const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
@@ -1785,7 +1795,7 @@ function showChangelog(force){
   let seen='',old=null;try{seen=localStorage.getItem('studio_ver')||'';old=localStorage.getItem('studio_seen')}catch(e){}
   if(!force&&(seen===APP_VERSION||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
+  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v2.4</h4><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
 <li><b>Réglages rapides</b> pour chaque voix : Écho, Réverb, Autotune, Naturel↔Robot, Basses, Clarté, Brillance, Punch, Doublage, Chaleur… de simples curseurs dans l’inspecteur (ⓘ).</li>
 <li><b>20 préréglages voix</b> classés : Base, Autotune (mélodieux, aérien, robot…), Créatif (grave démon, aiguë, lo-fi, stade, écho slap, phaser…), Ad-libs &amp; backs.</li>
 <li><b>5 nouveaux effets</b> : Pitch Shifter, Lo-Fi/Bitcrusher, Robot, Phaser, Trémolo.</li>
