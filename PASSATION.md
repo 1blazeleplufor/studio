@@ -231,6 +231,12 @@ Tests : `tests/t17.py` (avec `LIMIT=400000 node tests/mock_supabase.js 8790`, mo
 - **Fenêtres détachées** : `window.open('')` même origine ; on y copie les `<style>` et on y **déplace** l’élément (`#cpanel`, `#bottom`, `.pwin`) — les écouteurs suivent. `document.querySelector/All/getElementById` sont étendus pour chercher aussi dans ces fenêtres (le code existant continue de marcher, vumètres compris). Les `onclick="…"` du HTML sont rattachés à la fenêtre principale. Retour automatique à la fermeture (`pagehide` + vérification toutes les 1,5 s). Position/taille dans `localStorage.studio_layout` ; au démarrage, bandeau « Rouvrir vos fenêtres détachées » (un clic par fenêtre, le navigateur bloque l’ouverture automatique) + bouton « Autoriser le 2ᵉ écran » (`getScreenDetails`).
 - Tests : `tests/t18.py`.
 
+
+### 📝 Notes pour la v3.7 (à NE PAS publier tout de suite — attendre le feu vert de l’utilisateur)
+- **Chat : le texte envoyé reste dans le champ « Écrire un message… »** (signalé le 07/11/2026). Le message part bien, mais on doit pouvoir écrire le suivant dans un champ vide.
+  - Cause : dans `drawPanel()` (`src/collab2.js`), `chatSend(inp.value)` ajoute le message au `Y.Array('chat')` → `onChatChange` → `drawPanel()` redessine **immédiatement** le panneau en recopiant le brouillon (`draft = … '.cin input' … .value`), qui contient encore le texte. Le `inp.value=''` qui suit vide l’ancien champ, déjà remplacé.
+  - Correction prévue : vider le champ **avant** d’envoyer, dans les deux endroits (touche Entrée et bouton ➤) : `const v=inp.value;inp.value='';chatSend(v)`. Vérifier aussi le cas « fenêtre de chat détachée » et ajouter le contrôle dans `tests/t17.py` (le champ doit être vide après l’envoi).
+
 ### Prochaines étapes
 - v3.4 : curseurs/sélections des autres, notifications, plugins externes partagés avec confirmation, appel vocal (WebRTC + TURN).
 - v3.4 : comptes, droits (lecture seule / édition), liste des salles, RLS stricte.
