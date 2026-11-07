@@ -1,4 +1,4 @@
-# Studio — Passation technique (v3.0)
+# Studio — Passation technique (v3.2)
 
 > Document de reprise pour continuer à développer **Studio** (DAW dans le navigateur, interface inspirée de Logic Pro)
 > et préparer le mode **multijoueur / édition collaborative en direct**.
@@ -12,7 +12,7 @@
 |---|---|
 | **Appli en ligne** | https://1blazeleplufor.github.io/studio/ |
 | **Dépôt** | `github.com/1blazeleplufor/studio` (public, GitHub Pages sur `main`, dossier racine) |
-| **Version** | 3.1 (`APP_VERSION` dans `src/ui6.js`) |
+| **Version** | 3.2 (`APP_VERSION` dans `src/ui6.js`) |
 | **Utilisateur** | Francophone, débutant en MAO mais à l’aise avec les logiciels, fait du rap/trap (références : Timar, Leto, Djadja & Dinaz, Bouss). Travaille surtout sur **Mac**, veut aussi téléphone/tablette/Windows/Android. |
 | **Langue de l’UI** | Français partout. |
 | **Stack** | HTML/CSS/JS **vanilla** (aucun framework, aucune dépendance npm), Web Audio API + AudioWorklet, PWA (manifest + service worker), IndexedDB. |
@@ -185,9 +185,19 @@ Implémentation (différente du « refactor store » prévu ci-dessous, pour ne 
 - **Sons** : un client qui voit un `buf` inconnu le cherche dans IndexedDB puis le demande aux autres (`Float32Array` envoyés tels quels).
 - Tests : `tests/t13.py` (2 fenêtres : synchro, cadenas, refus, undo par personne, sons, expiration, départ) et `tests/t14.py` (3 arrivées simultanées, 250 actions aléatoires → même projet partout, rechargement).
 
-### Prochaine étape : v3.2 (réseau)
-> Note : le numéro v3.1 a été pris par la Réverb Pro « Ères » + Pitch Pro (développés en parallèle). La suite multijoueur est donc décalée d’un numéro.
-Remplacer `send()`/`onMsg()` par un vrai transport (PartyKit / y-websocket) — le protocole de messages ci-dessus peut être gardé tel quel. À prévoir : compte chez l’hébergeur (choix de l’utilisateur), persistance du document de la salle côté serveur, envoi des sons par stockage objet (hash) plutôt qu’en direct, confirmation avant d’exécuter un plugin externe reçu.
+### ✅ Fait en v3.2 : réseau via Supabase (projet `btkrbzdgtjvjfzpamkjj`, région UE, formule gratuite)
+- Constantes `SUPA` en tête de la partie transport de `collab.js` (URL + clé **publishable**, publique par nature). Test : `localStorage.studio_supa={"url":"http://localhost:8790","key":"test"}` pour viser le faux serveur ; `url:""` = BroadcastChannel seul.
+- **Realtime broadcast** en WebSocket brut (protocole Phoenix `vsn=1.0.0`, sans supabase-js) : canal `realtime:studio-<salle>`, événement `m`. Les mises à jour Yjs sont regroupées (`Y.mergeUpdates`, ~90 ms) ; binaire en base64 ; messages > 120 Ko découpés en `part` de 100 Ko (limite Supabase 256 Ko). Reconnexion automatique (délai exponentiel ≤ 15 s) et `hello`/`sync` à chaque reconnexion → les modifications faites hors ligne sont fusionnées. BroadcastChannel reste actif en plus (doublons sans effet : Yjs est idempotent).
+- **Cadenas** dans un 2ᵉ `Y.Doc` (`COLLAB.ldoc`) **jamais sauvegardé** → pas de cadenas fantôme quand tout le monde est parti.
+- **Table `salles`** `{id, doc (base64 de encodeStateAsUpdate), maj}` : lue à l’arrivée (`dbLoad`), écrite toutes les 8 s par **une seule personne** (plus petit id connecté) + à la création + au départ (`keepalive`, si < 60 Ko). Un arrivant ne « crée » la salle avec son projet que si la base répond « vide » et que personne n’a répondu ; si le serveur est injoignable il attend (aucun écrasement).
+- **Stockage `sons`** (public en lecture) : chaque `BUFS[id]` utilisé est envoyé en WAV 16 bits sous `sons/<id>.wav` (ids immuables ; « Duplicate » = déjà envoyé ; liste mémorisée dans `localStorage.studio_up`). Les autres le téléchargent (`decodeAudioData`) s’il n’est pas dans IndexedDB. Limite 50 Mo/fichier (≈ 5 min stéréo).
+- Salles : id aléatoire de 12 caractères (`crypto.getRandomValues`). Sécurité = lien secret ; les règles RLS laissent la table ouverte au rôle `anon` (quiconque a la clé peut lister les salles) → à durcir avec des comptes (v3.4).
+- Tests : `tests/mock_supabase.js` (faux Realtime/REST/Storage, `/__drop` coupe le réseau) + `tests/t16.py` (2 « appareils » sans canal commun, cadenas, son via stockage, 6000 notes, message 300 Ko, coupure/reprise, retour plus tard depuis la base). t13/t14 visent aussi le faux serveur.
+- SQL appliqué côté Supabase : bucket `sons` public + policies `anon` select/insert ; table `salles` + RLS + policy `anon` all.
+
+### Prochaines étapes
+- v3.3 : curseurs/sélections des autres, « écouter ensemble » (play/stop partagés), plugins externes partagés avec confirmation.
+- v3.4 : comptes, droits (lecture seule / édition), liste des salles, RLS stricte.
 
 ### (Plan initial) Refactor store avant le réseau
 Aujourd’hui l’UI **mute `P` directement** puis appelle `snapshot()` / `E.updateStrip()` / `renderX()`. Pour le multijoueur :
@@ -225,6 +235,8 @@ python3 tests/t12.py               # déplacement de la tête de lecture pendant
 python3 tests/t15.py               # v3.1 : Pitch Pro (justesse, latence compensée), Réverb Pro, fenêtres
 python3 tests/t13.py               # v3.0 : session à 2 fenêtres, cadenas, undo par personne, sons
 python3 tests/t14.py               # v3.0 : arrivées simultanées, actions aléatoires, rechargement
+node tests/mock_supabase.js 8790   # faux Supabase (module ws requis : npm i ws, ou WS_MODULE=chemin)
+python3 tests/t16.py               # v3.2 : 2 appareils via le serveur, sons, coupure réseau, salle retrouvée
 ```
 (Les chemins `/home/claude/...` et le chemin de Chrome dans les scripts sont à adapter à la machine.)
 

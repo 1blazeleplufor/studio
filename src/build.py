@@ -11,7 +11,7 @@ D='..'
 pwa='<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">'
 open(D+'/index.html','w').write(t.replace('<!--PWA-->',pwa))
 open(D+'/worklets.js','w').write(wk)
-VER='studio-v3.1'
+VER='studio-v3.2'
 open(D+'/sw.js','w').write("""const V='%s';const FILES=['./','./index.html','./worklets.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-maskable.png','./apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(FILES)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

@@ -249,6 +249,8 @@ select,input[type=text],input[type=number]{background:#161618;border:1px solid #
 .tune-bottom{display:flex;gap:18px;align-items:flex-end;justify-content:center;margin-top:8px;padding-top:8px;border-top:1px solid #23383d}
 .tune-bottom .big{display:flex;flex-direction:column;align-items:center}.tune-bottom .hint{font-size:10px;color:#6e8b86}
 @media (max-width:900px){.tune-mid{flex-direction:column}.tune-side{flex-direction:row;flex-wrap:wrap;justify-content:center}.tune-graph{width:100%!important;height:auto!important}}
+#collabBar .net{width:8px;height:8px;border-radius:50%;background:#888;margin-right:5px;flex:none}
+#collabBar .net.ok{background:#30d158}#collabBar .net.connecting{background:#ff9f0a}#collabBar .net.off{background:#ff453a}
 </style></head><body>
 <div id="app">
  <div id="bar">
@@ -1920,7 +1922,7 @@ function initApp(){
 }
 
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='3.1';
+const APP_VERSION='3.2';
 const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
@@ -2054,7 +2056,7 @@ function showChangelog(force){
   let seen='',old=null;try{seen=localStorage.getItem('studio_ver')||'';old=localStorage.getItem('studio_seen')}catch(e){}
   if(!force&&(seen===APP_VERSION||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v3.1</h4><ul><li><b>Réverb Pro « Ères »</b> (catégorie Espace) : réverb algorithmique vintage, 14 modes (plaque, hall, chambre, chorus, aléatoire, cathédrale, versions sales, gated…), couleurs Années 70 / 80 / Moderne, pré-délai, decay, taille, attaque, diffusion, modulation, EQ, decay par fréquence, 11 préréglages. C’est aussi la nouvelle réverb du Bus Réverb des nouveaux projets.</li><li><b>Pitch Pro</b> (catégorie Voix) : autotune avancé avec graphique de hauteur en direct, type de voix, tracking, éditeur de notes, vitesse de correction, Humanize, Flex-Tune, vibrato naturel, formants + gorge, transposition, désaccord, mode classique, préréglages. Latence compensée automatiquement.</li></ul><h4>v3.0</h4><ul><li><b>👥 Session à plusieurs</b> (☰ Fichier → Session à plusieurs) : plusieurs personnes sur le même projet, chacun voit en direct les modifications des autres et écoute sur son appareil. <i>Version d’essai : entre fenêtres d’un même navigateur ; la connexion entre appareils arrive dans une prochaine version.</i></li><li><b>🔒 Cadenas</b> : en session, cliquez le cadenas d’une piste (en haut à droite de son nom, ou dans le mixeur) pour que personne d’autre ne la modifie. Plusieurs cadenas possibles, aussi sur les bus, la sortie et le tempo/tonalité. Il se retire en recliquant ou tout seul après 2 min sans activité.</li><li>En session, <b>Ctrl+Z n’annule que vos propres actions</b>. Solo, armement R et retour micro restent personnels.</li></ul><h4>v2.4</h4><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
+  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v3.2</h4><ul><li><b>👥 Session à plusieurs entre appareils</b> : ☰ Fichier → Session à plusieurs → Partager, puis envoyez le lien. Vos amis vous rejoignent depuis leur ordinateur, téléphone ou tablette, où qu’ils soient.</li><li>Le projet de la session est <b>sauvegardé en ligne</b> : rouvrez le même lien plus tard pour continuer, même si tout le monde était parti.</li><li>Les <b>sons enregistrés ou importés</b> sont envoyés automatiquement aux autres.</li><li>Pastille de connexion à côté des participants : 🟢 connecté, 🟠 connexion, 🔴 hors ligne (vos modifications partent au retour de la connexion).</li></ul><h4>v3.1</h4><ul><li><b>Réverb Pro « Ères »</b> (catégorie Espace) : réverb algorithmique vintage, 14 modes (plaque, hall, chambre, chorus, aléatoire, cathédrale, versions sales, gated…), couleurs Années 70 / 80 / Moderne, pré-délai, decay, taille, attaque, diffusion, modulation, EQ, decay par fréquence, 11 préréglages. C’est aussi la nouvelle réverb du Bus Réverb des nouveaux projets.</li><li><b>Pitch Pro</b> (catégorie Voix) : autotune avancé avec graphique de hauteur en direct, type de voix, tracking, éditeur de notes, vitesse de correction, Humanize, Flex-Tune, vibrato naturel, formants + gorge, transposition, désaccord, mode classique, préréglages. Latence compensée automatiquement.</li></ul><h4>v3.0</h4><ul><li><b>👥 Session à plusieurs</b> (☰ Fichier → Session à plusieurs) : plusieurs personnes sur le même projet, chacun voit en direct les modifications des autres et écoute sur son appareil. <i>Version d’essai : entre fenêtres d’un même navigateur ; la connexion entre appareils arrive dans une prochaine version.</i></li><li><b>🔒 Cadenas</b> : en session, cliquez le cadenas d’une piste (en haut à droite de son nom, ou dans le mixeur) pour que personne d’autre ne la modifie. Plusieurs cadenas possibles, aussi sur les bus, la sortie et le tempo/tonalité. Il se retire en recliquant ou tout seul après 2 min sans activité.</li><li>En session, <b>Ctrl+Z n’annule que vos propres actions</b>. Solo, armement R et retour micro restent personnels.</li></ul><h4>v2.4</h4><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
 <li><b>Réglages rapides</b> pour chaque voix : Écho, Réverb, Autotune, Naturel↔Robot, Basses, Clarté, Brillance, Punch, Doublage, Chaleur… de simples curseurs dans l’inspecteur (ⓘ).</li>
 <li><b>20 préréglages voix</b> classés : Base, Autotune (mélodieux, aérien, robot…), Créatif (grave démon, aiguë, lo-fi, stade, écho slap, phaser…), Ad-libs &amp; backs.</li>
 <li><b>5 nouveaux effets</b> : Pitch Shifter, Lo-Fi/Bitcrusher, Robot, Phaser, Trémolo.</li>
@@ -2147,7 +2149,8 @@ function openTunePro(o,i){
 // Principe : P reste le modèle local utilisé par toute l'interface. Un pont compare P à l'état partagé
 // (toutes les 100 ms et avant chaque snapshot) et écrit la différence dans le Y.Doc. Les modifications
 // des autres sont appliquées « en place » dans P (mêmes objets), puis l'interface est redessinée.
-// Transport v3.0 : BroadcastChannel (fenêtres/onglets du même navigateur). v3.1 : serveur réseau.
+// Transport : Supabase Realtime (entre appareils) + BroadcastChannel (fenêtres du même navigateur).
+// La salle est sauvegardée dans la table `salles`, les sons dans le stockage `sons` (WAV 16 bits).
 const LOCK_IDLE=120000,LOCAL_ORIGIN={local:true};
 const SKIP_ROOT=['settings','midiMap','ext','cycle'],SKIP_TRACK=['arm','mon','solo']; // réglages propres à chacun
 const ME={id:uid('u'),name:'',color:''};
@@ -2223,10 +2226,10 @@ function toggleLock(k){
   if(!COLLAB.on)return toast('Les cadenas servent en session à plusieurs : ☰ Fichier → 👥 Session à plusieurs');
   if(!COLLAB.synced)return toast('Connexion à la session en cours…');
   const L=lockOf(k);if(L&&L.u!==ME.id)return lockToast(k,L);
-  collabFlush();COLLAB.doc.transact(()=>{if(L)COLLAB.locks.delete(k);else COLLAB.locks.set(k,{u:ME.id,n:ME.name||'Quelqu’un',c:ME.color,t:Date.now()})},'lock');
+  collabFlush();COLLAB.ldoc.transact(()=>{if(L)COLLAB.locks.delete(k);else COLLAB.locks.set(k,{u:ME.id,n:ME.name||'Quelqu’un',c:ME.color,t:Date.now()})},'lock');
   toast(L?'🔓 « '+lockLabel(k)+' » libéré':'🔒 « '+lockLabel(k)+' » verrouillé : les autres ne peuvent plus le modifier');decorateLocks()}
 function myLocks(){return COLLAB.locks?[...COLLAB.locks.entries()].filter(([,L])=>L.u===ME.id):[]}
-function releaseMyLocks(){const m=myLocks();if(m.length&&COLLAB.doc)COLLAB.doc.transact(()=>m.forEach(([k])=>COLLAB.locks.delete(k)),'lock')}
+function releaseMyLocks(){const m=myLocks();if(m.length&&COLLAB.ldoc)COLLAB.ldoc.transact(()=>m.forEach(([k])=>COLLAB.locks.delete(k)),'lock')}
 
 // ---- pont P ↔ document partagé ----
 function collabFlush(){
@@ -2271,22 +2274,79 @@ function collabUndo(re){if(!COLLAB.synced)return;collabFlush();const um=COLLAB.u
   if(bad){re?um.undo():um.redo();lockToast(bad.k,bad.L);return}
   pullFromDoc()}
 
-// ---- transport (v3.0 : entre fenêtres du même navigateur) ----
-function send(m){if(!COLLAB.ch)return;m.from=ME.id;m.user={id:ME.id,name:ME.name,color:ME.color};m.synced=COLLAB.synced;try{COLLAB.ch.postMessage(m)}catch(e){console.warn(e)}}
+// ---- connexion : Supabase (entre appareils) + BroadcastChannel (même navigateur) ----
+const SUPA={url:'https://btkrbzdgtjvjfzpamkjj.supabase.co',key:'sb_publishable_JAuJ-AqcF_6hFESge6X7tg_VuYdcg24'}; // clé publique, faite pour être dans la page
+try{const o=JSON.parse(localStorage.getItem('studio_supa')||'null');if(o&&typeof o.url==='string')Object.assign(SUPA,o)}catch(e){} // tests
+const NET={ws:null,state:'off',ref:0,topic:null,joinRef:null,joinedAt:0,hb:null,rT:null,retry:0,upQ:{p:[],l:[]},upT:null,parts:{},
+  upDone:new Set(),uploading:false,dbMode:'none',dbT:null,startT:0};
+try{NET.upDone=new Set(JSON.parse(localStorage.getItem('studio_up')||'[]'))}catch(e){}
+const B64K=['u','l','sv','lsv'];
+const b64=u=>{let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)};
+const unb64=s=>{const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
+const supaH=x=>Object.assign({apikey:SUPA.key},x||{});
+function setNet(s){if(NET.state===s)return;NET.state=s;renderNetDot()}
+function netLabel(){if(!SUPA.url)return'Fenêtres de cet appareil seulement';
+  return {ok:'🟢 Connecté au serveur',connecting:'🟠 Connexion…',off:'🔴 Hors ligne : vos modifications partiront au retour de la connexion'}[NET.state]||NET.state}
+function renderNetDot(){const d=$('#collabBar .net');if(!d)return;d.className='net '+(SUPA.url?NET.state:'ok');d.title=netLabel()}
+
+function send(m){if(!COLLAB.on)return;m.from=ME.id;m.user={id:ME.id,name:ME.name,color:ME.color};m.synced=COLLAB.synced;
+  if(COLLAB.ch)try{COLLAB.ch.postMessage(m)}catch(e){console.warn(e)}
+  if(m.k==='buf'||m.k==='bufq'||!SUPA.url)return; // les sons passent par le stockage, pas par le direct
+  if(m.k==='up'){NET.upQ[m.d||'p'].push(m.u);if(!NET.upT)NET.upT=setTimeout(netFlushUp,90);return} // regroupées (~10 envois/s max)
+  netPost(m)}
+function netFlushUp(){NET.upT=null;for(const d of ['p','l']){const q=NET.upQ[d];if(!q.length)continue;NET.upQ[d]=[];
+  netPost({k:'up',d,u:q.length>1?Y.mergeUpdates(q):q[0],from:ME.id,user:{id:ME.id,name:ME.name,color:ME.color},synced:COLLAB.synced})}}
+function netPost(m){
+  const ws=NET.ws;if(!ws||ws.readyState!==1||!NET.joinedAt)return; // hors ligne : la resynchro au retour (hello/sync) rattrape tout
+  const o=Object.assign({},m);for(const k of B64K)if(o[k] instanceof Uint8Array)o[k]=b64(o[k]);
+  const str=JSON.stringify(o),raw=p=>ws.send(JSON.stringify({topic:NET.topic,event:'broadcast',payload:{type:'broadcast',event:'m',payload:p},ref:String(++NET.ref)}));
+  if(str.length<120000)return raw(o);
+  const id=uid('c'),n=Math.ceil(str.length/100000);for(let i=0;i<n;i++)raw({k:'part',from:ME.id,id,i,n,s:str.slice(i*100000,(i+1)*100000)})}
+function netRecv(p){
+  if(!p||p.from===ME.id)return;
+  if(p.k==='part'){const t=Date.now();for(const id in NET.parts)if(t-NET.parts[id].t>60000)delete NET.parts[id];
+    const P_=NET.parts[p.id]||(NET.parts[p.id]={t,n:p.n,got:0,s:[]});if(P_.s[p.i]==null){P_.s[p.i]=p.s;P_.got++}
+    if(P_.got<P_.n)return;delete NET.parts[p.id];try{p=JSON.parse(P_.s.join(''))}catch(e){return}}
+  for(const k of B64K)if(typeof p[k]==='string')try{p[k]=unb64(p[k])}catch(e){delete p[k]}
+  onMsg(p)}
+function netConnect(){
+  clearTimeout(NET.rT);if(!COLLAB.on||!SUPA.url)return;
+  let ws;try{ws=new WebSocket(SUPA.url.replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+encodeURIComponent(SUPA.key)+'&vsn=1.0.0')}catch(e){return netRetry()}
+  NET.ws=ws;NET.joinedAt=0;setNet('connecting');
+  ws.onopen=()=>{NET.joinRef=String(++NET.ref);
+    ws.send(JSON.stringify({topic:NET.topic,event:'phx_join',payload:{config:{broadcast:{ack:false,self:false},presence:{key:'',enabled:false},postgres_changes:[],private:false}},ref:NET.joinRef,join_ref:NET.joinRef}));
+    clearInterval(NET.hb);NET.hb=setInterval(()=>{if(ws.readyState===1)ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:String(++NET.ref)}))},25000)};
+  ws.onmessage=e=>{if(NET.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch(err){return}
+    if(m.event==='phx_reply'&&m.ref===NET.joinRef){if(m.payload&&m.payload.status==='ok')netJoined();else{console.warn('Session : connexion refusée',m.payload);ws.close()}return}
+    if(m.topic!==NET.topic)return;
+    if(m.event==='broadcast'&&m.payload)netRecv(m.payload.payload);
+    else if(m.event==='phx_error'||m.event==='phx_close')ws.close()};
+  ws.onerror=()=>{};
+  ws.onclose=()=>{clearInterval(NET.hb);if(NET.ws!==ws)return;NET.ws=null;NET.joinedAt=0;setNet('off');netRetry()}}
+function netRetry(){if(!COLLAB.on)return;clearTimeout(NET.rT);NET.rT=setTimeout(netConnect,Math.min(15000,800*2**NET.retry++))}
+function netJoined(){NET.retry=0;NET.joinedAt=Date.now();setNet('ok');
+  sendHello(); // à chaque (re)connexion : on échange les différences avec les autres
+  if(NET.dbMode==='err')dbLoad()}
+function sendHello(){send({k:'hello',sv:Y.encodeStateVector(COLLAB.doc),lsv:Y.encodeStateVector(COLLAB.ldoc)})}
+
 function onMsg(m){
   if(!COLLAB.on||!m||m.from===ME.id||(m.to&&m.to!==ME.id))return;
   if(m.user&&m.k!=='bye'){const was=COLLAB.peers[m.from];COLLAB.peers[m.from]={user:m.user,t:Date.now()};if(!was||was.user.name!==m.user.name||was.user.color!==m.user.color)renderPresence()}
   switch(m.k){
-    case 'hello':if(COLLAB.synced)send({k:'sync',to:m.from,u:Y.encodeStateAsUpdate(COLLAB.doc,m.sv),sv:Y.encodeStateVector(COLLAB.doc)});
-      else COLLAB.waiting[m.from]=Date.now();break;
-    case 'sync':recvUpdate(m.u);if(COLLAB.synced&&m.sv){const d=Y.encodeStateAsUpdate(COLLAB.doc,m.sv);if(d.length>2)send({k:'up',u:d})}break;
-    case 'up':recvUpdate(m.u);break;
+    case 'hello':
+      if(COLLAB.synced)send({k:'sync',to:m.from,u:Y.encodeStateAsUpdate(COLLAB.doc,m.sv),l:Y.encodeStateAsUpdate(COLLAB.ldoc,m.lsv),sv:Y.encodeStateVector(COLLAB.doc),lsv:Y.encodeStateVector(COLLAB.ldoc)});
+      else{COLLAB.waiting[m.from]=Date.now();if(COLLAB.ldoc)send({k:'sync',to:m.from,l:Y.encodeStateAsUpdate(COLLAB.ldoc,m.lsv),lsv:Y.encodeStateVector(COLLAB.ldoc)})}break;
+    case 'sync':recvUpdate(m.l,'l');recvUpdate(m.u,'p');
+      if(COLLAB.synced&&m.sv){const d=Y.encodeStateAsUpdate(COLLAB.doc,m.sv);if(d.length>2)send({k:'up',d:'p',u:d})}
+      if(m.lsv){const d=Y.encodeStateAsUpdate(COLLAB.ldoc,m.lsv);if(d.length>2)send({k:'up',d:'l',u:d})}break;
+    case 'up':recvUpdate(m.u,m.d);break;
     case 'bye':delete COLLAB.peers[m.from];renderPresence();break;
     case 'bufq':for(const id of m.ids||[])sendBuf(m.from,id);break;
     case 'buf':recvBuf(m);break;
   }}
-function recvUpdate(u){
-  if(!u)return;
+function recvUpdate(u,d){
+  if(!u||!COLLAB.doc)return;
+  if(d==='l'){try{Y.applyUpdate(COLLAB.ldoc,u,'remote')}catch(e){console.warn(e)}if(COLLAB.synced)scheduleApply();return}
   if(!COLLAB.synced){try{Y.applyUpdate(COLLAB.doc,u,'remote')}catch(e){console.warn(e);return}
     if(COLLAB.root.has('tracks')&&!COLLAB.adopting){COLLAB.adopting=true;clearTimeout(COLLAB.waitT);adoptDoc().finally(()=>COLLAB.adopting=false)}return}
   COLLAB.queue.push(u);scheduleApply()}
@@ -2300,22 +2360,57 @@ async function adoptDoc(){ // on rejoint : le projet de la session remplace l'af
   afterSync();renderAll();fetchMissingBufs();toast('👥 Vous avez rejoint « '+P.name+' »',3500)}
 function seed(){
   const v=JSON.parse(JSON.stringify(sharedView(P)));COLLAB.doc.transact(()=>{for(const k in v)COLLAB.root.set(k,toY(v[k]))},'seed');
-  afterSync();renderAll()}
+  afterSync();renderAll();dbSave(true);uploadBufs()}
 function afterSync(){COLLAB.synced=true;setBase();UNDO=[];REDO=[];
   COLLAB.um=new Y.UndoManager(COLLAB.root,{trackedOrigins:new Set([LOCAL_ORIGIN]),captureTimeout:1e9});
-  const now=Date.now();for(const k of COLLAB.locks.keys())COLLAB.lockSeen[k]=now;renderPresence()}
+  const now=Date.now();for(const k of COLLAB.locks.keys())COLLAB.lockSeen[k]=now;renderPresence();scheduleApply()}
+// personne n'a répondu : salle neuve → on la démarre avec son projet. Si le serveur est injoignable, on attend (pas d'écrasement).
 function waitDone(){if(!COLLAB.on||COLLAB.synced||COLLAB.adopting)return;
-  const t=Date.now(),first=Object.keys(COLLAB.waiting).filter(id=>t-COLLAB.waiting[id]<6000&&id<ME.id);
-  if(first.length){COLLAB.waitT=setTimeout(waitDone,2000);return} // un autre arrivant démarre la session : on l'attend
+  const t=Date.now(),again=ms=>{COLLAB.waitT=setTimeout(waitDone,ms)};
+  if(Object.keys(COLLAB.waiting).some(id=>t-COLLAB.waiting[id]<6000&&id<ME.id))return again(2000); // un autre arrivant démarre la session
+  if(SUPA.url){
+    if(NET.dbMode==='pending'||NET.dbMode==='err'){if(t-NET.startT>8000&&!COLLAB.toldWait){COLLAB.toldWait=1;toast('Connexion au serveur… (vérifiez internet)',5000)}return again(1500)}
+    if(!(NET.joinedAt&&t-NET.joinedAt>2000)&&t-NET.startT<10000)return again(800)}
   seed();toast('👥 Vous êtes le premier dans la session : votre projet est partagé',4000)}
 
+// ---- sauvegarde de la salle sur le serveur ----
+async function dbLoad(){
+  if(!SUPA.url||!COLLAB.on)return;const room=COLLAB.room;NET.dbMode='pending';
+  try{const r=await fetch(SUPA.url+'/rest/v1/salles?select=doc&id=eq.'+encodeURIComponent(room),{headers:supaH()});
+    if(!r.ok)throw new Error('HTTP '+r.status);const rows=await r.json();if(!COLLAB.on||COLLAB.room!==room)return;
+    NET.dbMode=rows[0]&&rows[0].doc?'row':'empty';if(NET.dbMode==='row')recvUpdate(unb64(rows[0].doc),'p')}
+  catch(e){console.warn('Session : lecture de la salle impossible',e);if(COLLAB.room===room){NET.dbMode='err';clearTimeout(NET.dbT);NET.dbT=setTimeout(()=>{if(!COLLAB.synced)dbLoad()},5000)}}}
+function roomBody(){return JSON.stringify({id:COLLAB.room,doc:b64(Y.encodeStateAsUpdate(COLLAB.doc)),maj:new Date().toISOString()})}
+async function dbSave(force){
+  if(!SUPA.url||!COLLAB.on||!COLLAB.synced)return;if(!force&&!COLLAB.docChanged)return;
+  if(!force){const ids=[ME.id,...Object.keys(COLLAB.peers)].sort();if(ids[0]!==ME.id)return} // une seule personne sauvegarde à la fois
+  COLLAB.docChanged=false;
+  try{const r=await fetch(SUPA.url+'/rest/v1/salles',{method:'POST',headers:supaH({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}),body:roomBody()});
+    if(!r.ok)throw new Error('HTTP '+r.status+' '+(await r.text()).slice(0,200))}
+  catch(e){COLLAB.docChanged=true;console.warn('Session : sauvegarde en ligne impossible',e)}}
+function dbSaveOnLeave(){if(!SUPA.url||!COLLAB.synced||!COLLAB.docChanged)return;const body=roomBody();if(body.length>60000)return;
+  try{fetch(SUPA.url+'/rest/v1/salles',{method:'POST',keepalive:true,headers:supaH({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}),body})}catch(e){}}
+
 // ---- sons (fichiers audio immuables, partagés par identifiant) ----
+const sonURL=id=>SUPA.url+'/storage/v1/object/public/sons/'+id+'.wav';
+function saveUp(){try{localStorage.setItem('studio_up',JSON.stringify([...NET.upDone].slice(-3000)))}catch(e){}}
+async function uploadBufs(){
+  if(!SUPA.url||!COLLAB.synced||NET.uploading||!P)return;
+  const ids=[...usedBufs(P)].filter(id=>id&&BUFS[id]&&!NET.upDone.has(id));if(!ids.length)return;NET.uploading=true;
+  try{for(const id of ids){if(!COLLAB.on)break;
+    const r=await fetch(SUPA.url+'/storage/v1/object/sons/'+id+'.wav',{method:'POST',headers:supaH({'Content-Type':'audio/wav','x-upsert':'false'}),body:wavEncode(BUFS[id])});
+    const txt=r.ok?'':await r.text();
+    if(r.ok||r.status===409||/exist|duplicate/i.test(txt)){NET.upDone.add(id);saveUp()}
+    else{console.warn('Session : envoi du son impossible',r.status,txt);if(r.status===413&&!NET['big'+id]){NET['big'+id]=1;toast('⚠ Un son est trop long pour être partagé (5 min max environ)',5000)}}}}
+  catch(e){console.warn('Session : envoi des sons interrompu',e)}finally{NET.uploading=false}}
 async function fetchMissingBufs(){
   if(!COLLAB.on||!P)return;const t=Date.now();
   const need=[...usedBufs(P)].filter(id=>id&&!BUFS[id]&&!(COLLAB.bufWait[id]&&t-COLLAB.bufWait[id]<6000));if(!need.length)return;
   need.forEach(id=>COLLAB.bufWait[id]=t);const ask=[];let got=0;
   for(const id of need){try{const b=await IDB.get('buffers',id);
       if(b&&!BUFS[id]){const ab=ctx.createBuffer(b.ch,b.len,b.sr);b.data.forEach((d,c)=>ab.copyToChannel(d,c));addBuffer(ab,id);SAVED_BUFS.add(id);got++;continue}}catch(e){}
+    if(SUPA.url&&!BUFS[id])try{const r=await fetch(sonURL(id));
+      if(r.ok){const ab=await ctx.decodeAudioData(await r.arrayBuffer());if(!BUFS[id]){addBuffer(ab,id);NET.upDone.add(id);got++}continue}}catch(e){}
     if(!BUFS[id])ask.push(id)}
   if(ask.length)send({k:'bufq',ids:ask});if(got)bufsArrived()}
 function sendBuf(to,id){const b=BUFS[id];if(!b)return;const data=[];for(let c=0;c<b.numberOfChannels;c++)data.push(b.getChannelData(c).slice());
@@ -2326,34 +2421,39 @@ function bufsArrived(){clearTimeout(COLLAB.bufT);COLLAB.bufT=setTimeout(()=>{if(
 // ---- démarrer / quitter ----
 function collabStart(room,host){
   if(COLLAB.on)collabStop(true);
-  if(typeof Y==='undefined'||!window.BroadcastChannel)return toast('Ce navigateur ne permet pas les sessions à plusieurs');
-  Object.assign(COLLAB,{on:true,synced:false,room,queue:[],peers:{},waiting:{},lockSeen:{},bufWait:{},um:null,adopting:false,projDirty:false,lockDirty:false});
-  const doc=COLLAB.doc=new Y.Doc();COLLAB.root=doc.getMap('p');COLLAB.locks=doc.getMap('locks');
-  doc.on('update',(u,origin)=>{if(origin!=='remote')send({k:'up',u})});
+  if(typeof Y==='undefined')return toast('Ce navigateur ne permet pas les sessions à plusieurs');
+  Object.assign(COLLAB,{on:true,synced:false,room,queue:[],peers:{},waiting:{},lockSeen:{},bufWait:{},um:null,adopting:false,projDirty:false,lockDirty:false,docChanged:false,toldWait:0});
+  const doc=COLLAB.doc=new Y.Doc(),ldoc=COLLAB.ldoc=new Y.Doc();COLLAB.root=doc.getMap('p');COLLAB.locks=ldoc.getMap('locks');
+  doc.on('update',(u,origin)=>{COLLAB.docChanged=true;if(origin!=='remote')send({k:'up',d:'p',u})});
+  ldoc.on('update',(u,origin)=>{if(origin!=='remote')send({k:'up',d:'l',u})});
   COLLAB.root.observeDeep((ev,tr)=>{if(tr.origin==='remote')COLLAB.projDirty=true});
   COLLAB.locks.observe(ev=>{const t=Date.now();ev.keysChanged.forEach(k=>COLLAB.lockSeen[k]=t);
     if(ev.transaction.origin==='remote')COLLAB.lockDirty=true;else decorateLocks()});
-  try{COLLAB.ch=new BroadcastChannel('studio-room-'+room)}catch(e){COLLAB.on=false;return toast('Session impossible ici : ouvrez l’appli depuis son adresse en ligne')}
-  COLLAB.ch.onmessage=e=>onMsg(e.data);
+  COLLAB.ch=null;try{if(window.BroadcastChannel){COLLAB.ch=new BroadcastChannel('studio-room-'+room);COLLAB.ch.onmessage=e=>onMsg(e.data)}}catch(e){}
+  if(!COLLAB.ch&&!SUPA.url){COLLAB.on=false;return toast('Session impossible ici : ouvrez l’appli depuis son adresse en ligne')}
   try{history.replaceState(null,'',location.pathname+location.search+'#room='+room)}catch(e){}
+  NET.topic='realtime:studio-'+room;NET.retry=0;NET.startT=Date.now();NET.dbMode=SUPA.url?'pending':'none';NET.upQ={p:[],l:[]};NET.parts={};
   const T=(fn,ms)=>COLLAB.timers.push(setInterval(fn,ms));
   T(collabFlush,100);
   T(()=>{send({k:'pres'});const t=Date.now();let ch=false;for(const id in COLLAB.peers)if(t-COLLAB.peers[id].t>12000){delete COLLAB.peers[id];ch=true}if(ch)renderPresence();
-    fetchMissingBufs();decorateLocks()},4000);
+    fetchMissingBufs();uploadBufs();decorateLocks()},4000);
+  T(()=>dbSave(false),8000);
   T(()=>{if(!COLLAB.synced)return;const m=myLocks();if(!m.length)return;const idle=Date.now()-LAST_INPUT>LOCK_IDLE;
-    COLLAB.doc.transact(()=>m.forEach(([k,L])=>idle?COLLAB.locks.delete(k):COLLAB.locks.set(k,Object.assign({},L,{t:Date.now(),n:ME.name||L.n,c:ME.color}))),'lock');
+    COLLAB.ldoc.transact(()=>m.forEach(([k,L])=>idle?COLLAB.locks.delete(k):COLLAB.locks.set(k,Object.assign({},L,{t:Date.now(),n:ME.name||L.n,c:ME.color}))),'lock');
     if(idle)toast('🔓 Vos cadenas ont été libérés (2 min sans activité)',4000)},20000);
-  if(host)seed();else{send({k:'hello',sv:Y.encodeStateVector(doc)});COLLAB.waitT=setTimeout(waitDone,2500)}
-  renderPresence()}
+  if(host)seed();else{sendHello();if(SUPA.url)dbLoad();COLLAB.waitT=setTimeout(waitDone,2500)}
+  netConnect();renderPresence()}
 function collabStop(silent){
-  if(!COLLAB.on)return;releaseMyLocks();send({k:'bye'});
-  COLLAB.timers.forEach(clearInterval);COLLAB.timers=[];clearTimeout(COLLAB.waitT);clearTimeout(COLLAB.applyT);
-  try{COLLAB.ch.close()}catch(e){}try{COLLAB.doc.destroy()}catch(e){}
-  Object.assign(COLLAB,{on:false,synced:false,room:null,doc:null,root:null,locks:null,um:null,ch:null,queue:[],peers:{}});
+  if(!COLLAB.on)return;releaseMyLocks();netFlushUp();dbSaveOnLeave();send({k:'bye'});
+  COLLAB.timers.forEach(clearInterval);COLLAB.timers=[];clearTimeout(COLLAB.waitT);clearTimeout(COLLAB.applyT);clearTimeout(NET.rT);clearTimeout(NET.dbT);clearTimeout(NET.upT);NET.upT=null;clearInterval(NET.hb);
+  const ws=NET.ws;NET.ws=null;NET.joinedAt=0;if(ws)setTimeout(()=>{try{ws.close()}catch(e){}},300);setNet('off');
+  try{COLLAB.ch&&COLLAB.ch.close()}catch(e){}try{COLLAB.doc.destroy();COLLAB.ldoc.destroy()}catch(e){}
+  Object.assign(COLLAB,{on:false,synced:false,room:null,doc:null,ldoc:null,root:null,locks:null,um:null,ch:null,queue:[],peers:{}});
   try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
   UNDO=[];REDO=[];renderPresence();clearLk();renderAll();if(!silent)toast('Vous avez quitté la session (le projet reste dans 📂 Mes projets)',3500)}
 const roomFromHash=()=>{const m=/(?:^|[#&])room=([\w-]{4,40})/.exec(location.hash);return m&&m[1]};
 const roomLink=r=>location.origin+location.pathname+'#room='+r;
+const newRoom=()=>Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>(b%36).toString(36)).join('');
 function saveMe(){try{localStorage.setItem('studio_user',JSON.stringify({name:ME.name,color:ME.color}))}catch(e){}}
 function askName(then){
   const inp=h('input',{type:'text',value:ME.name,placeholder:'Ton prénom ou pseudo',maxlength:20,style:{fontSize:'15px',padding:'6px 8px',width:'220px'},onkeydown:e=>{e.stopPropagation();if(e.key==='Enter')ok()}});
@@ -2368,33 +2468,36 @@ function collabModal(){
     if(!COLLAB.on){box.append(h('h2',null,'👥 Session à plusieurs'),
       h('p',null,'Faites de la musique à plusieurs sur le même projet : chacun voit en direct ce que font les autres et écoute sur son propre appareil.'),
       h('p',null,'Posez un 🔒 cadenas sur une piste (en haut à droite de son nom) pour que personne d’autre ne la modifie pendant que vous travaillez dessus. Vous pouvez en poser plusieurs.'),
-      h('p',{style:{color:'#ffb340',fontSize:'12px'}},'Version 3.0 (essai) : la session marche entre plusieurs fenêtres de ce navigateur, sur cet appareil. La connexion entre plusieurs ordinateurs et téléphones arrive dans la prochaine version.'),
+      h('p',null,'Cliquez « Partager », puis envoyez le lien à vos amis (message, WhatsApp…). Ils l’ouvrent sur leur ordinateur, téléphone ou tablette et vous rejoignent. Le projet de la session reste sauvegardé en ligne : rouvrez le même lien plus tard pour continuer.'),
+      location.protocol==='file:'&&h('p',{style:{color:'#ffb340',fontSize:'12px'}},'Vous avez ouvert le fichier directement : pour inviter d’autres personnes, ouvrez l’appli depuis son adresse en ligne.'),
       h('div',{style:{display:'flex',gap:'8px',flexWrap:'wrap',marginTop:'10px'}},
-        h('button',{style:{padding:'8px 14px'},onclick:()=>{m.remove();const go=()=>{collabStart(uid('s').slice(1),true);collabModal()};ME.name?go():askName(go)}},'▶ Partager ce projet'),
+        h('button',{style:{padding:'8px 14px'},onclick:()=>{m.remove();const go=()=>{collabStart(newRoom(),true);collabModal()};ME.name?go():askName(go)}},'▶ Partager ce projet'),
         roomFromHash()&&h('button',{onclick:()=>{m.remove();const go=()=>collabStart(roomFromHash(),false);ME.name?go():askName(go)}},'Rejoindre la session du lien')));return}
     const link=roomLink(COLLAB.room),ppl=[{name:ME.name+' (vous)',color:ME.color},...Object.values(COLLAB.peers).map(p=>p.user)];
     box.append(h('h2',null,'👥 Session en cours'),
       h('div',{class:'kv2'},'Lien de la session',h('span',{style:{display:'flex',gap:'6px'}},h('input',{type:'text',readonly:true,value:link,style:{width:'260px'},onfocus:e=>e.target.select()}),
         h('button',{onclick:async()=>{try{await navigator.clipboard.writeText(link);toast('Lien copié ✔')}catch(e){toast('Sélectionnez le lien et copiez-le')}}},'Copier'))),
-      h('div',{class:'kv2'},'Tester à plusieurs',h('button',{onclick:()=>window.open(link,'_blank')},'Ouvrir une 2ᵉ fenêtre')),
+      h('div',{class:'kv2'},'Connexion',h('span',null,netLabel())),
+      navigator.share&&h('div',{class:'kv2'},'Inviter',h('button',{onclick:()=>navigator.share({title:'Session Studio',text:'Rejoins ma session Studio 🎧',url:link}).catch(()=>{})},'📤 Envoyer le lien')),
       h('div',{class:'kv2'},'Connectés ('+ppl.length+')',h('span',{style:{display:'flex',gap:'6px',flexWrap:'wrap'}},ppl.map(p=>h('span',{class:'chip',style:{background:p.color}},p.name||'?')))),
-      h('div',{class:'kv2'},'Mon nom',h('button',{onclick:()=>{m.remove();askName(()=>{renderPresence();COLLAB.doc&&myLocks().length&&COLLAB.doc.transact(()=>myLocks().forEach(([k,L])=>COLLAB.locks.set(k,Object.assign({},L,{n:ME.name,c:ME.color}))),'lock');send({k:'pres'})})}},ME.name+' ✎')),
+      h('div',{class:'kv2'},'Mon nom',h('button',{onclick:()=>{m.remove();askName(()=>{renderPresence();COLLAB.ldoc&&myLocks().length&&COLLAB.ldoc.transact(()=>myLocks().forEach(([k,L])=>COLLAB.locks.set(k,Object.assign({},L,{n:ME.name,c:ME.color}))),'lock');send({k:'pres'})})}},ME.name+' ✎')),
       h('div',{class:'kv2'},'Mes cadenas',h('span',null,myLocks().length?myLocks().map(([k])=>lockLabel(k)).join(', '):'aucun')),
-      h('p',{style:{color:'var(--dim)',fontSize:'11px'}},'Un cadenas se retire en recliquant dessus, ou tout seul après 2 min sans activité (ou si vous quittez). Personne ne peut forcer le cadenas d’un autre. Ctrl+Z n’annule que vos propres actions. Restent personnels : le solo, l’armement R, le retour micro et la boucle (cycle).'),
+      h('p',{style:{color:'var(--dim)',fontSize:'11px'}},'Seules les personnes qui ont le lien peuvent entrer : ne le publiez pas. Un cadenas se retire en recliquant dessus, ou tout seul après 2 min sans activité (ou si vous quittez). Personne ne peut forcer le cadenas d’un autre. Ctrl+Z n’annule que vos propres actions. Restent personnels : le solo, l’armement R, le retour micro et la boucle (cycle).'),
       h('div',{style:{display:'flex',gap:'8px',marginTop:'10px'}},h('button',{onclick:()=>{m.remove();collabStop()}},'Quitter la session')))};
   draw()}
 function collabBoot(){
   const r=roomFromHash();if(r){const go=()=>collabStart(r,false);ME.name?go():askName(go)}
   addEventListener('hashchange',()=>{const r=roomFromHash();if(r&&r!==COLLAB.room){const go=()=>collabStart(r,false);ME.name?go():askName(go)}});
-  addEventListener('pagehide',()=>{if(COLLAB.on){releaseMyLocks();send({k:'bye'})}})}
+  addEventListener('pagehide',()=>{if(COLLAB.on){releaseMyLocks();netFlushUp();dbSaveOnLeave();send({k:'bye'})}});
+  addEventListener('online',()=>{if(COLLAB.on&&!NET.ws)netConnect()})}
 
 // ---- présence + affichage des cadenas ----
 function renderPresence(){let b=$('#collabBar');
   if(!COLLAB.on){if(b)b.remove();return}
   if(!b){b=h('div',{class:'grp',id:'collabBar'});const ref=$('#bSettings').parentElement;ref.parentElement.insertBefore(b,ref)}
-  b.innerHTML='';const av=h('span',{class:'avs',title:'Session à plusieurs',onclick:collabModal});
+  b.innerHTML='';const av=h('span',{class:'avs',title:'Session à plusieurs',onclick:collabModal},h('span',{class:'net'}));
   for(const p of [ME,...Object.values(COLLAB.peers).map(x=>x.user)])av.append(h('span',{class:'av',title:(p.name||'?')+(p===ME?' (vous)':''),style:{background:p.color}},(p.name||'?').slice(0,1).toUpperCase()));
-  b.append(av,h('button',{class:'tbtn lkproj',title:'Cadenas sur le tempo, la mesure et la tonalité',onclick:()=>toggleLock('proj')},'🔒'));decorateLocks()}
+  b.append(av,h('button',{class:'tbtn lkproj',title:'Cadenas sur le tempo, la mesure et la tonalité',onclick:()=>toggleLock('proj')},'🔒'));renderNetDot();decorateLocks()}
 function lockBtn(k,small){const L=lockOf(k),mine=L&&L.u===ME.id;
   return h('button',{class:'lkb'+(L?(mine?' me':' other'):''),style:L?{'--lkc':L.c}:null,'data-free':'1',
     title:L?(mine?'Verrouillé par vous : cliquer pour libérer':'Verrouillé par '+L.n):'Poser un cadenas (les autres ne pourront plus modifier)',

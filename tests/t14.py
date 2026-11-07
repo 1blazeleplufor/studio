@@ -17,7 +17,7 @@ async def main():
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--autoplay-policy=no-user-gesture-required'])
     c=await b.new_context(viewport={'width':1280,'height':800});errs=[]
-    await c.add_init_script("localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.0');localStorage.setItem('studio_user',JSON.stringify({name:'X',color:'#30d158'}))")
+    await c.add_init_script("localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.0');localStorage.setItem('studio_user',JSON.stringify({name:'X',color:'#30d158'}));localStorage.setItem('studio_supa',JSON.stringify({url:'http://localhost:8790',key:'test'}))")
     pages=[]
     for i in range(3):
       pg=await c.new_page();pg.on('pageerror',lambda e,i=i: errs.append(f'{i}:{e}'));pages.append(pg)

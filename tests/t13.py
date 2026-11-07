@@ -6,6 +6,7 @@ async def main():
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--autoplay-policy=no-user-gesture-required'])
     c=await b.new_context(viewport={'width':1440,'height':880});errs=[]
+    await c.add_init_script("localStorage.setItem('studio_supa',JSON.stringify({url:'http://localhost:8790',key:'test'}))")
     A=await c.new_page();A.on('pageerror',lambda e: errs.append('A:'+str(e)))
     await A.goto(URL);await A.wait_for_timeout(1500);await A.evaluate("document.querySelectorAll('.modal').forEach(m=>m.remove())")
     await A.evaluate("ME.name='Alice';ME.color='#ff453a';collabStart('salle1',true);document.querySelectorAll('.modal').forEach(m=>m.remove())")

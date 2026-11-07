@@ -244,3 +244,5 @@ select,input[type=text],input[type=number]{background:#161618;border:1px solid #
 .tune-bottom{display:flex;gap:18px;align-items:flex-end;justify-content:center;margin-top:8px;padding-top:8px;border-top:1px solid #23383d}
 .tune-bottom .big{display:flex;flex-direction:column;align-items:center}.tune-bottom .hint{font-size:10px;color:#6e8b86}
 @media (max-width:900px){.tune-mid{flex-direction:column}.tune-side{flex-direction:row;flex-wrap:wrap;justify-content:center}.tune-graph{width:100%!important;height:auto!important}}
+#collabBar .net{width:8px;height:8px;border-radius:50%;background:#888;margin-right:5px;flex:none}
+#collabBar .net.ok{background:#30d158}#collabBar .net.connecting{background:#ff9f0a}#collabBar .net.off{background:#ff453a}
