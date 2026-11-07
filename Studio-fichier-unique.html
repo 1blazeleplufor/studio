@@ -297,6 +297,31 @@ body.viewer .head.lk-other,body.viewer .strip.lk-other{box-shadow:none}
 .lib-info{font-size:11px;color:var(--dim);padding:4px 6px 8px;line-height:1.45}
 .lib-ft{padding:6px 10px;border-top:1px solid var(--line);font-size:11px;display:flex;align-items:center;gap:6px}
 @media (max-width:900px){#library{width:100%}}
+/* v3.6 : panneau latéral redimensionnable (gauche/droite), messages vocaux, marqueurs, roue de couleurs, fenêtres détachées */
+#cpanel{top:0;width:var(--cpw,330px)}#cpanel.left{right:auto;left:0;border-left:none;border-right:1px solid #000;box-shadow:8px 0 24px rgba(0,0,0,.4)}
+#cpanel .cgrip{position:absolute;top:0;bottom:0;left:-3px;width:7px;cursor:ew-resize;z-index:2}#cpanel.left .cgrip{left:auto;right:-3px}#cpanel .cgrip:hover{background:rgba(79,163,255,.35)}
+body.cp-open #app{width:calc(100vw - var(--cpw));transition:none}body.cp-open.cp-left #app{margin-left:var(--cpw)}
+@media (max-width:900px){body.cp-open #app{width:100vw;margin-left:0!important}#cpanel{width:min(100vw,var(--cpw,330px))!important}}
+#cpanel .cvoc audio{width:100%;height:32px;margin-top:2px}#cpanel .cvoc .vrow{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:2px}#cpanel .cvoc[draggable=true]{cursor:grab}
+#cpanel .cin.rec{background:#3a1d1d}#cpanel .cin.rec .vtime{color:#ff6b6b;font-weight:700;font-variant-numeric:tabular-nums}#cpanel .cin .send{background:#2b6fd6;color:#fff}
+#lanes .mline{position:absolute;top:0;bottom:0;width:0;border-left:1px solid var(--mc);opacity:.35;z-index:4;pointer-events:none}
+.menu.cpick{padding:10px;min-width:0;width:274px}.cpick .crow{display:flex;align-items:center;gap:6px;margin:8px 0 4px}.cpick .cprev{width:26px;height:26px;border-radius:6px;border:1px solid #555}
+.cpick .ccode{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--dim)}.cpick .clab{font-size:10px;color:var(--dim);text-transform:uppercase;margin:6px 0 3px}
+.cpick .cgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}.cpick .cgrid .swatch{width:auto;height:22px;border-radius:5px;cursor:pointer;border:1px solid rgba(255,255,255,.15)}
+.cpick .cperso{position:relative;display:inline-flex;align-items:center;justify-content:center;width:28px;height:26px;border-radius:6px;background:#3a3a40;cursor:pointer;padding:0}
+.cpick .cperso input{position:absolute;inset:0;opacity:0;cursor:pointer}
+#detBanner{position:fixed;right:12px;bottom:12px;z-index:70;background:#26262a;border:1px solid #3a3a40;border-radius:10px;padding:8px 10px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.pwin .pt .detb{margin-left:auto;margin-right:4px}
+body.detached{margin:0;height:100vh;overflow:hidden;background:var(--bg)}
+body.det-chat #cpanel{position:static;width:100%!important;height:100vh;border:none;box-shadow:none}
+body.detached.det-bottom #bottom{height:100vh!important;border:none}
+body.detached.det-plug .pwin{position:static!important;width:100%;height:100vh;max-height:none;box-shadow:none;border:none;border-radius:0;overflow:auto}
+body:not(.detached).det-bottom #resizer{display:none}
+#cpanel{width:var(--cpw-real,330px)}
+body.cp-open #bTyping,body.cp-open #bMidi{display:none}
+/* panneau latéral ouvert à côté de l'appli : barre du haut plus compacte */
+body.cp-open #bar{gap:4px;padding:0 6px}body.cp-open #lcd .cell.tm,body.cp-open #bCount,body.cp-open #bStart{display:none}
+body.cp-open #scaleSel{max-width:76px}body.cp-open #keySel{max-width:46px}body.cp-open #lcd .cell{padding-left:5px;padding-right:5px}
 </style></head><body>
 <div id="app">
  <div id="bar">
@@ -1403,7 +1428,7 @@ function lanesPointer(){
     document.querySelectorAll('.reg').forEach(x=>x.classList.toggle('sel',SELR.has(x.dataset.r)));
     const [t,r]=findRegion(id);openEditorFor(t,r,false);if(t.type==='audio')renderInspector();
     const mode=e.target.classList.contains('eh')?(e.target.classList.contains('l')?'l':'r'):'move';
-    drag={mode,id,x0:e.clientX,y0:e.clientY,moved:false,alt:e.altKey,orig:[...SELR].map(i=>{const [tt,rr]=findRegion(i);return{t:tt,r:rr,o:deep(rr)}}),track:t};
+    drag={mode,id,x0:e.clientX+$('#lanesWrap').scrollLeft,cx0:e.clientX,y0:e.clientY,moved:false,alt:e.altKey,orig:[...SELR].map(i=>{const [tt,rr]=findRegion(i);return{t:tt,r:rr,o:deep(rr)}}),track:t};
     L.setPointerCapture(e.pointerId);
   });
   L.addEventListener('pointermove',e=>{
@@ -1412,8 +1437,8 @@ function lanesPointer(){
       const ax=Math.min(drag.x0,x1),ay=Math.min(drag.y0,y1),w=Math.abs(x1-drag.x0),hh=Math.abs(y1-drag.y0);Object.assign(bx.style,{left:ax+'px',top:ay+'px',width:w+'px',height:hh+'px'});
       SELR=new Set(drag.base);P.tracks.forEach((t,i)=>{if(i*TH+TH<ay||i*TH>ay+hh)return;for(const r of t.regions){const rx=r.start*PPB,rw=rLen(t,r)*PPB;if(rx+rw>ax&&rx<ax+w)SELR.add(r.id)}});
       document.querySelectorAll('.reg').forEach(x=>x.classList.toggle('sel',SELR.has(x.dataset.r)));return}
-    const dx=(e.clientX-drag.x0)/PPB;
-    if(!drag.moved){if(Math.abs(e.clientX-drag.x0)<3&&Math.abs(e.clientY-drag.y0)<3)return;drag.moved=true;snapshot();
+    const dx=(e.clientX+$('#lanesWrap').scrollLeft-drag.x0)/PPB;
+    if(!drag.moved){if(Math.abs(e.clientX-drag.cx0)<3&&Math.abs(e.clientY-drag.y0)<3)return;drag.moved=true;snapshot();
       if(drag.alt&&drag.mode==='move'){for(const o of drag.orig){const c=deep(o.o);c.id=uid('r');o.t.regions.push(c);}}}
     const prim=drag.orig.find(o=>o.r.id===drag.id)||drag.orig[0];
     if(drag.mode==='move'){const ns=Math.max(0,snapB(prim.o.start+dx)),d=ns-prim.o.start;
@@ -1863,7 +1888,7 @@ function lcd(pos){const b=Math.max(0,pos);const bar=Math.floor(b/P.sig)+1,beat=M
 let lastRecDraw=0;
 function loop(){
   const pos=SCRUB!=null?SCRUB:E.playing?E.pos():PH;updatePlayhead(pos);lcd(pos);
-  if(E.playing&&SCRUB==null){drawRuler();const W=$('#lanesWrap'),x=pos*PPB;if(x>W.scrollLeft+W.clientWidth-40||x<W.scrollLeft)W.scrollLeft=Math.max(0,x-60)}
+  if(E.playing&&SCRUB==null){drawRuler();followPlayhead(pos)}
   document.querySelectorAll('.meter i[data-id]').forEach(i=>{const s=E.strips[i.dataset.id];if(!s)return;const l=meterLevel(s.an),db=l>0?20*Math.log10(l):-80;let v=clamp((db+60)/66*100,0,100);const pv=+i.dataset.v||0;v=Math.max(v,pv-2.5);i.dataset.v=v;i.style.height=v+'%'});
   const im=$('#inMeter');if(im){const p=E.inPeak||0,db=p>0?20*Math.log10(p):-80;im.style.width=clamp((db+60)/60*100,0,100)+'%';im.style.background=db>-3?'#ff3b30':db>-12?'#ffd60a':'#30d158'}
   if(TAB==='steps'&&EDIT){const fr=findRegion(EDIT.r);document.querySelectorAll('.step.cur').forEach(x=>x.classList.remove('cur'));
@@ -1998,7 +2023,7 @@ function initApp(){
 }
 
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='3.5';
+const APP_VERSION='3.6';
 const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
@@ -2132,7 +2157,7 @@ function showChangelog(force){
   let seen='',old=null;try{seen=localStorage.getItem('studio_ver')||'';old=localStorage.getItem('studio_seen')}catch(e){}
   if(!force&&(seen===APP_VERSION||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v3.5</h4><ul><li><b>🔌 Bibliothèque de plugins</b> (touche <kbd>Y</kbd> ou bouton 🔌) : tous les effets de Studio, vos plugins .js et <b>les plugins AU / VST3 installés sur votre ordinateur</b> (Waves, FabFilter, Antares, Valhalla…). Un clic : le plugin s’ajoute sur la piste et sa fenêtre d’origine s’ouvre.</li><li>Nécessite <b>Studio Bridge</b>, un petit programme gratuit à lancer sur l’ordinateur (guide dans la Bibliothèque). Latence compensée, réglages des plugins mémorisés dans le projet, export en temps réel quand ces plugins sont utilisés.</li></ul><h4>v3.4</h4><ul><li><b>🍎 Import depuis Logic Pro</b> : glissez un projet <b>.logicx</b> dans Studio → tous ses sons, le tempo, la tonalité et la mesure sont récupérés, chaque son sur sa piste (prises replacées à leur position quand Logic l’a noté). Glissez aussi des <b>pistes exportées</b> (plusieurs fichiers d’un coup → une piste chacun, calées au début) ou un <b>fichier MIDI</b> (notes → pistes instrument, batterie → patterns).</li><li>Lecture des formats Apple <b>AIFF</b> et <b>CAF</b>. Guide dans ☰ Fichier → Importer depuis Logic Pro.</li></ul><h4>v3.3</h4><ul><li><b>Les prods passent enfin</b> : les sons sont compressés sans perte (FLAC, ~2× plus légers) et découpés en morceaux, donc même une longue prod arrive chez les autres. Une barre en bas à gauche montre l’envoi et la réception.</li><li><b>🎧 Écouter ensemble</b> : ▶ / ■ et la tête de lecture sont partagés, tout le monde entend le même passage au même moment. Bouton 🎧 pour écouter en solo.</li><li><b>💬 Chat</b> en direct (bouton 💬, pastille rouge = messages non lus).</li><li><b>📌 Commentaires sur la timeline</b> : clic droit dans la règle → « Commenter ici », ou onglet 📌 du panneau. Réponses, « résolu ».</li><li><b>🕘 Versions</b> : sauvegardez une version nommée (« avant le mix ») et revenez-y quand vous voulez.</li><li><b>👁 Lien écoute seule</b> : à donner à quelqu’un qui doit écouter, discuter et commenter sans rien modifier.</li><li><b>📋 Mes sessions</b> : toutes vos sessions, à rouvrir sans retrouver le lien (☰ Fichier → Session à plusieurs).</li><li><b>📀 Lien d’écoute MP3</b> (☰ Fichier) : le morceau en MP3 avec un lien à envoyer, qui s’écoute sur téléphone sans l’appli.</li></ul><h4>v3.2</h4><ul><li><b>👥 Session à plusieurs entre appareils</b> : ☰ Fichier → Session à plusieurs → Partager, puis envoyez le lien. Vos amis vous rejoignent depuis leur ordinateur, téléphone ou tablette, où qu’ils soient.</li><li>Le projet de la session est <b>sauvegardé en ligne</b> : rouvrez le même lien plus tard pour continuer, même si tout le monde était parti.</li><li>Les <b>sons enregistrés ou importés</b> sont envoyés automatiquement aux autres.</li><li>Pastille de connexion à côté des participants : 🟢 connecté, 🟠 connexion, 🔴 hors ligne (vos modifications partent au retour de la connexion).</li></ul><h4>v3.1</h4><ul><li><b>Réverb Pro « Ères »</b> (catégorie Espace) : réverb algorithmique vintage, 14 modes (plaque, hall, chambre, chorus, aléatoire, cathédrale, versions sales, gated…), couleurs Années 70 / 80 / Moderne, pré-délai, decay, taille, attaque, diffusion, modulation, EQ, decay par fréquence, 11 préréglages. C’est aussi la nouvelle réverb du Bus Réverb des nouveaux projets.</li><li><b>Pitch Pro</b> (catégorie Voix) : autotune avancé avec graphique de hauteur en direct, type de voix, tracking, éditeur de notes, vitesse de correction, Humanize, Flex-Tune, vibrato naturel, formants + gorge, transposition, désaccord, mode classique, préréglages. Latence compensée automatiquement.</li></ul><h4>v3.0</h4><ul><li><b>👥 Session à plusieurs</b> (☰ Fichier → Session à plusieurs) : plusieurs personnes sur le même projet, chacun voit en direct les modifications des autres et écoute sur son appareil. <i>Version d’essai : entre fenêtres d’un même navigateur ; la connexion entre appareils arrive dans une prochaine version.</i></li><li><b>🔒 Cadenas</b> : en session, cliquez le cadenas d’une piste (en haut à droite de son nom, ou dans le mixeur) pour que personne d’autre ne la modifie. Plusieurs cadenas possibles, aussi sur les bus, la sortie et le tempo/tonalité. Il se retire en recliquant ou tout seul après 2 min sans activité.</li><li>En session, <b>Ctrl+Z n’annule que vos propres actions</b>. Solo, armement R et retour micro restent personnels.</li></ul><h4>v2.4</h4><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
+  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v3.6</h4><ul><li><b>La timeline défile toute seule</b> quand vous glissez une région, la tête de lecture ou une sélection jusqu’au bord. Pendant la lecture, la vue suit en continu (si vous faites défiler à la main, elle vous laisse tranquille jusqu’à la prochaine lecture).</li><li><b>🎨 Roue de couleurs complète</b> (clic sur la couleur d’une piste) + 💧 pipette (couleurs du projet, ou n’importe où à l’écran sur Chrome/Edge) + couleurs récentes.</li><li><b>Préréglages « Style ZZ »</b> (inspecteur d’une piste voix) : mélodie autotune, drill/trap kickée, ad-libs/backs.</li><li><b>📌 Notes et 🏷 marqueurs</b> (Intro, Couplet, Refrain…) aussi quand vous travaillez seul : clic droit dans la règle ou bouton 📌. Les marqueurs se glissent, se renomment, changent de couleur.</li><li><b>🎤 Messages vocaux</b> dans le chat (2 min max) : écoutez-les, puis ➕ ajoutez-les au projet ou glissez-les sur une piste.</li><li><b>Panneau du chat</b> redimensionnable (tirez son bord), à gauche ou à droite (⇆), à côté de l’appli.</li><li><b>⧉ Fenêtres détachables</b> pour un 2ᵉ écran : le chat, le panneau du bas (mixeur, piano roll, batterie) et chaque fenêtre d’effet. Leur place est mémorisée.</li></ul><h4>v3.5</h4><ul><li><b>🔌 Bibliothèque de plugins</b> (touche <kbd>Y</kbd> ou bouton 🔌) : tous les effets de Studio, vos plugins .js et <b>les plugins AU / VST3 installés sur votre ordinateur</b> (Waves, FabFilter, Antares, Valhalla…). Un clic : le plugin s’ajoute sur la piste et sa fenêtre d’origine s’ouvre.</li><li>Nécessite <b>Studio Bridge</b>, un petit programme gratuit à lancer sur l’ordinateur (guide dans la Bibliothèque). Latence compensée, réglages des plugins mémorisés dans le projet, export en temps réel quand ces plugins sont utilisés.</li></ul><h4>v3.4</h4><ul><li><b>🍎 Import depuis Logic Pro</b> : glissez un projet <b>.logicx</b> dans Studio → tous ses sons, le tempo, la tonalité et la mesure sont récupérés, chaque son sur sa piste (prises replacées à leur position quand Logic l’a noté). Glissez aussi des <b>pistes exportées</b> (plusieurs fichiers d’un coup → une piste chacun, calées au début) ou un <b>fichier MIDI</b> (notes → pistes instrument, batterie → patterns).</li><li>Lecture des formats Apple <b>AIFF</b> et <b>CAF</b>. Guide dans ☰ Fichier → Importer depuis Logic Pro.</li></ul><h4>v3.3</h4><ul><li><b>Les prods passent enfin</b> : les sons sont compressés sans perte (FLAC, ~2× plus légers) et découpés en morceaux, donc même une longue prod arrive chez les autres. Une barre en bas à gauche montre l’envoi et la réception.</li><li><b>🎧 Écouter ensemble</b> : ▶ / ■ et la tête de lecture sont partagés, tout le monde entend le même passage au même moment. Bouton 🎧 pour écouter en solo.</li><li><b>💬 Chat</b> en direct (bouton 💬, pastille rouge = messages non lus).</li><li><b>📌 Commentaires sur la timeline</b> : clic droit dans la règle → « Commenter ici », ou onglet 📌 du panneau. Réponses, « résolu ».</li><li><b>🕘 Versions</b> : sauvegardez une version nommée (« avant le mix ») et revenez-y quand vous voulez.</li><li><b>👁 Lien écoute seule</b> : à donner à quelqu’un qui doit écouter, discuter et commenter sans rien modifier.</li><li><b>📋 Mes sessions</b> : toutes vos sessions, à rouvrir sans retrouver le lien (☰ Fichier → Session à plusieurs).</li><li><b>📀 Lien d’écoute MP3</b> (☰ Fichier) : le morceau en MP3 avec un lien à envoyer, qui s’écoute sur téléphone sans l’appli.</li></ul><h4>v3.2</h4><ul><li><b>👥 Session à plusieurs entre appareils</b> : ☰ Fichier → Session à plusieurs → Partager, puis envoyez le lien. Vos amis vous rejoignent depuis leur ordinateur, téléphone ou tablette, où qu’ils soient.</li><li>Le projet de la session est <b>sauvegardé en ligne</b> : rouvrez le même lien plus tard pour continuer, même si tout le monde était parti.</li><li>Les <b>sons enregistrés ou importés</b> sont envoyés automatiquement aux autres.</li><li>Pastille de connexion à côté des participants : 🟢 connecté, 🟠 connexion, 🔴 hors ligne (vos modifications partent au retour de la connexion).</li></ul><h4>v3.1</h4><ul><li><b>Réverb Pro « Ères »</b> (catégorie Espace) : réverb algorithmique vintage, 14 modes (plaque, hall, chambre, chorus, aléatoire, cathédrale, versions sales, gated…), couleurs Années 70 / 80 / Moderne, pré-délai, decay, taille, attaque, diffusion, modulation, EQ, decay par fréquence, 11 préréglages. C’est aussi la nouvelle réverb du Bus Réverb des nouveaux projets.</li><li><b>Pitch Pro</b> (catégorie Voix) : autotune avancé avec graphique de hauteur en direct, type de voix, tracking, éditeur de notes, vitesse de correction, Humanize, Flex-Tune, vibrato naturel, formants + gorge, transposition, désaccord, mode classique, préréglages. Latence compensée automatiquement.</li></ul><h4>v3.0</h4><ul><li><b>👥 Session à plusieurs</b> (☰ Fichier → Session à plusieurs) : plusieurs personnes sur le même projet, chacun voit en direct les modifications des autres et écoute sur son appareil. <i>Version d’essai : entre fenêtres d’un même navigateur ; la connexion entre appareils arrive dans une prochaine version.</i></li><li><b>🔒 Cadenas</b> : en session, cliquez le cadenas d’une piste (en haut à droite de son nom, ou dans le mixeur) pour que personne d’autre ne la modifie. Plusieurs cadenas possibles, aussi sur les bus, la sortie et le tempo/tonalité. Il se retire en recliquant ou tout seul après 2 min sans activité.</li><li>En session, <b>Ctrl+Z n’annule que vos propres actions</b>. Solo, armement R et retour micro restent personnels.</li></ul><h4>v2.4</h4><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
 <li><b>Réglages rapides</b> pour chaque voix : Écho, Réverb, Autotune, Naturel↔Robot, Basses, Clarté, Brillance, Punch, Doublage, Chaleur… de simples curseurs dans l’inspecteur (ⓘ).</li>
 <li><b>20 préréglages voix</b> classés : Base, Autotune (mélodieux, aérien, robot…), Créatif (grave démon, aiguë, lo-fi, stade, écho slap, phaser…), Ad-libs &amp; backs.</li>
 <li><b>5 nouveaux effets</b> : Pitch Shifter, Lo-Fi/Bitcrusher, Robot, Phaser, Trémolo.</li>
@@ -2839,8 +2864,8 @@ async function dbSave(force){
   COLLAB.docChanged=false;
   try{for(const a of dbPuts())await rpc('salle_put',a)}
   catch(e){COLLAB.docChanged=true;console.warn('Session : sauvegarde en ligne impossible',e)}}
-function dbSaveOnLeave(){if(!SUPA.url||!COLLAB.synced||!COLLAB.docChanged||COLLAB.viewer)return;
-  for(const a of dbPuts())if(a.p_doc.length<30000)rpc('salle_put',a,true).catch(()=>{})}
+function dbSaveOnLeave(closing){if(!SUPA.url||!COLLAB.synced||!COLLAB.docChanged||COLLAB.viewer)return;
+  for(const a of dbPuts())if(!closing||a.p_doc.length<30000)rpc('salle_put',a,!!closing).catch(()=>{})} // fenêtre qui se ferme : envoi « keepalive » limité à ~64 Ko
 
 // ---- sons : FLAC sans perte, découpé en morceaux de 40 Mo, avec progression ----
 let PART=40*1024*1024;try{PART=+localStorage.getItem('studio_part')||PART}catch(e){} // (réglable pour les tests)
@@ -2995,7 +3020,7 @@ function collabModal(){
 function collabBoot(){
   const l=linkFromHash();if(l)joinLink(l);
   addEventListener('hashchange',()=>{const l=linkFromHash();if(l&&l.id!==COLLAB.room)joinLink(l)});
-  addEventListener('pagehide',()=>{if(COLLAB.on){releaseMyLocks();netFlushUp();dbSaveOnLeave();send({k:'bye'})}});
+  addEventListener('pagehide',()=>{if(COLLAB.on){releaseMyLocks();netFlushUp();dbSaveOnLeave(true);send({k:'bye'})}});
   addEventListener('online',()=>{if(COLLAB.on&&!NET.ws)netConnect()})}
 
 // ---- présence + affichage des cadenas ----
@@ -3051,12 +3076,12 @@ document.addEventListener('focusout',()=>{if(COLLAB.on)scheduleApply(80)},true);
     const t=a.find(t=>lockedByOther(t.id));if(t){const L=lockedByOther(t.id);toast('🔒 Impossible d’enregistrer sur « '+t.name+' » : verrouillée par '+L.n,4000);return}}
   return o.apply(this,arguments)}}
 
-// ===== v3.3 : écouter ensemble, chat, commentaires sur la timeline, versions, bounce MP3 =====
-// Données partagées (même Y.Doc que le projet, hors de la carte « p ») : chat = Y.Array, cmts = Y.Array<Y.Map>.
+// ===== Session : écouter ensemble, chat (+ messages vocaux), notes et marqueurs, versions, bounce MP3 =====
+// Chat = Y.Array 'chat' du document de session. Notes (P.cmts) et marqueurs (P.marks) sont dans le projet : ils marchent seul et se partagent comme le reste.
 // Les auditeurs (lien écoute seule) envoient chat et commentaires en message « vmsg » ; le relais les ajoute au document.
 const C2={follow:true,clk:{},seenTP:new Set(),tpToast:0,unread:0,open:false,tab:'chat',showDone:false,hi:null,vers:null,applying:false};
 try{C2.follow=localStorage.getItem('studio_follow')!=='0'}catch(e){}
-const CHAT=()=>COLLAB.doc&&COLLAB.doc.getArray('chat'),CMTS=()=>COLLAB.doc&&COLLAB.doc.getArray('cmts');
+const CHAT=()=>COLLAB.doc&&COLLAB.doc.getArray('chat');
 const meUser=()=>({u:ME.id,n:ME.name||'?',c:ME.color});
 const fmtBar=b=>{const s=P?P.sig:4;return'mesure '+(Math.floor(b/s)+1)+(b%s>.01?' · temps '+(Math.floor(b%s)+1):'')};
 const hhmm=t=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
@@ -3092,33 +3117,69 @@ function chatSend(x,extra){x=(x||'').trim().slice(0,1000);if(!x&&!extra)return;i
   const a=CHAT();COLLAB.doc.transact(()=>{a.push([Object.assign({id:uid('m'),t:Date.now(),x},meUser(),extra||{})]);if(a.length>300)a.delete(0,a.length-300)},'chat')}
 COLLAB_H.vmsg=(m,via)=>{if(via!=='v'||!isRelay()||!COLLAB.synced||!m.user)return;const who={u:m.user.id,n:(m.user.name||'?').slice(0,20)+' 👁',c:m.user.color,v:1};
   if(m.kind==='chat'&&m.x){const a=CHAT();COLLAB.doc.transact(()=>{a.push([Object.assign({id:uid('m'),t:Date.now(),x:String(m.x).slice(0,1000)},who)]);if(a.length>300)a.delete(0,a.length-300)},'chat')}
+  if(m.kind==='voc'&&m.voc&&/^[a-z0-9]{12}$/.test(m.voc.f)&&/^(webm|m4a|ogg)$/.test(m.voc.ext)){const a=CHAT();COLLAB.doc.transact(()=>{a.push([Object.assign({id:uid('m'),t:Date.now(),x:'🎤 message vocal',voc:{f:m.voc.f,ext:m.voc.ext,type:String(m.voc.type||''),dur:+m.voc.dur||0}},who)]);if(a.length>300)a.delete(0,a.length-300)},'chat')}
   if(m.kind==='cmt'&&m.x&&typeof m.beat==='number')cmtAdd(m.beat,String(m.x).slice(0,1000),who);
   if(m.kind==='rep'&&m.x&&m.cid)cmtReply(m.cid,String(m.x).slice(0,1000),who)};
 function onChatChange(ev){
   if(ev.transaction.origin==='remote'||ev.transaction.origin==='relay'){const added=[];ev.changes.added.forEach(it=>it.content.getContent().forEach(x=>added.push(x)));
-    const others=added.filter(x=>x&&x.u!==ME.id);if(others.length&&!(C2.open&&C2.tab==='chat')){C2.unread+=others.length;const l=others[others.length-1];toast('💬 '+l.n+' : '+(l.b?'📀 '+l.b.title:l.x).slice(0,80),3500)}}
+    const others=added.filter(x=>x&&x.u!==ME.id);if(others.length&&!(C2.open&&C2.tab==='chat')){C2.unread+=others.length;const l=others[others.length-1];toast('💬 '+l.n+' : '+(l.b?'📀 '+l.b.title:l.voc?'🎤 message vocal':l.x).slice(0,80),3500)}}
   renderBadge();if(C2.open&&C2.tab==='chat')drawPanel()}
 
-// ---------- 📌 Commentaires sur la timeline ----------
-function cmtAdd(beat,x,who){if(!COLLAB.synced)return;if(COLLAB.viewer&&!who)return send({k:'vmsg',kind:'cmt',beat,x});
-  const w=who||meUser(),m=new Y.Map();COLLAB.doc.transact(()=>{m.set('id',uid('c'));m.set('beat',beat);m.set('u',w.u);m.set('n',w.n);m.set('c',w.c);m.set('t',Date.now());m.set('x',x);m.set('done',false);m.set('rep',new Y.Array());CMTS().push([m])},'cmt')}
-const cmtFind=id=>{const a=CMTS();if(!a)return null;for(let i=0;i<a.length;i++)if(a.get(i).get('id')===id)return[a.get(i),i];return null};
-function cmtReply(id,x,who){if(COLLAB.viewer&&!who)return send({k:'vmsg',kind:'rep',cid:id,x});const f=cmtFind(id);if(!f)return;
-  COLLAB.doc.transact(()=>f[0].get('rep').push([Object.assign({t:Date.now(),x},who||meUser())]),'cmt')}
-function cmtSet(id,k,v){const f=cmtFind(id);if(f)COLLAB.doc.transact(()=>f[0].set(k,v),'cmt')}
-function cmtDel(id){const f=cmtFind(id);if(f)COLLAB.doc.transact(()=>CMTS().delete(f[1],1),'cmt')}
-const cmtList=()=>{const a=CMTS();return a?a.toArray().map(m=>m.toJSON()).sort((p,q)=>p.beat-q.beat):[]};
-function onCmtChange(ev,tr){
-  if(tr.origin==='remote'||tr.origin==='relay'){for(const e of ev)if(e.target===CMTS())e.changes.added.forEach(it=>it.content.getContent().forEach(m=>{const j=m.toJSON?m.toJSON():m;
-    if(j.u!==ME.id)toast('📌 '+j.n+' a commenté '+fmtBar(j.beat)+' : '+String(j.x).slice(0,60),3500)}))}
-  renderPins();if(C2.open&&C2.tab==='cmts')drawPanel()}
+// ---------- 📌 Notes sur la timeline (dans le projet : marchent seul et en session) ----------
+// P.cmts = [{id,beat,u,n,c,t,x,done,rep:[{u,n,c,t,x}]}] ; P.marks = [{id,beat,name,color}] (marqueurs de structure)
+const cmtArr=()=>P&&(P.cmts||(P.cmts=[]));
+function cmtChanged(){DIRTY=true;if(COLLAB.on&&COLLAB.synced)collabFlush();renderPins();if(C2.open&&(C2.tab==='cmts'||C2.tab==='marks'))drawPanel()}
+function cmtAdd(beat,x,who){if(COLLAB.on&&COLLAB.viewer&&!who)return send({k:'vmsg',kind:'cmt',beat,x});
+  const w=who||meUser();snapshot();cmtArr().push({id:uid('c'),beat:Math.max(0,beat),u:w.u,n:w.n,c:w.c,t:Date.now(),x,done:false,rep:[]});cmtChanged()}
+const cmtFind=id=>((P&&P.cmts)||[]).find(c=>c.id===id);
+function cmtReply(id,x,who){if(COLLAB.on&&COLLAB.viewer&&!who)return send({k:'vmsg',kind:'rep',cid:id,x});const c=cmtFind(id);if(!c)return;
+  snapshot();(c.rep||(c.rep=[])).push(Object.assign({t:Date.now(),x},who||meUser()));cmtChanged()}
+function cmtSet(id,k,v){const c=cmtFind(id);if(!c)return;snapshot();c[k]=v;cmtChanged()}
+function cmtDel(id){const a=(P&&P.cmts)||[],i=a.findIndex(c=>c.id===id);if(i<0)return;snapshot();a.splice(i,1);cmtChanged()}
+const cmtList=()=>((P&&P.cmts)||[]).slice().sort((p,q)=>p.beat-q.beat);
 function renderPins(){
-  document.querySelectorAll('#lanes .cpin,#lanes .cline').forEach(e=>e.remove());if(!COLLAB.on||!COLLAB.synced)return;const L=$('#lanes');if(!L)return;
-  for(const c of cmtList()){if(c.done&&!C2.showDone)continue;const x=c.beat*PPB;
+  document.querySelectorAll('#lanes .cpin,#lanes .cline').forEach(e=>e.remove());const L=$('#lanes');if(!L||!P)return;
+  const list=cmtList();
+  if(C2.knownC){for(const c of list)if(!C2.knownC.has(c.id)&&c.u!==ME.id&&COLLAB.on)toast('📌 '+c.n+' a commenté '+fmtBar(c.beat)+' : '+String(c.x).slice(0,60),3500)}
+  C2.knownC=new Set(list.map(c=>c.id));
+  for(const c of list){if(c.done&&!C2.showDone)continue;const x=c.beat*PPB;
     L.append(h('div',{class:'cline'+(c.done?' done':''),style:{left:x+'px','--cc':c.c}}),
       h('div',{class:'cpin'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{left:x+'px','--cc':c.c},title:c.n+' ('+fmtBar(c.beat)+') : '+c.x,
-        onpointerdown:e=>e.stopPropagation(),onclick:e=>{e.stopPropagation();C2.hi=c.id;openPanel('cmts')}},'📌 '+(c.n||'?').slice(0,1).toUpperCase()+((c.rep&&c.rep.length)?' '+(c.rep.length+1):'')))}}
+        onpointerdown:e=>e.stopPropagation(),onclick:e=>{e.stopPropagation();C2.hi=c.id;openPanel('cmts')}},'📌 '+(c.n||'?').slice(0,1).toUpperCase()+((c.rep&&c.rep.length)?' '+(c.rep.length+1):'')))}
+  for(const m of (P.marks||[]))L.append(h('div',{class:'mline',style:{left:m.beat*PPB+'px','--mc':m.color}}))}
 function askComment(beat){openPanel('cmts');C2.newAt=beat;drawPanel();setTimeout(()=>{const t=$('#cpanel textarea.newc');if(t)t.focus()},30)}
+
+// ---------- 🎤 Messages vocaux ----------
+const VOC={rec:null,chunks:[],t0:0,timer:null,stream:null,mime:''};
+function vocMime(){for(const m of ['audio/webm;codecs=opus','audio/mp4','audio/ogg;codecs=opus','audio/webm'])if(window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))return m;return''}
+async function vocStart(){
+  if(!window.MediaRecorder)return toast('Ce navigateur ne permet pas d’enregistrer un message vocal');
+  if(!SUPA.url)return toast('Les messages vocaux ont besoin d’internet');
+  try{VOC.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}catch(e){return micError(e)}
+  VOC.mime=vocMime();VOC.chunks=[];VOC.rec=new MediaRecorder(VOC.stream,VOC.mime?{mimeType:VOC.mime,audioBitsPerSecond:64000}:undefined);
+  VOC.rec.ondataavailable=e=>{if(e.data&&e.data.size)VOC.chunks.push(e.data)};VOC.rec.start(250);VOC.t0=Date.now();
+  VOC.timer=setInterval(()=>{const s=Math.floor((Date.now()-VOC.t0)/1000);const t=$('#cpanel .vtime');if(t)t.textContent='● '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' / 2:00';if(s>=120)vocStop(true)},250);drawPanel()}
+function vocStop(sendIt){const r=VOC.rec;if(!r)return;clearInterval(VOC.timer);VOC.rec=null;const dur=(Date.now()-VOC.t0)/1000;
+  r.onstop=async()=>{VOC.stream.getTracks().forEach(t=>t.stop());drawPanel();if(!sendIt||dur<.6)return;
+    const type=(r.mimeType||VOC.mime||'audio/webm').split(';')[0],ext=type.includes('mp4')?'m4a':type.includes('ogg')?'ogg':'webm',blob=new Blob(VOC.chunks,{type}),f=newRoom();
+    const st=$('#cpanel .vtime');if(st)st.textContent='Envoi…';
+    try{await xhrUpload(SUPA.url+'/storage/v1/object/sons/vocaux/'+f+'.'+ext,blob,type,p=>{const s=$('#cpanel .vtime');if(s)s.textContent='Envoi '+Math.round(p*100)+' %'});
+      const voc={f,ext,type,dur:Math.round(dur)};if(COLLAB.viewer)send({k:'vmsg',kind:'voc',voc});else chatSend('🎤 message vocal',{voc})}
+    catch(e){toast('⚠ Message vocal non envoyé : '+e.message,5000)}drawPanel()};r.stop()}
+const vocURL=v=>SUPA.url+'/storage/v1/object/public/sons/vocaux/'+v.f+'.'+v.ext;
+// glisser (ou bouton ➕) un message vocal dans le projet
+async function vocToTrack(v,beat,trackId,label){
+  if(COLLAB.viewer)return lockToast('',VIEW_LOCK);
+  try{toast('⬇ Ajout du vocal au projet…',4000);const ab=await ctx.decodeAudioData(await (await fetch(vocURL(v))).arrayBuffer());
+    let t=trackId&&findTrack(trackId);if(t&&(t.type!=='audio'||isInstru(t)||lockedByOther(t.id)))t=null;
+    snapshot();if(!t){t=newTrack('audio','Vocal'+(label?' '+label:''));t.role='voice';P.tracks.push(t);E.build(P)}
+    const id=addBuffer(ab);t.regions.push({id:uid('r'),start:Math.max(0,beat),offset:0,dur:ab.duration,buf:id,name:'🎤 '+(label||'vocal')});SEL=t.id;renderAll();
+    if(COLLAB.on)collabFlush();toast('🎤 Vocal ajouté sur « '+t.name+' » à '+fmtBar(beat))}
+  catch(e){toast('⚠ Impossible d’ajouter ce vocal : '+e.message,5000)}}
+document.addEventListener('dragover',e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('text/studio-voc')&&e.target.closest&&e.target.closest('#lanes,#heads')){e.preventDefault();e.stopPropagation();e.dataTransfer.dropEffect='copy'}},true);
+document.addEventListener('drop',e=>{if(!e.dataTransfer||![...e.dataTransfer.types].includes('text/studio-voc'))return;e.preventDefault();e.stopPropagation();
+  let d;try{d=JSON.parse(e.dataTransfer.getData('text/studio-voc'))}catch(err){return}const L=$('#lanes').getBoundingClientRect();
+  const beat=e.clientX>L.left?snapB((e.clientX-L.left)/PPB):PH,t=P.tracks[Math.floor((e.clientY-L.top)/TH)];vocToTrack(d.voc,beat,t&&t.id,d.n)},true);
 
 // ---------- 🕘 Versions de la session (table « versions », fonctions version_*) ----------
 async function versionsLoad(){if(!SUPA.url||COLLAB.viewer||!COLLAB.room)return;try{C2.vers=await rpc('version_list',{p_salle:COLLAB.room})}catch(e){C2.vers='err';console.warn(e)}if(C2.open&&C2.tab==='vers')drawPanel()}
@@ -3165,44 +3226,86 @@ function bounceModal(){
   modal([h('h2',null,'📀 Partager un lien d’écoute (MP3)'),h('p',{style:{color:'var(--dim)'}},'Le morceau est mixé, encodé en MP3 puis mis en ligne. Vous obtenez un lien à envoyer : on l’écoute sur téléphone sans ouvrir l’appli.'),
     h('div',{class:'kv2'},'Titre',title),h('div',{class:'kv2'},'Partie',zone),h('div',{class:'kv2'},'Qualité',q),st,bar,go,res])}
 
-// ---------- panneau (chat · commentaires · versions) ----------
-function openPanel(tab){C2.open=true;if(tab)C2.tab=tab;if(C2.tab==='chat'){C2.unread=0;renderBadge()}if(C2.tab==='vers'&&C2.vers==null)versionsLoad();drawPanel()}
-function closePanel(){C2.open=false;const p=$('#cpanel');if(p)p.remove();C2.hi=null;renderPins()}
+// ---------- 🏷 Marqueurs de structure ----------
+const MARK_NAMES=['Intro','Couplet 1','Refrain','Couplet 2','Pont','Couplet 3','Outro'],MARK_COLORS=['#64d2ff','#30d158','#ff9f0a','#bf5af2','#ff453a','#ffd60a','#8e8e93'];
+const markArr=()=>P&&(P.marks||(P.marks=[]));
+function markAdd(beat,name){const a=markArr();snapshot();a.push({id:uid('k'),beat:Math.max(0,beat),name:name||MARK_NAMES[a.length%MARK_NAMES.length],color:MARK_COLORS[a.length%MARK_COLORS.length]});
+  a.sort((p,q)=>p.beat-q.beat);cmtChanged();drawRuler()}
+function markSet(id,k,v,noSnap){const m=markArr().find(m=>m.id===id);if(!m)return;if(!noSnap)snapshot();m[k]=v;if(k==='beat')markArr().sort((p,q)=>p.beat-q.beat);cmtChanged();drawRuler()}
+function markDel(id){const a=markArr(),i=a.findIndex(m=>m.id===id);if(i<0)return;snapshot();a.splice(i,1);cmtChanged();drawRuler()}
+function markMenu(e,m){menu(e,['Marqueur « '+m.name+' »',['✎ Renommer…',()=>{const n=prompt('Nom du marqueur',m.name);if(n)markSet(m.id,'name',n.slice(0,40))}],
+  ['🎨 Couleur…',()=>colorPicker(e,{name:m.name,color:m.color,_set:c=>markSet(m.id,'color',c)})],['▶ Aller ici',()=>setPH(m.beat)],'-',['🗑 Supprimer',()=>markDel(m.id)]])}
+
+// ---------- panneau (chat · notes · marqueurs · versions) — redimensionnable, à gauche ou à droite, détachable ----------
+try{const o=JSON.parse(localStorage.getItem('studio_cpanel')||'{}');C2.w=o.w||330;C2.side=o.side||'right'}catch(e){C2.w=330;C2.side='right'}
+const savePanelPref=()=>{try{localStorage.setItem('studio_cpanel',JSON.stringify({w:C2.w,side:C2.side}))}catch(e){}};
+function panelTabs(){return COLLAB.on?[['chat','💬 Chat'],['cmts','📌 Notes'],['marks','🏷'],!COLLAB.viewer&&['vers','🕘']].filter(Boolean):[['cmts','📌 Notes'],['marks','🏷 Marqueurs']]}
+function openPanel(tab){C2.open=true;if(tab)C2.tab=tab;if(!panelTabs().some(t=>t[0]===C2.tab))C2.tab=panelTabs()[0][0];
+  if(C2.tab==='chat'){C2.unread=0;renderBadge()}if(C2.tab==='vers'&&C2.vers==null)versionsLoad();drawPanel()}
+function closePanel(){if(VOC.rec)vocStop(false);C2.open=false;const p=$('#cpanel');if(p)p.remove();if(typeof detachClose==='function')detachClose('chat');C2.hi=null;layoutPanel();renderPins()}
 function renderBadge(){const b=$('#collabBar .chatb');if(!b)return;const n=C2.unread;b.dataset.n=n>99?'99+':n||'';b.classList.toggle('has',n>0)}
+function layoutPanel(){const det=typeof isDetached==='function'&&isDetached('chat'),on=C2.open&&!!$('#cpanel')&&!det&&innerWidth-C2.w>=1080; // assez de place : l'appli se pousse à côté, sinon le panneau passe par-dessus
+  document.body.classList.toggle('cp-open',on);document.body.classList.toggle('cp-left',on&&C2.side==='left');document.documentElement.style.setProperty('--cpw',(on?C2.w:0)+'px');
+  const p=$('#cpanel');if(p){p.classList.toggle('left',C2.side==='left');p.classList.toggle('det',!!det);if(!det)p.style.width=Math.min(C2.w,innerWidth)+'px'}
+  setTimeout(()=>{try{drawRuler();schedulePaint()}catch(e){}},0)}
+function panelResize(e){if(e.button)return;e.preventDefault();e.stopPropagation();const h0=e.currentTarget;h0.setPointerCapture(e.pointerId);const x0=e.clientX,w0=C2.w;
+  const mv=ev=>{C2.w=Math.round(clamp(w0+(C2.side==='right'?x0-ev.clientX:ev.clientX-x0),240,Math.min(760,innerWidth-320)));layoutPanel()};
+  const up=()=>{h0.removeEventListener('pointermove',mv);h0.removeEventListener('pointerup',up);savePanelPref()};h0.addEventListener('pointermove',mv);h0.addEventListener('pointerup',up)}
 function drawPanel(){
-  if(!C2.open||!COLLAB.on){const p=$('#cpanel');if(p)p.remove();return}
-  let p=$('#cpanel');const keepScroll=p&&p.querySelector('.cbody')&&C2.tab!=='chat'?p.querySelector('.cbody').scrollTop:null;
-  const draft=p&&p.querySelector('.cin input')?p.querySelector('.cin input').value:'';
-  if(!p){p=h('div',{id:'cpanel'});document.body.append(p)}p.innerHTML='';
-  const tabs=[['chat','💬 Chat'],['cmts','📌 Commentaires'],!COLLAB.viewer&&['vers','🕘 Versions']].filter(Boolean);
-  p.append(h('div',{class:'ctabs'},tabs.map(([k,n])=>h('button',{class:C2.tab===k?'on':'',onclick:()=>openPanel(k)},n+(k==='cmts'?' ('+cmtList().filter(c=>!c.done).length+')':''))),h('div',{style:{flex:1}}),h('button',{title:'Fermer',onclick:closePanel},'✕')));
-  const body=h('div',{class:'cbody'});p.append(body);
-  if(!COLLAB.synced){body.append(h('p',{class:'dim'},'Connexion à la session…'));return}
+  if(!C2.open){const p=$('#cpanel');if(p)p.remove();layoutPanel();return}
+  let p=$('#cpanel');const body0=p&&p.querySelector('.cbody');
+  const ae=p&&p.ownerDocument.activeElement;if(p&&ae&&p.contains(ae)&&ae.matches('.cact input,textarea.newc,.cnew input')&&C2.tab!=='chat'){C2.pendingDraw=true;return} // ne pas effacer une réponse en cours
+  C2.pendingDraw=false;const keepScroll=body0&&C2.tab!=='chat'?body0.scrollTop:null,draft=p&&p.querySelector('.cin input')?p.querySelector('.cin input').value:'';
+  if(!p){p=h('div',{id:'cpanel',onfocusout:()=>setTimeout(()=>{if(C2.pendingDraw)drawPanel()},50)});(typeof panelHost==='function'?panelHost():document.body).append(p)}p.innerHTML='';
+  const det=typeof isDetached==='function'&&isDetached('chat');
+  p.append(!det&&h('div',{class:'cgrip',title:'Glisser pour élargir / rétrécir',onpointerdown:panelResize}),
+    h('div',{class:'ctabs'},panelTabs().map(([k,n])=>h('button',{class:C2.tab===k?'on':'',title:{marks:'Marqueurs de structure',vers:'Versions'}[k]||'',onclick:()=>openPanel(k)},n+(k==='cmts'?' ('+cmtList().filter(c=>!c.done).length+')':''))),h('div',{style:{flex:1}}),
+      !det&&h('button',{title:'Mettre le panneau '+(C2.side==='right'?'à gauche':'à droite'),onclick:()=>{C2.side=C2.side==='right'?'left':'right';savePanelPref();layoutPanel()}},'⇆'),
+      !IS_TOUCH&&h('button',{title:det?'Remettre dans la fenêtre principale':'Détacher dans une fenêtre (2ᵉ écran)',onclick:()=>det?detachClose('chat'):detachOpen('chat')},det?'⤓':'⧉'),
+      h('button',{title:'Fermer',onclick:closePanel},'✕')));
+  const body=h('div',{class:'cbody'});p.append(body);layoutPanel();
+  if(COLLAB.on&&!COLLAB.synced){body.append(h('p',{class:'dim'},'Connexion à la session…'));return}
   if(C2.tab==='chat'){
     const a=CHAT().toArray();if(!a.length)body.append(h('p',{class:'dim'},'Aucun message. Dites bonjour 👋'));
-    for(const m of a){const mine=m.u===ME.id;body.append(h('div',{class:'cmsg'+(mine?' me':'')},h('div',{class:'cmeta'},h('b',{style:{color:m.c}},m.n),' ',h('span',null,hhmm(m.t))),
-      m.b?h('div',{class:'ctxt'},m.x+' : ',h('a',{href:bounceLink(m.b.f,m.b.title),target:'_blank',rel:'noopener'},'📀 '+m.b.title+' ('+Math.floor(m.b.dur/60)+':'+String(m.b.dur%60).padStart(2,'0')+')')):h('div',{class:'ctxt'},m.x)))}
+    for(const m of a){const mine=m.u===ME.id;let content;
+      if(m.voc){const au=h('audio',{controls:true,preload:'none',src:vocURL(m.voc)});
+        content=h('div',{class:'ctxt cvoc',draggable:!COLLAB.viewer,ondragstart:e=>{e.dataTransfer.setData('text/studio-voc',JSON.stringify({voc:m.voc,n:m.n}));e.dataTransfer.effectAllowed='copy'}},
+          au,h('div',{class:'vrow'},h('span',{class:'dim'},'🎤 '+Math.floor(m.voc.dur/60)+':'+String(m.voc.dur%60).padStart(2,'0')),
+            !COLLAB.viewer&&h('button',{title:'Ajouter ce vocal au projet (à la tête de lecture). Vous pouvez aussi le glisser sur une piste.',onclick:()=>vocToTrack(m.voc,PH,SEL,m.n)},'➕ Au projet')))}
+      else if(m.b)content=h('div',{class:'ctxt'},m.x+' : ',h('a',{href:bounceLink(m.b.f,m.b.title),target:'_blank',rel:'noopener'},'📀 '+m.b.title+' ('+Math.floor(m.b.dur/60)+':'+String(m.b.dur%60).padStart(2,'0')+')'));
+      else content=h('div',{class:'ctxt'},m.x);
+      body.append(h('div',{class:'cmsg'+(mine?' me':'')},h('div',{class:'cmeta'},h('b',{style:{color:m.c}},m.n),' ',h('span',null,hhmm(m.t))),content))}
     const inp=h('input',{type:'text',placeholder:'Écrire un message…',maxlength:1000,value:draft,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'){chatSend(inp.value);inp.value=''}}});
-    p.append(h('div',{class:'cquick'},['🔥','👍','😂','🎧','💯','🙏'].map(x=>h('button',{onclick:()=>chatSend(x)},x))),h('div',{class:'cin'},inp,h('button',{onclick:()=>{chatSend(inp.value);inp.value='';inp.focus()}},'➤')));
-    setTimeout(()=>{body.scrollTop=body.scrollHeight},0);if(!IS_TOUCH)setTimeout(()=>inp.focus(),0)}
+    const recUI=VOC.rec?h('div',{class:'cin rec'},h('span',{class:'vtime'},'● 0:00 / 2:00'),h('div',{style:{flex:1}}),h('button',{title:'Annuler',onclick:()=>vocStop(false)},'✕'),h('button',{class:'send',onclick:()=>vocStop(true)},'➤ Envoyer'))
+      :h('div',{class:'cin'},h('button',{title:'Message vocal (2 min max)',onclick:vocStart},'🎤'),inp,h('button',{onclick:()=>{chatSend(inp.value);inp.value='';inp.focus()}},'➤'));
+    p.append(h('div',{class:'cquick'},['🔥','👍','😂','🎧','💯','🙏'].map(x=>h('button',{onclick:()=>chatSend(x)},x))),recUI,h('span',{class:'vtime',style:{display:'none'}}));
+    setTimeout(()=>{body.scrollTop=body.scrollHeight},0);if(!IS_TOUCH&&!VOC.rec)setTimeout(()=>inp.focus(),0)}
   else if(C2.tab==='cmts'){
     const at=C2.newAt!=null?C2.newAt:(E.playing?E.pos():PH);
-    const ta=h('textarea',{class:'newc',rows:2,placeholder:'Ex : refais ce couplet ici, drop trop tôt…',onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();add()}}});
-    const add=()=>{const x=ta.value.trim();if(!x)return;cmtAdd(Math.max(0,at),x);C2.newAt=null;ta.value='';toast('📌 Commentaire ajouté '+fmtBar(at))};
-    body.append(h('div',{class:'cnew'},h('div',{class:'dim'},'📌 Nouveau commentaire '+fmtBar(at)+(C2.newAt==null?' (tête de lecture)':'')),ta,h('div',{style:{display:'flex',gap:'6px'}},h('button',{onclick:add},'Ajouter'),
+    const ta=h('textarea',{class:'newc',rows:2,placeholder:'Ex : refais ce couplet ici, drop trop tôt, ad-lib à ajouter…',onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();add()}}});
+    const add=()=>{const x=ta.value.trim();if(!x)return;cmtAdd(Math.max(0,at),x);C2.newAt=null;ta.value='';toast('📌 Note ajoutée '+fmtBar(at))};
+    body.append(h('div',{class:'cnew'},h('div',{class:'dim'},'📌 Nouvelle note '+fmtBar(at)+(C2.newAt==null?' (tête de lecture)':'')),ta,h('div',{style:{display:'flex',gap:'6px'}},h('button',{onclick:add},'Ajouter'),
       C2.newAt!=null&&h('button',{onclick:()=>{C2.newAt=null;drawPanel()}},'Annuler'))),
-      h('label',{class:'dim',style:{display:'flex',gap:'6px',alignItems:'center',margin:'6px 0'}},h('input',{type:'checkbox',checked:C2.showDone,onchange:e=>{C2.showDone=e.target.checked;drawPanel();renderPins()}}),'Afficher les commentaires résolus'),
-      h('p',{class:'dim',style:{fontSize:'11px'}},'Astuce : clic droit (ou appui long) dans la règle pour commenter à un endroit précis.'));
-    const list=cmtList().filter(c=>C2.showDone||!c.done);if(!list.length)body.append(h('p',{class:'dim'},'Aucun commentaire.'));
-    for(const c of list){const rep=h('input',{type:'text',placeholder:'Répondre…',maxlength:1000,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'&&rep.value.trim()){cmtReply(c.id,rep.value.trim());rep.value=''}}});
+      h('label',{class:'dim',style:{display:'flex',gap:'6px',alignItems:'center',margin:'6px 0'}},h('input',{type:'checkbox',checked:C2.showDone,onchange:e=>{C2.showDone=e.target.checked;drawPanel();renderPins()}}),'Afficher les notes résolues'),
+      h('p',{class:'dim',style:{fontSize:'11px'}},'Astuce : clic droit (ou appui long) dans la règle pour noter à un endroit précis. Les notes sont enregistrées avec le projet'+(COLLAB.on?' et partagées avec la session.':'.')));
+    const list=cmtList().filter(c=>C2.showDone||!c.done);if(!list.length)body.append(h('p',{class:'dim'},'Aucune note.'));
+    for(const c of list){const rep=h('input',{type:'text',placeholder:'Répondre…',maxlength:1000,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'&&rep.value.trim()){const v=rep.value.trim();rep.value='';rep.blur();cmtReply(c.id,v)}}});
       const canMod=!COLLAB.viewer;
       body.append(h('div',{class:'ccmt'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{'--cc':c.c}},
         h('div',{class:'cmeta'},h('a',{href:'#',onclick:e=>{e.preventDefault();C2.hi=c.id;setPH(c.beat);renderPins();drawPanel()}},'▶ '+fmtBar(c.beat)),' · ',h('b',{style:{color:c.c}},c.n),' ',h('span',null,hhmm(c.t))),
         h('div',{class:'ctxt'},c.x),(c.rep||[]).map(r=>h('div',{class:'crep'},h('b',{style:{color:r.c}},r.n),' ',r.x)),
-        h('div',{class:'cact'},rep,canMod&&h('button',{title:c.done?'Rouvrir':'Marquer comme résolu',onclick:()=>cmtSet(c.id,'done',!c.done)},c.done?'↺':'✔'),
-          canMod&&(c.u===ME.id)&&h('button',{title:'Supprimer',onclick:e=>{if(e.target.dataset.sure){cmtDel(c.id)}else{e.target.dataset.sure=1;e.target.textContent='Sûr ?'}}},'🗑'))))}
+        h('div',{class:'cact'},rep,canMod&&h('button',{title:c.done?'Rouvrir':'Marquer comme résolue',onclick:()=>cmtSet(c.id,'done',!c.done)},c.done?'↺':'✔'),
+          canMod&&(c.u===ME.id||!COLLAB.on)&&h('button',{title:'Supprimer',onclick:e=>{if(e.target.dataset.sure){cmtDel(c.id)}else{e.target.dataset.sure=1;e.target.textContent='Sûr ?'}}},'🗑'))))}
     if(keepScroll!=null)body.scrollTop=keepScroll;
     if(C2.hi){const el=body.querySelector('.ccmt.hi');if(el)setTimeout(()=>el.scrollIntoView({block:'nearest'}),0)}}
+  else if(C2.tab==='marks'){
+    const canMod=!COLLAB.viewer,at=E.playing?E.pos():PH;
+    body.append(h('div',{class:'cnew'},h('div',{class:'dim'},'Les marqueurs découpent le morceau (Intro, Couplet, Refrain…). Ils s’affichent dans la règle : clic = y aller, clic droit = renommer / couleur / supprimer, glisser = déplacer.'),
+      canMod&&h('div',{style:{display:'flex',gap:'4px',flexWrap:'wrap',marginTop:'6px'}},MARK_NAMES.map(n=>h('button',{onclick:()=>markAdd(snapB(at,P.sig),n)},'+ '+n)))));
+    const ms=P.marks||[];if(!ms.length)body.append(h('p',{class:'dim'},'Aucun marqueur. Ajoutez-en à la tête de lecture ('+fmtBar(snapB(at,P.sig))+').'));
+    for(const m of ms)body.append(h('div',{class:'ccmt',style:{'--cc':m.color}},h('div',{class:'cmeta'},h('a',{href:'#',onclick:e=>{e.preventDefault();setPH(m.beat)}},'▶ '+fmtBar(m.beat)),' · ',h('b',{style:{color:m.color}},m.name)),
+      canMod&&h('div',{class:'cact'},h('input',{type:'text',value:m.name,maxlength:40,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter')e.target.blur()},onchange:e=>markSet(m.id,'name',e.target.value.slice(0,40)||m.name)}),
+        h('button',{title:'Couleur',onclick:e=>colorPicker(e,{name:m.name,color:m.color,_set:c=>markSet(m.id,'color',c)})},'🎨'),h('button',{title:'Supprimer',onclick:()=>markDel(m.id)},'🗑'))))}
   else if(C2.tab==='vers'){
     const nom=h('input',{type:'text',placeholder:'Nom (ex : avant le mix)',maxlength:80,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter')save()}});
     const save=async()=>{sv.disabled=true;await versionSave(nom.value);nom.value='';sv.disabled=false};const sv=h('button',{onclick:save},'💾 Sauvegarder');
@@ -3214,18 +3317,180 @@ function drawPanel(){
         h('button',{title:'Supprimer cette version',onclick:async e=>{if(!e.target.dataset.sure){e.target.dataset.sure=1;e.target.textContent='Sûr ?';return}try{await rpc('version_del',{p_salle:COLLAB.room,p_id:v.id})}catch(err){toast('⚠ '+err.message)}versionsLoad()}},'🗑'))))}}
 
 // ---------- branchements ----------
-COLLAB_H.start=doc=>{C2.unread=0;C2.vers=null;C2.hi=null;C2.newAt=null;C2.clk={};
-  doc.getArray('chat').observe(onChatChange);doc.getArray('cmts').observeDeep(onCmtChange)};
-COLLAB_H.synced=()=>{renderPins();if(C2.open)drawPanel();COLLAB.timers.push(setInterval(()=>send({k:'ping',t0:Date.now()}),5000));setTimeout(()=>send({k:'ping',t0:Date.now()}),300)};
-COLLAB_H.stop=()=>{closePanel();renderPins()};
+COLLAB_H.start=doc=>{C2.unread=0;C2.vers=null;C2.hi=null;C2.newAt=null;C2.clk={};doc.getArray('chat').observe(onChatChange)};
+COLLAB_H.synced=()=>{
+  // v3.3 → v3.4+ : les commentaires étaient dans le document de session ; on les range dans le projet (une seule personne le fait)
+  const old=COLLAB.doc.getArray('cmts');if(old.length&&!COLLAB.viewer&&editorIds()[0]===ME.id){const have=new Set(cmtArr().map(c=>c.id)),add=old.toArray().map(m=>m.toJSON?m.toJSON():m).filter(c=>c&&c.id&&!have.has(c.id));
+    if(add.length){P.cmts.push(...add);collabFlush()}COLLAB.doc.transact(()=>old.delete(0,old.length),'cmt')}
+  renderPins();if(C2.open)drawPanel();COLLAB.timers.push(setInterval(()=>send({k:'ping',t0:Date.now()}),5000));setTimeout(()=>send({k:'ping',t0:Date.now()}),300)};
+COLLAB_H.stop=()=>{C2.knownC=null;if(C2.open)openPanel();renderPins()};
 COLLAB_H.joined=u=>{if(COLLAB.synced)toast('👋 '+(u.name||'Quelqu’un')+(u.role==='v'?' écoute la session (écoute seule)':' a rejoint la session'),2500);setTimeout(()=>send({k:'ping',t0:Date.now()}),200)};
 COLLAB_H.left=u=>{delete C2.clk[u.id]};
 COLLAB_H.bar=b=>{
   b.append(h('button',{class:'tbtn ens'+(C2.follow?' on':''),title:C2.follow?'🎧 Écouter ensemble : activé (▶ / ■ partagés). Cliquer pour écouter en solo.':'🎧 Écoute en solo. Cliquer pour écouter ensemble.',onclick:toggleFollow},'🎧'),
-    h('button',{class:'tbtn chatb',title:'Chat, commentaires et versions',onclick:()=>C2.open?closePanel():openPanel()},'💬'));renderBadge()};
-{const o=renderLanes;renderLanes=function(){const r=o.apply(this,arguments);if(COLLAB.on)renderPins();return r}}
-document.addEventListener('contextmenu',e=>{if(!COLLAB.on||!COLLAB.synced||!e.target.closest||!e.target.closest('#ruler'))return;e.preventDefault();e.stopPropagation();
-  const R=$('#ruler').getBoundingClientRect(),b=Math.max(0,snapB((e.clientX-R.left+$('#lanesWrap').scrollLeft)/PPB,1));
-  menu(e,['Commentaire',['📌 Commenter ici ('+fmtBar(b)+')',()=>askComment(b)],['💬 Ouvrir le chat',()=>openPanel('chat')]])},true);
+    h('button',{class:'tbtn chatb',title:'Chat, notes, marqueurs et versions',onclick:()=>C2.open?closePanel():openPanel(C2.tab==='cmts'&&!C2.unread?'cmts':'chat')},'💬'));renderBadge()};
+{const o=renderLanes;renderLanes=function(){const r=o.apply(this,arguments);renderPins();return r}}
+{const o=afterLoad;afterLoad=function(){const r=o.apply(this,arguments);C2.knownC=null;renderPins();if(C2.open)drawPanel();try{drawRuler()}catch(e){}return r}}
+
+// ===== v3.6 : défilement automatique, roue de couleurs + pipette, préréglages ZZ, marqueurs, fenêtres détachables =====
+
+// ---------- défilement automatique quand on glisse vers le bord ----------
+const AS={on:false,armed:false,sc:null,tgt:null,x:0,y:0,x0:0,y0:0,pid:0,mods:{},raf:0,active:false};
+document.addEventListener('pointerdown',e=>{
+  if(e.button||!e.target.closest)return;const z=e.target.closest('#lanesWrap,#ruler,#prScroll');if(!z)return;
+  if(e.pointerType!=='mouse'&&!e.target.closest('.reg,#playhead,#ruler,#prCanvas'))return; // au doigt, le fond défile déjà nativement
+  if(e.target===z&&z.id==='lanesWrap')return; // clic dans la barre de défilement
+  Object.assign(AS,{on:true,armed:false,sc:z.id==='ruler'?$('#lanesWrap'):z,tgt:e.target,x:e.clientX,y:e.clientY,x0:e.clientX,y0:e.clientY,pid:e.pointerId,vert:z.id!=='ruler'&&e.target.id!=='playhead'})},true);
+document.addEventListener('pointermove',e=>{if(!AS.on||!e.isTrusted)return;AS.x=e.clientX;AS.y=e.clientY;AS.mods={shiftKey:e.shiftKey,altKey:e.altKey,ctrlKey:e.ctrlKey,metaKey:e.metaKey};
+  if(!AS.armed&&Math.hypot(AS.x-AS.x0,AS.y-AS.y0)>4)AS.armed=true;if(AS.armed&&!AS.raf)AS.raf=requestAnimationFrame(asTick)},true);
+for(const ev of ['pointerup','pointercancel'])document.addEventListener(ev,()=>{AS.on=false;AS.active=false},true);
+function asTick(){AS.raf=0;if(!AS.on||!AS.armed||!AS.sc||!AS.sc.isConnected)return;
+  const r=AS.sc.getBoundingClientRect(),E_=40,sp=d=>Math.ceil(Math.min(1,d/E_)**2*28);let vx=0,vy=0;
+  if(AS.x<r.left+E_)vx=-sp(r.left+E_-AS.x);else if(AS.x>r.right-E_)vx=sp(AS.x-(r.right-E_));
+  if(AS.vert){if(AS.y<r.top+E_)vy=-sp(r.top+E_-AS.y);else if(AS.y>r.bottom-E_)vy=sp(AS.y-(r.bottom-E_))}
+  const sl=AS.sc.scrollLeft,st=AS.sc.scrollTop;if(vx)AS.sc.scrollLeft=Math.max(0,sl+vx);if(vy)AS.sc.scrollTop=Math.max(0,st+vy);
+  if(AS.sc.scrollLeft!==sl||AS.sc.scrollTop!==st){AS.active=true;
+    if(AS.sc.id==='lanesWrap'&&AS.sc.scrollLeft+AS.sc.clientWidth>=AS.sc.scrollWidth-4&&vx>0){const L=$('#lanes');L.style.width=(L.offsetWidth+400)+'px'} // la timeline s'allonge si besoin
+    const t=AS.tgt&&AS.tgt.isConnected?AS.tgt:(AS.sc.id==='lanesWrap'?$('#lanes'):AS.sc.firstElementChild);
+    try{t.dispatchEvent(new PointerEvent('pointermove',Object.assign({bubbles:true,cancelable:true,composed:true,clientX:AS.x,clientY:AS.y,pointerId:AS.pid,pointerType:'mouse',buttons:1},AS.mods)))}catch(err){}}
+  AS.raf=requestAnimationFrame(asTick)}
+
+// ---------- pendant la lecture : la vue suit la tête de lecture en continu ----------
+const FOL={user:false,auto:-1};
+function followPlayhead(pos){const W=$('#lanesWrap');if(!W)return;const x=pos*PPB,vw=W.clientWidth;
+  if(FOL.user)return; // vous avez fait défiler à la main : on vous laisse tranquille jusqu'à la prochaine lecture
+  if(x<W.scrollLeft||x>W.scrollLeft+vw)W.scrollLeft=Math.max(0,x-vw*.25);else if(x>W.scrollLeft+vw*.45)W.scrollLeft=x-vw*.45;FOL.auto=W.scrollLeft}
+{const o=Engine.prototype.play;Engine.prototype.play=function(){if(this.live)FOL.user=false;return o.apply(this,arguments)}}
+addEventListener('resize',()=>{if(typeof layoutPanel==='function'&&C2.open)layoutPanel()});
+addEventListener('load',()=>{const W=$('#lanesWrap');if(!W)return;
+  W.addEventListener('wheel',e=>{if(E&&E.playing&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&(Math.abs(e.deltaX)>Math.abs(e.deltaY)||e.shiftKey))FOL.user=true},{passive:true});
+  W.addEventListener('pointerdown',e=>{if(E&&E.playing&&(e.target===W||e.pointerType!=='mouse'))FOL.user=true});
+  const t=$('#arrtools');if(t&&!$('#bNotes'))t.append(h('button',{id:'bNotes',title:'Notes et marqueurs sur la timeline',onclick:()=>C2.open&&C2.tab==='cmts'?closePanel():openPanel('cmts')},'📌'));
+  const bt=$('#btabs');if(bt&&!IS_TOUCH)bt.append(h('button',{id:'bDetBottom',title:'Détacher le panneau (mixeur, piano roll, batterie) dans une fenêtre : 2ᵉ écran',style:{marginLeft:'auto'},onclick:()=>isDetached('bottom')?detachClose('bottom'):detachOpen('bottom')},'⧉'));
+  setTimeout(restoreBanner,1500)});
+
+// ---------- 🎨 roue de couleurs complète + pipette ----------
+const RECENT_COLORS=()=>{try{return JSON.parse(localStorage.getItem('studio_colors')||'[]')}catch(e){return[]}};
+function hsl2hex(hh,s,l){s/=100;l/=100;const k=n=>(n+hh/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
+  return'#'+[f(0),f(8),f(4)].map(x=>Math.round(x*255).toString(16).padStart(2,'0')).join('')}
+const WHEEL={sect:36,rings:[[95,28],[92,38],[90,48],[85,58],[78,68],[70,78],[60,87]]}; // [saturation, luminosité] de l'extérieur vers l'intérieur
+function wheelColor(i,j){const [s,l]=WHEEL.rings[j];return hsl2hex(i*360/WHEEL.sect,s,l)}
+colorPicker=function(e,t){
+  closeMenu();const doc=(e&&e.target&&e.target.ownerDocument)||document,win=doc.defaultView||window;
+  const set=c=>{c=String(c).toLowerCase();try{const r=RECENT_COLORS().filter(x=>x!==c);r.unshift(c);localStorage.setItem('studio_colors',JSON.stringify(r.slice(0,12)))}catch(err){}
+    if(t._set)return t._set(c);snapshot();t.color=c;renderAll()};
+  const S=250,dp=win.devicePixelRatio||1,cv=h('canvas',{width:S*dp,height:S*dp,style:{width:S+'px',height:S+'px',cursor:'crosshair',display:'block',margin:'0 auto'}});
+  const prev=h('div',{class:'cprev',style:{background:t.color}}),code=h('span',{class:'ccode'},String(t.color||''));
+  const g=cv.getContext('2d');g.scale(dp,dp);const R=S/2,r0=R*.2,rw=(R-2-r0)/WHEEL.rings.length,da=2*Math.PI/WHEEL.sect;
+  for(let j=0;j<WHEEL.rings.length;j++)for(let i=0;i<WHEEL.sect;i++){const ro=R-2-j*rw,ri=ro-rw+1.2,a0=-Math.PI/2+i*da-da/2+.012,a1=a0+da-.024;
+    g.beginPath();g.arc(R,R,ro,a0,a1);g.arc(R,R,ri,a1,a0,true);g.closePath();g.fillStyle=wheelColor(i,j);g.fill()}
+  g.fillStyle='#fff';g.beginPath();g.arc(R,R,r0-3,0,7);g.fill();
+  const pick=ev=>{const b=cv.getBoundingClientRect(),x=ev.clientX-b.left-R,y=ev.clientY-b.top-R,d=Math.hypot(x,y);if(d<r0-3)return'#ffffff';if(d>R-2)return null;
+    const j=Math.min(WHEEL.rings.length-1,Math.floor((R-2-d)/rw)),i=((Math.round((Math.atan2(y,x)+Math.PI/2)/da)%WHEEL.sect)+WHEEL.sect)%WHEEL.sect;return wheelColor(i,j)};
+  cv.addEventListener('pointermove',ev=>{const c=pick(ev);if(c){prev.style.background=c;code.textContent=c}});
+  cv.addEventListener('click',ev=>{const c=pick(ev);if(c){closeMenu();set(c)}});
+  const sw=(c,tip)=>h('div',{class:'swatch',title:tip||c,style:{background:c},onclick:()=>{closeMenu();set(c)}});
+  const grays=['#ffffff','#d1d1d6','#aeaeb2','#8e8e93','#636366','#48484a','#2c2c2e','#000000'];
+  const used=[...new Set([...(P.tracks||[]).map(x=>x.color),...(P.marks||[]).map(x=>x.color)].filter(c=>c&&c!==t.color))];
+  const m=h('div',{class:'menu cpick',id:'menu'},h('div',{class:'hd',style:{padding:'0 0 6px'}},'Couleur de « '+(t.name||'')+' »'),cv,
+    h('div',{class:'crow'},prev,code,h('div',{style:{flex:1}}),
+      win.EyeDropper&&h('button',{title:'Pipette : prendre une couleur n’importe où à l’écran',onclick:async()=>{try{const r=await new win.EyeDropper().open();closeMenu();set(r.sRGBHex)}catch(err){}}},'💧 Pipette'),
+      h('label',{class:'cperso',title:'Couleur personnalisée'},'＋',h('input',{type:'color',value:/^#[0-9a-f]{6}$/i.test(t.color)?t.color:'#4a8cff',onchange:ev=>{closeMenu();set(ev.target.value)}}))),
+    h('div',{class:'clab'},'Gris'),h('div',{class:'cgrid'},grays.map(c=>sw(c))),
+    used.length>0&&h('div',{class:'clab'},'💧 Couleurs du projet (pipette)'),used.length>0&&h('div',{class:'cgrid'},used.map(c=>sw(c,'Couleur déjà utilisée : '+c))),
+    RECENT_COLORS().length>0&&h('div',{class:'clab'},'Récentes'),RECENT_COLORS().length>0&&h('div',{class:'cgrid'},RECENT_COLORS().map(c=>sw(c))));
+  doc.body.append(m);const r=m.getBoundingClientRect();m.style.left=Math.max(6,Math.min((e&&e.clientX)||100,win.innerWidth-r.width-6))+'px';m.style.top=Math.max(6,Math.min(((e&&e.clientY)||100)+6,win.innerHeight-r.height-6))+'px';
+  setTimeout(()=>{doc.addEventListener('pointerdown',closeMenuOut,true);document.addEventListener('pointerdown',closeMenuOut,true)},0)};
+
+// ---------- 🎤 préréglages « style ZZ » (voix mélodique et voix drill/trap) ----------
+Object.assign(VOCAL_PRESETS,{
+ 'ZZ — mélodie (autotune)':{cat:'Style ZZ',sends:[-12,-15],pl:[['gate',{thr:-55}],['tunepro',{input:2,retune:10,humanize:20,flex:15,formant:1,mix:100}],['eq',{hp:100,m1F:300,m1G:-3,m2F:3500,m2G:3,hiF:11000,hiG:3.5}],['comp',{thr:-24,ratio:5,att:4,rel:90,gain:6}],['deess',{}],['chorus',{mix:14,depth:25}],['width',{w:130}]]},
+ 'ZZ — drill / trap (kickée)':{cat:'Style ZZ',sends:[-24,-18],pl:[['gate',{thr:-50}],['tunepro',{input:2,retune:35,humanize:45,formant:1,mix:100}],['eq',{hp:120,m1F:400,m1G:-3.5,m2F:3000,m2G:4,hiF:10000,hiG:2}],['comp',{thr:-28,ratio:8,att:2,rel:60,gain:8}],['sat',{drive:22,type:1,mix:35,out:-2}],['deess',{}]]},
+ 'ZZ — ad-libs / backs':{cat:'Style ZZ',sends:[-9,-12],pl:[['tunepro',{input:2,retune:5,humanize:10,formant:1,mix:100}],['eq',{hp:200,m1F:400,m1G:-3,hiG:3}],['comp',{thr:-24,ratio:5,gain:5}],['chorus',{mix:40,depth:50}],['width',{w:170,haas:10}]]}});
+
+// ---------- 🏷 marqueurs dans la règle + menu clic droit (notes, marqueurs) ----------
+let MHITS=[];
+{const o=drawRuler;drawRuler=function(){const r=o.apply(this,arguments);try{drawMarks()}catch(e){}return r}}
+function drawMarks(){MHITS=[];const ms=P&&P.marks;if(!ms||!ms.length)return;const cv=$('#rulerCv'),R=$('#ruler');if(!cv||!R)return;
+  const dp=window.devicePixelRatio||1,g=cv.getContext('2d'),sl=$('#lanesWrap').scrollLeft,w=R.clientWidth;g.setTransform(dp,0,0,dp,0,0);g.font='600 10px -apple-system,Segoe UI,Roboto,sans-serif';
+  for(const m of ms){const x=m.beat*PPB-sl,tw=g.measureText(m.name).width+10;if(x+tw<0||x>w)continue;
+    g.fillStyle=m.color||'#888';g.fillRect(x,14,tw,13);g.fillRect(x,12,2,16);
+    const c=(m.color||'#888').replace('#',''),lum=c.length===6?(parseInt(c.slice(0,2),16)*.3+parseInt(c.slice(2,4),16)*.59+parseInt(c.slice(4,6),16)*.11):0;
+    g.fillStyle=lum>150?'#111':'#fff';g.fillText(m.name,x+5,24);MHITS.push({m,x0:x,x1:x+tw})}}
+const markAt=e=>{const R=$('#ruler').getBoundingClientRect(),y=e.clientY-R.top,x=e.clientX-R.left;if(y<12)return null;const hit=MHITS.filter(k=>x>=k.x0-2&&x<=k.x1).pop();return hit&&hit.m};
+let MDRAG=null;
+document.addEventListener('pointerdown',e=>{if(e.button||!e.target.closest||!e.target.closest('#ruler'))return;const m=markAt(e);if(!m)return;
+  e.stopPropagation();e.preventDefault();MDRAG={m,x0:e.clientX,b0:m.beat,moved:false}},true);
+document.addEventListener('pointermove',e=>{if(!MDRAG)return;const dx=e.clientX-MDRAG.x0;if(!MDRAG.moved&&Math.abs(dx)<4)return;
+  if(!MDRAG.moved){MDRAG.moved=true;if(COLLAB.viewer)return;snapshot()}if(COLLAB.viewer)return;MDRAG.m.beat=Math.max(0,snapB(MDRAG.b0+dx/PPB,P.settings.snap||.25));drawRuler();renderPins()},true);
+document.addEventListener('pointerup',()=>{if(!MDRAG)return;const d=MDRAG;MDRAG=null;if(!d.moved)setPH(d.m.beat);else if(!COLLAB.viewer){P.marks.sort((a,b)=>a.beat-b.beat);cmtChanged()}},true);
+document.addEventListener('contextmenu',e=>{if(!e.target.closest||!e.target.closest('#ruler'))return;e.preventDefault();e.stopPropagation();
+  const m=markAt(e);if(m&&!COLLAB.viewer)return markMenu(e,m);
+  const R=$('#ruler').getBoundingClientRect(),b=Math.max(0,snapB((e.clientX-R.left+$('#lanesWrap').scrollLeft)/PPB,1)),bm=snapB(b,P.sig);
+  menu(e,['Timeline',['📌 Ajouter une note ici ('+fmtBar(b)+')',()=>askComment(b)],!COLLAB.viewer&&['🏷 Ajouter un marqueur ici ('+fmtBar(bm)+')',()=>markAdd(bm)],
+    COLLAB.on&&['💬 Ouvrir le chat',()=>openPanel('chat')],['📋 Voir toutes les notes et marqueurs',()=>openPanel('cmts')]].filter(Boolean))},true);
+
+// ---------- ⧉ fenêtres détachables (2ᵉ écran) ----------
+const DET={w:{},unloading:false},_qs=Document.prototype.querySelector,_qsa=Document.prototype.querySelectorAll,_gid=Document.prototype.getElementById;
+const popDocs=()=>{const out=[];for(const k in DET.w){const d=DET.w[k];try{if(d.win&&!d.win.closed)out.push(d.win.document)}catch(e){}}return out};
+// les fonctions existantes cherchent leurs éléments dans « document » : on cherche aussi dans les fenêtres détachées
+document.querySelector=function(s){const r=_qs.call(this,s);if(r)return r;for(const d of popDocs()){const x=_qs.call(d,s);if(x)return x}return null};
+document.querySelectorAll=function(s){const a=Array.from(_qsa.call(this,s));for(const d of popDocs())a.push(..._qsa.call(d,s));return a};
+document.getElementById=function(i){const r=_gid.call(this,i);if(r)return r;for(const d of popDocs()){const x=_gid.call(d,i);if(x)return x}return null};
+const isDetached=k=>{const d=DET.w[k];return!!(d&&d.win&&!d.win.closed)};
+function panelHost(){return isDetached('chat')?DET.w.chat.win.document.body:document.body}
+const LAY=()=>{try{return JSON.parse(localStorage.getItem('studio_layout')||'{}')}catch(e){return{}}};
+function laySet(k,o){const l=LAY();l[k]=Object.assign(l[k]||{},o);try{localStorage.setItem('studio_layout',JSON.stringify(l))}catch(e){}}
+function laySave(kind){const d=DET.w[kind];if(!d)return;try{const w=d.win;if(w.closed)return;laySet(d.lk,{x:w.screenX,y:w.screenY,w:w.outerWidth,h:w.outerHeight})}catch(e){}}
+const DET_TITLES={chat:'Chat · notes',bottom:'Mixeur · Piano Roll · Batterie',plug:'Effet'};
+function detachOpen(kind,el){
+  if(IS_TOUCH||isSmall())return toast('Les fenêtres détachables sont disponibles sur ordinateur');
+  if(isDetached(kind)){DET.w[kind].win.focus();return}
+  const lk=kind.startsWith('plug:')?'plug':kind,L=LAY()[lk]||{},def={chat:[400,720],bottom:[1180,460],plug:[620,520]}[lk];
+  const W=L.w||def[0],H=L.h||def[1],X=L.x!=null?L.x:screenX+80,Y=L.y!=null?L.y:screenY+80;
+  const win=window.open('','studio_'+kind.replace(/\W/g,'_'),'popup=yes,width='+W+',height='+H+',left='+X+',top='+Y);
+  if(!win)return toast('Le navigateur a bloqué la fenêtre : autorisez les fenêtres pop-up pour ce site, puis réessayez.',6000);
+  const title=kind.startsWith('plug:')?((el&&el.querySelector('.pt b')||{}).textContent||'Effet'):DET_TITLES[kind];
+  const d=win.document;d.open();d.write('<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>'+title.replace(/</g,'')+' — Studio</title></head><body class="detached det-'+lk+'"></body></html>');d.close();
+  for(const st of _qsa.call(document,'style'))d.head.append(st.cloneNode(true));
+  const ic=d.createElement('link');ic.rel='icon';ic.href=new URL('icon-192.png',location.href).href;d.head.append(ic);
+  if(kind==='chat'){if(!C2.open)openPanel();el=_gid.call(document,'cpanel')}
+  else if(kind==='bottom'){if(!TAB){TAB='mixer'}_gid.call(document,'bottom').classList.add('open');el=_gid.call(document,'bottom')}
+  if(!el){win.close();return}
+  // les boutons écrits avec onclick="…" dans le HTML s'exécuteraient dans la nouvelle fenêtre : on les rattache à la fenêtre principale
+  for(const x of [el,..._qsa.call(el.ownerDocument,'[onclick]')].filter(x=>x.getAttribute&&x.getAttribute('onclick')&&el.contains(x))){const code=x.getAttribute('onclick');x.removeAttribute('onclick');const fn=new Function('event',code);x.addEventListener('click',ev=>fn.call(x,ev))}
+  const home={parent:el.parentNode,next:el.nextSibling};d.body.append(el);DET.w[kind]={win,el,home,lk};
+  win.addEventListener('keydown',e=>{if(e.target&&e.target.closest&&e.target.closest('#cpanel'))return;onKey(e)});win.addEventListener('keyup',onKeyUp);
+  win.addEventListener('pointerdown',()=>{try{ctx.resume()}catch(e){}},true);
+  win.addEventListener('pagehide',()=>{laySave(kind);setTimeout(()=>detachReturn(kind),0)});win.addEventListener('resize',()=>laySave(kind));
+  laySet(lk==='plug'?'plugx':lk,{open:lk==='plug'?0:1});document.body.classList.add('det-'+lk);
+  if(kind==='chat'){C2.open=true;drawPanel();layoutPanel()}else if(kind==='bottom'){renderBottom();updDetBtn()}else el.style.left=el.style.top='';
+  try{drawRuler();schedulePaint()}catch(e){}toast('⧉ Fenêtre détachée : déplacez-la sur votre 2ᵉ écran. Fermez-la pour la remettre ici.',4500)}
+function detachReturn(kind){const d=DET.w[kind];if(!d)return;delete DET.w[kind];const el=d.el;
+  if(!DET.unloading)laySet(d.lk,{open:0});document.body.classList.toggle('det-'+d.lk,Object.values(DET.w).some(x=>x.lk===d.lk));
+  if(kind==='chat'){el.remove();if(C2.open)drawPanel();layoutPanel()}
+  else if(kind==='bottom'){try{d.home.parent.insertBefore(el,d.home.next&&d.home.next.parentNode===d.home.parent?d.home.next:null)}catch(e){_gid.call(document,'app').append(el)}renderBottom();updDetBtn()}
+  else{el.remove();for(const k in WINS)if(WINS[k].el===el)delete WINS[k]}
+  try{drawRuler();schedulePaint()}catch(e){}}
+function detachClose(kind){const d=DET.w[kind];if(!d)return;laySave(kind);try{d.win.close()}catch(e){}detachReturn(kind)}
+function updDetBtn(){const b=$('#bDetBottom');if(b){const on=isDetached('bottom');b.textContent=on?'⤓':'⧉';b.title=on?'Remettre le panneau dans la fenêtre principale':'Détacher le panneau (mixeur, piano roll, batterie) dans une fenêtre : 2ᵉ écran'}}
+setInterval(()=>{for(const k in DET.w){const d=DET.w[k];let gone=false;try{gone=d.win.closed||!d.el.isConnected||d.el.ownerDocument!==d.win.document}catch(e){gone=true}
+  if(gone){if(!d.win.closed)try{d.win.close()}catch(e){}detachReturn(k)}else laySave(k)}},1500);
+addEventListener('pagehide',()=>{DET.unloading=true;for(const k in DET.w)try{DET.w[k].win.close()}catch(e){}});
+// panneau du bas détaché : il reste ouvert, les onglets changent juste de contenu
+{const o=setTab;setTab=function(tab){if(isDetached('bottom')){if(tab===TAB&&tab)return detachClose('bottom');TAB=tab;$('#bottom').classList.add('open');renderBottom();return}return o.apply(this,arguments)}}
+// fenêtres d'effets : bouton ⧉ dans la barre de titre
+{const o=makeWin;makeWin=function(key,title){const w=o.apply(this,arguments);try{const el=WINS[key]&&WINS[key].el,pt=el&&el.querySelector('.pt');
+    if(pt&&!IS_TOUCH&&!isSmall()&&!pt.querySelector('.detb')){const b=h('button',{class:'detb',title:'Détacher dans une fenêtre (2ᵉ écran)',onclick:()=>isDetached('plug:'+key)?detachClose('plug:'+key):detachOpen('plug:'+key,el)},'⧉');pt.insertBefore(b,pt.lastChild)}}catch(e){}return w}}
+// menus ouverts depuis une fenêtre détachée : ils s'affichent dans cette fenêtre
+{const o=menu;menu=function(e,items){o(e,items);const doc=e&&e.target&&e.target.ownerDocument;if(!doc||doc===document)return;const m=_gid.call(document,'menu');if(!m)return;
+  doc.body.append(m);const w=doc.defaultView,r=m.getBoundingClientRect();m.style.left=Math.min(e.clientX,w.innerWidth-r.width-6)+'px';m.style.top=Math.min(e.clientY,w.innerHeight-r.height-6)+'px';
+  setTimeout(()=>doc.addEventListener('pointerdown',closeMenuOut,true),0)}}
+// disposition mémorisée : proposer de rouvrir les fenêtres qui étaient détachées (un clic = autorisé par le navigateur)
+function restoreBanner(){if(IS_TOUCH||isSmall())return;const l=LAY(),ks=['chat','bottom'].filter(k=>l[k]&&l[k].open);if(!ks.length)return;
+  const b=h('div',{id:'detBanner'},h('span',null,'⧉ Rouvrir vos fenêtres détachées :'),ks.map(k=>h('button',{onclick:e=>{e.target.remove();detachOpen(k);if(!b.querySelector('button.k'))b.remove()},class:'k'},k==='chat'?'💬 Chat':'🎚 Mixeur')),
+    window.getScreenDetails&&h('button',{title:'Permet de rouvrir les fenêtres directement sur le 2ᵉ écran',onclick:async()=>{try{await window.getScreenDetails();toast('2ᵉ écran autorisé ✔')}catch(e){toast('Autorisation refusée')}}},'🖥 Autoriser le 2ᵉ écran'),
+    h('button',{title:'Ne plus proposer',onclick:()=>{ks.forEach(k=>laySet(k,{open:0}));b.remove()}},'✕'));
+  document.body.append(b);setTimeout(()=>{if(b.isConnected)b.remove()},30000)}
 </script>
 </body></html>

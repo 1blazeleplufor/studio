@@ -14,7 +14,7 @@ async def main():
     b=await p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--autoplay-policy=no-user-gesture-required']);errs=[]
     ca,A=await device(b,'Alice','#ff453a',errs);cb,B=await device(b,'Bob','#30d158',errs)
     await A.goto(URL);await A.wait_for_timeout(1500);await A.evaluate("collabStart(newRoom(),true)");await A.wait_for_timeout(800)
-    room=await A.evaluate("COLLAB.room");print('salle',room,'longueur',len(room),'connexion A',await A.evaluate("NET.state"),'salle en base',mock('/__stats')['dbPost']>0)
+    room=await A.evaluate("COLLAB.room");print('salle',room,'longueur',len(room),'connexion A',await A.evaluate("NET.state"),'salle en base',mock('/__stats').get('rpc_salle_put',0)>0)
     await B.goto(URL+'#room='+room);await B.wait_for_timeout(3500)
     view="JSON.stringify(sharedView(P))";same=lambda: asyncio.gather(A.evaluate(view),B.evaluate(view))
     a,bb=await same();print('B a rejoint via le serveur',a==bb,await B.evaluate("[COLLAB.synced,NET.state,!!COLLAB.ch]"),'présence',await A.evaluate("Object.values(COLLAB.peers).map(p=>p.user.name)"),await B.evaluate("Object.values(COLLAB.peers).map(p=>p.user.name)"))
@@ -41,6 +41,6 @@ async def main():
     # tout le monde part, puis Chloé arrive plus tard : le projet vient de la base
     await A.evaluate("collabStop(true)");await B.close();await cb.close();await A.wait_for_timeout(800)
     final=a;cc,C=await device(b,'Chloé','#0a84ff',errs);await C.goto(URL+'#room='+room);await C.wait_for_timeout(4000)
-    cv=await C.evaluate(view);print('Chloé seule, plus tard : projet retrouvé',json.loads(cv)==json.loads(final),'cadenas fantômes',await C.evaluate("COLLAB.locks.size"),'son',await C.evaluate(f"!!BUFS['{bid}']"))
+    cv=await C.evaluate(view);fa,fc=json.loads(final),json.loads(cv);print('DIFF',[k for k in set(fa)|set(fc) if fa.get(k)!=fc.get(k)],[ (fa.get(k),fc.get(k)) for k in ['cmts','marks'] ]);print('Chloé seule, plus tard : projet retrouvé',fc==fa,'cadenas fantômes',await C.evaluate("COLLAB.locks.size"),'son',await C.evaluate(f"!!BUFS['{bid}']"))
     print('stats',mock('/__stats'));print('ERR',errs);await b.close()
 asyncio.run(main())

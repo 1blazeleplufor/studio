@@ -292,3 +292,28 @@ body.viewer .head.lk-other,body.viewer .strip.lk-other{box-shadow:none}
 .lib-info{font-size:11px;color:var(--dim);padding:4px 6px 8px;line-height:1.45}
 .lib-ft{padding:6px 10px;border-top:1px solid var(--line);font-size:11px;display:flex;align-items:center;gap:6px}
 @media (max-width:900px){#library{width:100%}}
+/* v3.6 : panneau latéral redimensionnable (gauche/droite), messages vocaux, marqueurs, roue de couleurs, fenêtres détachées */
+#cpanel{top:0;width:var(--cpw,330px)}#cpanel.left{right:auto;left:0;border-left:none;border-right:1px solid #000;box-shadow:8px 0 24px rgba(0,0,0,.4)}
+#cpanel .cgrip{position:absolute;top:0;bottom:0;left:-3px;width:7px;cursor:ew-resize;z-index:2}#cpanel.left .cgrip{left:auto;right:-3px}#cpanel .cgrip:hover{background:rgba(79,163,255,.35)}
+body.cp-open #app{width:calc(100vw - var(--cpw));transition:none}body.cp-open.cp-left #app{margin-left:var(--cpw)}
+@media (max-width:900px){body.cp-open #app{width:100vw;margin-left:0!important}#cpanel{width:min(100vw,var(--cpw,330px))!important}}
+#cpanel .cvoc audio{width:100%;height:32px;margin-top:2px}#cpanel .cvoc .vrow{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:2px}#cpanel .cvoc[draggable=true]{cursor:grab}
+#cpanel .cin.rec{background:#3a1d1d}#cpanel .cin.rec .vtime{color:#ff6b6b;font-weight:700;font-variant-numeric:tabular-nums}#cpanel .cin .send{background:#2b6fd6;color:#fff}
+#lanes .mline{position:absolute;top:0;bottom:0;width:0;border-left:1px solid var(--mc);opacity:.35;z-index:4;pointer-events:none}
+.menu.cpick{padding:10px;min-width:0;width:274px}.cpick .crow{display:flex;align-items:center;gap:6px;margin:8px 0 4px}.cpick .cprev{width:26px;height:26px;border-radius:6px;border:1px solid #555}
+.cpick .ccode{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--dim)}.cpick .clab{font-size:10px;color:var(--dim);text-transform:uppercase;margin:6px 0 3px}
+.cpick .cgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}.cpick .cgrid .swatch{width:auto;height:22px;border-radius:5px;cursor:pointer;border:1px solid rgba(255,255,255,.15)}
+.cpick .cperso{position:relative;display:inline-flex;align-items:center;justify-content:center;width:28px;height:26px;border-radius:6px;background:#3a3a40;cursor:pointer;padding:0}
+.cpick .cperso input{position:absolute;inset:0;opacity:0;cursor:pointer}
+#detBanner{position:fixed;right:12px;bottom:12px;z-index:70;background:#26262a;border:1px solid #3a3a40;border-radius:10px;padding:8px 10px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.pwin .pt .detb{margin-left:auto;margin-right:4px}
+body.detached{margin:0;height:100vh;overflow:hidden;background:var(--bg)}
+body.det-chat #cpanel{position:static;width:100%!important;height:100vh;border:none;box-shadow:none}
+body.detached.det-bottom #bottom{height:100vh!important;border:none}
+body.detached.det-plug .pwin{position:static!important;width:100%;height:100vh;max-height:none;box-shadow:none;border:none;border-radius:0;overflow:auto}
+body:not(.detached).det-bottom #resizer{display:none}
+#cpanel{width:var(--cpw-real,330px)}
+body.cp-open #bTyping,body.cp-open #bMidi{display:none}
+/* panneau latéral ouvert à côté de l'appli : barre du haut plus compacte */
+body.cp-open #bar{gap:4px;padding:0 6px}body.cp-open #lcd .cell.tm,body.cp-open #bCount,body.cp-open #bStart{display:none}
+body.cp-open #scaleSel{max-width:76px}body.cp-open #keySel{max-width:46px}body.cp-open #lcd .cell{padding-left:5px;padding-right:5px}

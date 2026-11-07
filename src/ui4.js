@@ -128,7 +128,7 @@ function lcd(pos){const b=Math.max(0,pos);const bar=Math.floor(b/P.sig)+1,beat=M
 let lastRecDraw=0;
 function loop(){
   const pos=SCRUB!=null?SCRUB:E.playing?E.pos():PH;updatePlayhead(pos);lcd(pos);
-  if(E.playing&&SCRUB==null){drawRuler();const W=$('#lanesWrap'),x=pos*PPB;if(x>W.scrollLeft+W.clientWidth-40||x<W.scrollLeft)W.scrollLeft=Math.max(0,x-60)}
+  if(E.playing&&SCRUB==null){drawRuler();followPlayhead(pos)}
   document.querySelectorAll('.meter i[data-id]').forEach(i=>{const s=E.strips[i.dataset.id];if(!s)return;const l=meterLevel(s.an),db=l>0?20*Math.log10(l):-80;let v=clamp((db+60)/66*100,0,100);const pv=+i.dataset.v||0;v=Math.max(v,pv-2.5);i.dataset.v=v;i.style.height=v+'%'});
   const im=$('#inMeter');if(im){const p=E.inPeak||0,db=p>0?20*Math.log10(p):-80;im.style.width=clamp((db+60)/60*100,0,100)+'%';im.style.background=db>-3?'#ff3b30':db>-12?'#ffd60a':'#30d158'}
   if(TAB==='steps'&&EDIT){const fr=findRegion(EDIT.r);document.querySelectorAll('.step.cur').forEach(x=>x.classList.remove('cur'));

@@ -1,4 +1,4 @@
-# Studio — Passation technique (v3.3)
+# Studio — Passation technique (v3.6)
 
 > Document de reprise pour continuer à développer **Studio** (DAW dans le navigateur, interface inspirée de Logic Pro)
 > et préparer le mode **multijoueur / édition collaborative en direct**.
@@ -12,7 +12,7 @@
 |---|---|
 | **Appli en ligne** | https://1blazeleplufor.github.io/studio/ |
 | **Dépôt** | `github.com/1blazeleplufor/studio` (public, GitHub Pages sur `main`, dossier racine) |
-| **Version** | 3.5 (`APP_VERSION` dans `src/ui6.js`) |
+| **Version** | 3.6 (`APP_VERSION` dans `src/ui6.js`) |
 | **Utilisateur** | Francophone, débutant en MAO mais à l’aise avec les logiciels, fait du rap/trap (références : Timar, Leto, Djadja & Dinaz, Bouss). Travaille surtout sur **Mac**, veut aussi téléphone/tablette/Windows/Android. |
 | **Langue de l’UI** | Français partout. |
 | **Stack** | HTML/CSS/JS **vanilla** (aucun framework, aucune dépendance npm), Web Audio API + AudioWorklet, PWA (manifest + service worker), IndexedDB. |
@@ -42,6 +42,7 @@
   ui1.js … ui7.js       interface (voir §5)
   collab.js             session à plusieurs : pont P ↔ Yjs, cadenas, présence, transport Supabase, sons, écoute seule
   collab2.js            v3.3 : écouter ensemble, chat, commentaires timeline, versions, bounce MP3
+  ui10.js               v3.6 : défilement auto, suivi en lecture, roue de couleurs + pipette, préréglages ZZ, marqueurs dans la règle, fenêtres détachables
   flac.js               v3.3 : encodeur FLAC 16 bits (sans perte) pour l’envoi des sons
   ecoute.html           page publique d’écoute d’un bounce MP3 (copiée à la racine)
   vendor/lame.min.js    lamejs (LGPL-3.0), encodeur MP3, copié à la racine et chargé à la demande
@@ -218,6 +219,18 @@ Implémentation (différente du « refactor store » prévu ci-dessous, pour ne 
 
 Tests : `tests/t17.py` (avec `LIMIT=400000 node tests/mock_supabase.js 8790`, morceaux de 300 Ko via `localStorage.studio_part`).
 
+
+### ✅ Fait en v3.6 (`ui10.js` + `collab2.js`)
+- **Défilement automatique** : écouteurs en phase de capture sur `#lanesWrap`, `#ruler`, `#prScroll` ; près d’un bord (40 px) une boucle `requestAnimationFrame` fait défiler puis renvoie un `pointermove` synthétique à la cible, pour que les gestionnaires de glisser existants recalculent. `lanesPointer` (ui2) calcule maintenant le déplacement en coordonnées du contenu (`clientX + scrollLeft`).
+- **Suivi en lecture** : `followPlayhead()` (appelé par `loop` d’ui4) garde la tête vers 45 % de la largeur ; molette horizontale ou barre de défilement pendant la lecture → `FOL.user` (plus de suivi jusqu’au prochain `Engine.play`).
+- **Couleurs** : `colorPicker` remplacé (roue 36 teintes × 7 anneaux HSL sur canvas, gris, couleurs du projet, récentes `localStorage.studio_colors`, `EyeDropper` si dispo). `t._set(c)` permet de l’utiliser pour autre chose qu’une piste (marqueurs).
+- **Style ZZ** (catégorie de `VOCAL_PRESETS`) : faits d’après la description de l’utilisateur (« une voix mélodie et une voix plus drill trap ») et les chaînes vocales courantes du rap FR actuel, pas d’après une analyse de ses morceaux. Pitch Pro « voix grave », retune 10 ms / 35 ms, EQ, comp, etc.
+- **Notes** : déplacées du document de session vers le projet `P.cmts` (migration automatique de l’ancien `Y.Array('cmts')`) → marchent seul, sont annulables, sauvegardées, exportées. **Marqueurs** `P.marks=[{id,beat,name,color}]` dessinés dans la règle (`drawMarks`, zones `MHITS`) : clic = aller, glisser = déplacer, clic droit = menu.
+- **Messages vocaux** : `MediaRecorder` (webm/opus ou mp4 selon navigateur), 2 min max, `sons/vocaux/<12 car.>.<ext>`, entrée de chat `{voc:{f,ext,type,dur}}`. « ➕ Au projet » ou glisser-déposer (`text/studio-voc`) → `vocToTrack` (décodage, nouveau buffer, partagé ensuite en FLAC comme les autres sons).
+- **Panneau** : largeur/côté dans `localStorage.studio_cpanel`. Si `innerWidth − largeur ≥ 1080`, l’appli se pousse à côté (`body.cp-open`, `--cpw`, barre du haut compacte), sinon le panneau passe par-dessus.
+- **Fenêtres détachées** : `window.open('')` même origine ; on y copie les `<style>` et on y **déplace** l’élément (`#cpanel`, `#bottom`, `.pwin`) — les écouteurs suivent. `document.querySelector/All/getElementById` sont étendus pour chercher aussi dans ces fenêtres (le code existant continue de marcher, vumètres compris). Les `onclick="…"` du HTML sont rattachés à la fenêtre principale. Retour automatique à la fermeture (`pagehide` + vérification toutes les 1,5 s). Position/taille dans `localStorage.studio_layout` ; au démarrage, bandeau « Rouvrir vos fenêtres détachées » (un clic par fenêtre, le navigateur bloque l’ouverture automatique) + bouton « Autoriser le 2ᵉ écran » (`getScreenDetails`).
+- Tests : `tests/t18.py`.
+
 ### Prochaines étapes
 - v3.4 : curseurs/sélections des autres, notifications, plugins externes partagés avec confirmation, appel vocal (WebRTC + TURN).
 - v3.4 : comptes, droits (lecture seule / édition), liste des salles, RLS stricte.
@@ -263,6 +276,7 @@ python3 tests/t13.py               # v3.0 : session à 2 fenêtres, cadenas, und
 python3 tests/t14.py               # v3.0 : arrivées simultanées, actions aléatoires, rechargement
 node tests/mock_supabase.js 8790   # faux Supabase (module ws requis : npm i ws, ou WS_MODULE=chemin)
 python3 tests/t16.py               # v3.2 : 2 appareils via le serveur, sons, coupure réseau, salle retrouvée
+python3 tests/t18.py               # v3.6 : défilement auto, couleurs, ZZ, marqueurs, notes, vocaux, panneau, fenêtres détachées
 python3 tests/t17.py               # v3.3 : FLAC découpé, écouter ensemble, chat, commentaires, versions, écoute seule, bounce MP3
 ```
 (Les chemins `/home/claude/...` et le chemin de Chrome dans les scripts sont à adapter à la machine.)

@@ -131,7 +131,7 @@ function lanesPointer(){
     document.querySelectorAll('.reg').forEach(x=>x.classList.toggle('sel',SELR.has(x.dataset.r)));
     const [t,r]=findRegion(id);openEditorFor(t,r,false);if(t.type==='audio')renderInspector();
     const mode=e.target.classList.contains('eh')?(e.target.classList.contains('l')?'l':'r'):'move';
-    drag={mode,id,x0:e.clientX,y0:e.clientY,moved:false,alt:e.altKey,orig:[...SELR].map(i=>{const [tt,rr]=findRegion(i);return{t:tt,r:rr,o:deep(rr)}}),track:t};
+    drag={mode,id,x0:e.clientX+$('#lanesWrap').scrollLeft,cx0:e.clientX,y0:e.clientY,moved:false,alt:e.altKey,orig:[...SELR].map(i=>{const [tt,rr]=findRegion(i);return{t:tt,r:rr,o:deep(rr)}}),track:t};
     L.setPointerCapture(e.pointerId);
   });
   L.addEventListener('pointermove',e=>{
@@ -140,8 +140,8 @@ function lanesPointer(){
       const ax=Math.min(drag.x0,x1),ay=Math.min(drag.y0,y1),w=Math.abs(x1-drag.x0),hh=Math.abs(y1-drag.y0);Object.assign(bx.style,{left:ax+'px',top:ay+'px',width:w+'px',height:hh+'px'});
       SELR=new Set(drag.base);P.tracks.forEach((t,i)=>{if(i*TH+TH<ay||i*TH>ay+hh)return;for(const r of t.regions){const rx=r.start*PPB,rw=rLen(t,r)*PPB;if(rx+rw>ax&&rx<ax+w)SELR.add(r.id)}});
       document.querySelectorAll('.reg').forEach(x=>x.classList.toggle('sel',SELR.has(x.dataset.r)));return}
-    const dx=(e.clientX-drag.x0)/PPB;
-    if(!drag.moved){if(Math.abs(e.clientX-drag.x0)<3&&Math.abs(e.clientY-drag.y0)<3)return;drag.moved=true;snapshot();
+    const dx=(e.clientX+$('#lanesWrap').scrollLeft-drag.x0)/PPB;
+    if(!drag.moved){if(Math.abs(e.clientX-drag.cx0)<3&&Math.abs(e.clientY-drag.y0)<3)return;drag.moved=true;snapshot();
       if(drag.alt&&drag.mode==='move'){for(const o of drag.orig){const c=deep(o.o);c.id=uid('r');o.t.regions.push(c);}}}
     const prim=drag.orig.find(o=>o.r.id===drag.id)||drag.orig[0];
     if(drag.mode==='move'){const ns=Math.max(0,snapB(prim.o.start+dx)),d=ns-prim.o.start;

@@ -281,8 +281,8 @@ async function dbSave(force){
   COLLAB.docChanged=false;
   try{for(const a of dbPuts())await rpc('salle_put',a)}
   catch(e){COLLAB.docChanged=true;console.warn('Session : sauvegarde en ligne impossible',e)}}
-function dbSaveOnLeave(){if(!SUPA.url||!COLLAB.synced||!COLLAB.docChanged||COLLAB.viewer)return;
-  for(const a of dbPuts())if(a.p_doc.length<30000)rpc('salle_put',a,true).catch(()=>{})}
+function dbSaveOnLeave(closing){if(!SUPA.url||!COLLAB.synced||!COLLAB.docChanged||COLLAB.viewer)return;
+  for(const a of dbPuts())if(!closing||a.p_doc.length<30000)rpc('salle_put',a,!!closing).catch(()=>{})} // fenêtre qui se ferme : envoi « keepalive » limité à ~64 Ko
 
 // ---- sons : FLAC sans perte, découpé en morceaux de 40 Mo, avec progression ----
 let PART=40*1024*1024;try{PART=+localStorage.getItem('studio_part')||PART}catch(e){} // (réglable pour les tests)
@@ -437,7 +437,7 @@ function collabModal(){
 function collabBoot(){
   const l=linkFromHash();if(l)joinLink(l);
   addEventListener('hashchange',()=>{const l=linkFromHash();if(l&&l.id!==COLLAB.room)joinLink(l)});
-  addEventListener('pagehide',()=>{if(COLLAB.on){releaseMyLocks();netFlushUp();dbSaveOnLeave();send({k:'bye'})}});
+  addEventListener('pagehide',()=>{if(COLLAB.on){releaseMyLocks();netFlushUp();dbSaveOnLeave(true);send({k:'bye'})}});
   addEventListener('online',()=>{if(COLLAB.on&&!NET.ws)netConnect()})}
 
 // ---- présence + affichage des cadenas ----

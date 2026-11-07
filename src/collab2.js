@@ -1,9 +1,9 @@
-// ===== v3.3 : écouter ensemble, chat, commentaires sur la timeline, versions, bounce MP3 =====
-// Données partagées (même Y.Doc que le projet, hors de la carte « p ») : chat = Y.Array, cmts = Y.Array<Y.Map>.
+// ===== Session : écouter ensemble, chat (+ messages vocaux), notes et marqueurs, versions, bounce MP3 =====
+// Chat = Y.Array 'chat' du document de session. Notes (P.cmts) et marqueurs (P.marks) sont dans le projet : ils marchent seul et se partagent comme le reste.
 // Les auditeurs (lien écoute seule) envoient chat et commentaires en message « vmsg » ; le relais les ajoute au document.
 const C2={follow:true,clk:{},seenTP:new Set(),tpToast:0,unread:0,open:false,tab:'chat',showDone:false,hi:null,vers:null,applying:false};
 try{C2.follow=localStorage.getItem('studio_follow')!=='0'}catch(e){}
-const CHAT=()=>COLLAB.doc&&COLLAB.doc.getArray('chat'),CMTS=()=>COLLAB.doc&&COLLAB.doc.getArray('cmts');
+const CHAT=()=>COLLAB.doc&&COLLAB.doc.getArray('chat');
 const meUser=()=>({u:ME.id,n:ME.name||'?',c:ME.color});
 const fmtBar=b=>{const s=P?P.sig:4;return'mesure '+(Math.floor(b/s)+1)+(b%s>.01?' · temps '+(Math.floor(b%s)+1):'')};
 const hhmm=t=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
@@ -39,33 +39,69 @@ function chatSend(x,extra){x=(x||'').trim().slice(0,1000);if(!x&&!extra)return;i
   const a=CHAT();COLLAB.doc.transact(()=>{a.push([Object.assign({id:uid('m'),t:Date.now(),x},meUser(),extra||{})]);if(a.length>300)a.delete(0,a.length-300)},'chat')}
 COLLAB_H.vmsg=(m,via)=>{if(via!=='v'||!isRelay()||!COLLAB.synced||!m.user)return;const who={u:m.user.id,n:(m.user.name||'?').slice(0,20)+' 👁',c:m.user.color,v:1};
   if(m.kind==='chat'&&m.x){const a=CHAT();COLLAB.doc.transact(()=>{a.push([Object.assign({id:uid('m'),t:Date.now(),x:String(m.x).slice(0,1000)},who)]);if(a.length>300)a.delete(0,a.length-300)},'chat')}
+  if(m.kind==='voc'&&m.voc&&/^[a-z0-9]{12}$/.test(m.voc.f)&&/^(webm|m4a|ogg)$/.test(m.voc.ext)){const a=CHAT();COLLAB.doc.transact(()=>{a.push([Object.assign({id:uid('m'),t:Date.now(),x:'🎤 message vocal',voc:{f:m.voc.f,ext:m.voc.ext,type:String(m.voc.type||''),dur:+m.voc.dur||0}},who)]);if(a.length>300)a.delete(0,a.length-300)},'chat')}
   if(m.kind==='cmt'&&m.x&&typeof m.beat==='number')cmtAdd(m.beat,String(m.x).slice(0,1000),who);
   if(m.kind==='rep'&&m.x&&m.cid)cmtReply(m.cid,String(m.x).slice(0,1000),who)};
 function onChatChange(ev){
   if(ev.transaction.origin==='remote'||ev.transaction.origin==='relay'){const added=[];ev.changes.added.forEach(it=>it.content.getContent().forEach(x=>added.push(x)));
-    const others=added.filter(x=>x&&x.u!==ME.id);if(others.length&&!(C2.open&&C2.tab==='chat')){C2.unread+=others.length;const l=others[others.length-1];toast('💬 '+l.n+' : '+(l.b?'📀 '+l.b.title:l.x).slice(0,80),3500)}}
+    const others=added.filter(x=>x&&x.u!==ME.id);if(others.length&&!(C2.open&&C2.tab==='chat')){C2.unread+=others.length;const l=others[others.length-1];toast('💬 '+l.n+' : '+(l.b?'📀 '+l.b.title:l.voc?'🎤 message vocal':l.x).slice(0,80),3500)}}
   renderBadge();if(C2.open&&C2.tab==='chat')drawPanel()}
 
-// ---------- 📌 Commentaires sur la timeline ----------
-function cmtAdd(beat,x,who){if(!COLLAB.synced)return;if(COLLAB.viewer&&!who)return send({k:'vmsg',kind:'cmt',beat,x});
-  const w=who||meUser(),m=new Y.Map();COLLAB.doc.transact(()=>{m.set('id',uid('c'));m.set('beat',beat);m.set('u',w.u);m.set('n',w.n);m.set('c',w.c);m.set('t',Date.now());m.set('x',x);m.set('done',false);m.set('rep',new Y.Array());CMTS().push([m])},'cmt')}
-const cmtFind=id=>{const a=CMTS();if(!a)return null;for(let i=0;i<a.length;i++)if(a.get(i).get('id')===id)return[a.get(i),i];return null};
-function cmtReply(id,x,who){if(COLLAB.viewer&&!who)return send({k:'vmsg',kind:'rep',cid:id,x});const f=cmtFind(id);if(!f)return;
-  COLLAB.doc.transact(()=>f[0].get('rep').push([Object.assign({t:Date.now(),x},who||meUser())]),'cmt')}
-function cmtSet(id,k,v){const f=cmtFind(id);if(f)COLLAB.doc.transact(()=>f[0].set(k,v),'cmt')}
-function cmtDel(id){const f=cmtFind(id);if(f)COLLAB.doc.transact(()=>CMTS().delete(f[1],1),'cmt')}
-const cmtList=()=>{const a=CMTS();return a?a.toArray().map(m=>m.toJSON()).sort((p,q)=>p.beat-q.beat):[]};
-function onCmtChange(ev,tr){
-  if(tr.origin==='remote'||tr.origin==='relay'){for(const e of ev)if(e.target===CMTS())e.changes.added.forEach(it=>it.content.getContent().forEach(m=>{const j=m.toJSON?m.toJSON():m;
-    if(j.u!==ME.id)toast('📌 '+j.n+' a commenté '+fmtBar(j.beat)+' : '+String(j.x).slice(0,60),3500)}))}
-  renderPins();if(C2.open&&C2.tab==='cmts')drawPanel()}
+// ---------- 📌 Notes sur la timeline (dans le projet : marchent seul et en session) ----------
+// P.cmts = [{id,beat,u,n,c,t,x,done,rep:[{u,n,c,t,x}]}] ; P.marks = [{id,beat,name,color}] (marqueurs de structure)
+const cmtArr=()=>P&&(P.cmts||(P.cmts=[]));
+function cmtChanged(){DIRTY=true;if(COLLAB.on&&COLLAB.synced)collabFlush();renderPins();if(C2.open&&(C2.tab==='cmts'||C2.tab==='marks'))drawPanel()}
+function cmtAdd(beat,x,who){if(COLLAB.on&&COLLAB.viewer&&!who)return send({k:'vmsg',kind:'cmt',beat,x});
+  const w=who||meUser();snapshot();cmtArr().push({id:uid('c'),beat:Math.max(0,beat),u:w.u,n:w.n,c:w.c,t:Date.now(),x,done:false,rep:[]});cmtChanged()}
+const cmtFind=id=>((P&&P.cmts)||[]).find(c=>c.id===id);
+function cmtReply(id,x,who){if(COLLAB.on&&COLLAB.viewer&&!who)return send({k:'vmsg',kind:'rep',cid:id,x});const c=cmtFind(id);if(!c)return;
+  snapshot();(c.rep||(c.rep=[])).push(Object.assign({t:Date.now(),x},who||meUser()));cmtChanged()}
+function cmtSet(id,k,v){const c=cmtFind(id);if(!c)return;snapshot();c[k]=v;cmtChanged()}
+function cmtDel(id){const a=(P&&P.cmts)||[],i=a.findIndex(c=>c.id===id);if(i<0)return;snapshot();a.splice(i,1);cmtChanged()}
+const cmtList=()=>((P&&P.cmts)||[]).slice().sort((p,q)=>p.beat-q.beat);
 function renderPins(){
-  document.querySelectorAll('#lanes .cpin,#lanes .cline').forEach(e=>e.remove());if(!COLLAB.on||!COLLAB.synced)return;const L=$('#lanes');if(!L)return;
-  for(const c of cmtList()){if(c.done&&!C2.showDone)continue;const x=c.beat*PPB;
+  document.querySelectorAll('#lanes .cpin,#lanes .cline').forEach(e=>e.remove());const L=$('#lanes');if(!L||!P)return;
+  const list=cmtList();
+  if(C2.knownC){for(const c of list)if(!C2.knownC.has(c.id)&&c.u!==ME.id&&COLLAB.on)toast('📌 '+c.n+' a commenté '+fmtBar(c.beat)+' : '+String(c.x).slice(0,60),3500)}
+  C2.knownC=new Set(list.map(c=>c.id));
+  for(const c of list){if(c.done&&!C2.showDone)continue;const x=c.beat*PPB;
     L.append(h('div',{class:'cline'+(c.done?' done':''),style:{left:x+'px','--cc':c.c}}),
       h('div',{class:'cpin'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{left:x+'px','--cc':c.c},title:c.n+' ('+fmtBar(c.beat)+') : '+c.x,
-        onpointerdown:e=>e.stopPropagation(),onclick:e=>{e.stopPropagation();C2.hi=c.id;openPanel('cmts')}},'📌 '+(c.n||'?').slice(0,1).toUpperCase()+((c.rep&&c.rep.length)?' '+(c.rep.length+1):'')))}}
+        onpointerdown:e=>e.stopPropagation(),onclick:e=>{e.stopPropagation();C2.hi=c.id;openPanel('cmts')}},'📌 '+(c.n||'?').slice(0,1).toUpperCase()+((c.rep&&c.rep.length)?' '+(c.rep.length+1):'')))}
+  for(const m of (P.marks||[]))L.append(h('div',{class:'mline',style:{left:m.beat*PPB+'px','--mc':m.color}}))}
 function askComment(beat){openPanel('cmts');C2.newAt=beat;drawPanel();setTimeout(()=>{const t=$('#cpanel textarea.newc');if(t)t.focus()},30)}
+
+// ---------- 🎤 Messages vocaux ----------
+const VOC={rec:null,chunks:[],t0:0,timer:null,stream:null,mime:''};
+function vocMime(){for(const m of ['audio/webm;codecs=opus','audio/mp4','audio/ogg;codecs=opus','audio/webm'])if(window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))return m;return''}
+async function vocStart(){
+  if(!window.MediaRecorder)return toast('Ce navigateur ne permet pas d’enregistrer un message vocal');
+  if(!SUPA.url)return toast('Les messages vocaux ont besoin d’internet');
+  try{VOC.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}catch(e){return micError(e)}
+  VOC.mime=vocMime();VOC.chunks=[];VOC.rec=new MediaRecorder(VOC.stream,VOC.mime?{mimeType:VOC.mime,audioBitsPerSecond:64000}:undefined);
+  VOC.rec.ondataavailable=e=>{if(e.data&&e.data.size)VOC.chunks.push(e.data)};VOC.rec.start(250);VOC.t0=Date.now();
+  VOC.timer=setInterval(()=>{const s=Math.floor((Date.now()-VOC.t0)/1000);const t=$('#cpanel .vtime');if(t)t.textContent='● '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' / 2:00';if(s>=120)vocStop(true)},250);drawPanel()}
+function vocStop(sendIt){const r=VOC.rec;if(!r)return;clearInterval(VOC.timer);VOC.rec=null;const dur=(Date.now()-VOC.t0)/1000;
+  r.onstop=async()=>{VOC.stream.getTracks().forEach(t=>t.stop());drawPanel();if(!sendIt||dur<.6)return;
+    const type=(r.mimeType||VOC.mime||'audio/webm').split(';')[0],ext=type.includes('mp4')?'m4a':type.includes('ogg')?'ogg':'webm',blob=new Blob(VOC.chunks,{type}),f=newRoom();
+    const st=$('#cpanel .vtime');if(st)st.textContent='Envoi…';
+    try{await xhrUpload(SUPA.url+'/storage/v1/object/sons/vocaux/'+f+'.'+ext,blob,type,p=>{const s=$('#cpanel .vtime');if(s)s.textContent='Envoi '+Math.round(p*100)+' %'});
+      const voc={f,ext,type,dur:Math.round(dur)};if(COLLAB.viewer)send({k:'vmsg',kind:'voc',voc});else chatSend('🎤 message vocal',{voc})}
+    catch(e){toast('⚠ Message vocal non envoyé : '+e.message,5000)}drawPanel()};r.stop()}
+const vocURL=v=>SUPA.url+'/storage/v1/object/public/sons/vocaux/'+v.f+'.'+v.ext;
+// glisser (ou bouton ➕) un message vocal dans le projet
+async function vocToTrack(v,beat,trackId,label){
+  if(COLLAB.viewer)return lockToast('',VIEW_LOCK);
+  try{toast('⬇ Ajout du vocal au projet…',4000);const ab=await ctx.decodeAudioData(await (await fetch(vocURL(v))).arrayBuffer());
+    let t=trackId&&findTrack(trackId);if(t&&(t.type!=='audio'||isInstru(t)||lockedByOther(t.id)))t=null;
+    snapshot();if(!t){t=newTrack('audio','Vocal'+(label?' '+label:''));t.role='voice';P.tracks.push(t);E.build(P)}
+    const id=addBuffer(ab);t.regions.push({id:uid('r'),start:Math.max(0,beat),offset:0,dur:ab.duration,buf:id,name:'🎤 '+(label||'vocal')});SEL=t.id;renderAll();
+    if(COLLAB.on)collabFlush();toast('🎤 Vocal ajouté sur « '+t.name+' » à '+fmtBar(beat))}
+  catch(e){toast('⚠ Impossible d’ajouter ce vocal : '+e.message,5000)}}
+document.addEventListener('dragover',e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('text/studio-voc')&&e.target.closest&&e.target.closest('#lanes,#heads')){e.preventDefault();e.stopPropagation();e.dataTransfer.dropEffect='copy'}},true);
+document.addEventListener('drop',e=>{if(!e.dataTransfer||![...e.dataTransfer.types].includes('text/studio-voc'))return;e.preventDefault();e.stopPropagation();
+  let d;try{d=JSON.parse(e.dataTransfer.getData('text/studio-voc'))}catch(err){return}const L=$('#lanes').getBoundingClientRect();
+  const beat=e.clientX>L.left?snapB((e.clientX-L.left)/PPB):PH,t=P.tracks[Math.floor((e.clientY-L.top)/TH)];vocToTrack(d.voc,beat,t&&t.id,d.n)},true);
 
 // ---------- 🕘 Versions de la session (table « versions », fonctions version_*) ----------
 async function versionsLoad(){if(!SUPA.url||COLLAB.viewer||!COLLAB.room)return;try{C2.vers=await rpc('version_list',{p_salle:COLLAB.room})}catch(e){C2.vers='err';console.warn(e)}if(C2.open&&C2.tab==='vers')drawPanel()}
@@ -112,44 +148,86 @@ function bounceModal(){
   modal([h('h2',null,'📀 Partager un lien d’écoute (MP3)'),h('p',{style:{color:'var(--dim)'}},'Le morceau est mixé, encodé en MP3 puis mis en ligne. Vous obtenez un lien à envoyer : on l’écoute sur téléphone sans ouvrir l’appli.'),
     h('div',{class:'kv2'},'Titre',title),h('div',{class:'kv2'},'Partie',zone),h('div',{class:'kv2'},'Qualité',q),st,bar,go,res])}
 
-// ---------- panneau (chat · commentaires · versions) ----------
-function openPanel(tab){C2.open=true;if(tab)C2.tab=tab;if(C2.tab==='chat'){C2.unread=0;renderBadge()}if(C2.tab==='vers'&&C2.vers==null)versionsLoad();drawPanel()}
-function closePanel(){C2.open=false;const p=$('#cpanel');if(p)p.remove();C2.hi=null;renderPins()}
+// ---------- 🏷 Marqueurs de structure ----------
+const MARK_NAMES=['Intro','Couplet 1','Refrain','Couplet 2','Pont','Couplet 3','Outro'],MARK_COLORS=['#64d2ff','#30d158','#ff9f0a','#bf5af2','#ff453a','#ffd60a','#8e8e93'];
+const markArr=()=>P&&(P.marks||(P.marks=[]));
+function markAdd(beat,name){const a=markArr();snapshot();a.push({id:uid('k'),beat:Math.max(0,beat),name:name||MARK_NAMES[a.length%MARK_NAMES.length],color:MARK_COLORS[a.length%MARK_COLORS.length]});
+  a.sort((p,q)=>p.beat-q.beat);cmtChanged();drawRuler()}
+function markSet(id,k,v,noSnap){const m=markArr().find(m=>m.id===id);if(!m)return;if(!noSnap)snapshot();m[k]=v;if(k==='beat')markArr().sort((p,q)=>p.beat-q.beat);cmtChanged();drawRuler()}
+function markDel(id){const a=markArr(),i=a.findIndex(m=>m.id===id);if(i<0)return;snapshot();a.splice(i,1);cmtChanged();drawRuler()}
+function markMenu(e,m){menu(e,['Marqueur « '+m.name+' »',['✎ Renommer…',()=>{const n=prompt('Nom du marqueur',m.name);if(n)markSet(m.id,'name',n.slice(0,40))}],
+  ['🎨 Couleur…',()=>colorPicker(e,{name:m.name,color:m.color,_set:c=>markSet(m.id,'color',c)})],['▶ Aller ici',()=>setPH(m.beat)],'-',['🗑 Supprimer',()=>markDel(m.id)]])}
+
+// ---------- panneau (chat · notes · marqueurs · versions) — redimensionnable, à gauche ou à droite, détachable ----------
+try{const o=JSON.parse(localStorage.getItem('studio_cpanel')||'{}');C2.w=o.w||330;C2.side=o.side||'right'}catch(e){C2.w=330;C2.side='right'}
+const savePanelPref=()=>{try{localStorage.setItem('studio_cpanel',JSON.stringify({w:C2.w,side:C2.side}))}catch(e){}};
+function panelTabs(){return COLLAB.on?[['chat','💬 Chat'],['cmts','📌 Notes'],['marks','🏷'],!COLLAB.viewer&&['vers','🕘']].filter(Boolean):[['cmts','📌 Notes'],['marks','🏷 Marqueurs']]}
+function openPanel(tab){C2.open=true;if(tab)C2.tab=tab;if(!panelTabs().some(t=>t[0]===C2.tab))C2.tab=panelTabs()[0][0];
+  if(C2.tab==='chat'){C2.unread=0;renderBadge()}if(C2.tab==='vers'&&C2.vers==null)versionsLoad();drawPanel()}
+function closePanel(){if(VOC.rec)vocStop(false);C2.open=false;const p=$('#cpanel');if(p)p.remove();if(typeof detachClose==='function')detachClose('chat');C2.hi=null;layoutPanel();renderPins()}
 function renderBadge(){const b=$('#collabBar .chatb');if(!b)return;const n=C2.unread;b.dataset.n=n>99?'99+':n||'';b.classList.toggle('has',n>0)}
+function layoutPanel(){const det=typeof isDetached==='function'&&isDetached('chat'),on=C2.open&&!!$('#cpanel')&&!det&&innerWidth-C2.w>=1080; // assez de place : l'appli se pousse à côté, sinon le panneau passe par-dessus
+  document.body.classList.toggle('cp-open',on);document.body.classList.toggle('cp-left',on&&C2.side==='left');document.documentElement.style.setProperty('--cpw',(on?C2.w:0)+'px');
+  const p=$('#cpanel');if(p){p.classList.toggle('left',C2.side==='left');p.classList.toggle('det',!!det);if(!det)p.style.width=Math.min(C2.w,innerWidth)+'px'}
+  setTimeout(()=>{try{drawRuler();schedulePaint()}catch(e){}},0)}
+function panelResize(e){if(e.button)return;e.preventDefault();e.stopPropagation();const h0=e.currentTarget;h0.setPointerCapture(e.pointerId);const x0=e.clientX,w0=C2.w;
+  const mv=ev=>{C2.w=Math.round(clamp(w0+(C2.side==='right'?x0-ev.clientX:ev.clientX-x0),240,Math.min(760,innerWidth-320)));layoutPanel()};
+  const up=()=>{h0.removeEventListener('pointermove',mv);h0.removeEventListener('pointerup',up);savePanelPref()};h0.addEventListener('pointermove',mv);h0.addEventListener('pointerup',up)}
 function drawPanel(){
-  if(!C2.open||!COLLAB.on){const p=$('#cpanel');if(p)p.remove();return}
-  let p=$('#cpanel');const keepScroll=p&&p.querySelector('.cbody')&&C2.tab!=='chat'?p.querySelector('.cbody').scrollTop:null;
-  const draft=p&&p.querySelector('.cin input')?p.querySelector('.cin input').value:'';
-  if(!p){p=h('div',{id:'cpanel'});document.body.append(p)}p.innerHTML='';
-  const tabs=[['chat','💬 Chat'],['cmts','📌 Commentaires'],!COLLAB.viewer&&['vers','🕘 Versions']].filter(Boolean);
-  p.append(h('div',{class:'ctabs'},tabs.map(([k,n])=>h('button',{class:C2.tab===k?'on':'',onclick:()=>openPanel(k)},n+(k==='cmts'?' ('+cmtList().filter(c=>!c.done).length+')':''))),h('div',{style:{flex:1}}),h('button',{title:'Fermer',onclick:closePanel},'✕')));
-  const body=h('div',{class:'cbody'});p.append(body);
-  if(!COLLAB.synced){body.append(h('p',{class:'dim'},'Connexion à la session…'));return}
+  if(!C2.open){const p=$('#cpanel');if(p)p.remove();layoutPanel();return}
+  let p=$('#cpanel');const body0=p&&p.querySelector('.cbody');
+  const ae=p&&p.ownerDocument.activeElement;if(p&&ae&&p.contains(ae)&&ae.matches('.cact input,textarea.newc,.cnew input')&&C2.tab!=='chat'){C2.pendingDraw=true;return} // ne pas effacer une réponse en cours
+  C2.pendingDraw=false;const keepScroll=body0&&C2.tab!=='chat'?body0.scrollTop:null,draft=p&&p.querySelector('.cin input')?p.querySelector('.cin input').value:'';
+  if(!p){p=h('div',{id:'cpanel',onfocusout:()=>setTimeout(()=>{if(C2.pendingDraw)drawPanel()},50)});(typeof panelHost==='function'?panelHost():document.body).append(p)}p.innerHTML='';
+  const det=typeof isDetached==='function'&&isDetached('chat');
+  p.append(!det&&h('div',{class:'cgrip',title:'Glisser pour élargir / rétrécir',onpointerdown:panelResize}),
+    h('div',{class:'ctabs'},panelTabs().map(([k,n])=>h('button',{class:C2.tab===k?'on':'',title:{marks:'Marqueurs de structure',vers:'Versions'}[k]||'',onclick:()=>openPanel(k)},n+(k==='cmts'?' ('+cmtList().filter(c=>!c.done).length+')':''))),h('div',{style:{flex:1}}),
+      !det&&h('button',{title:'Mettre le panneau '+(C2.side==='right'?'à gauche':'à droite'),onclick:()=>{C2.side=C2.side==='right'?'left':'right';savePanelPref();layoutPanel()}},'⇆'),
+      !IS_TOUCH&&h('button',{title:det?'Remettre dans la fenêtre principale':'Détacher dans une fenêtre (2ᵉ écran)',onclick:()=>det?detachClose('chat'):detachOpen('chat')},det?'⤓':'⧉'),
+      h('button',{title:'Fermer',onclick:closePanel},'✕')));
+  const body=h('div',{class:'cbody'});p.append(body);layoutPanel();
+  if(COLLAB.on&&!COLLAB.synced){body.append(h('p',{class:'dim'},'Connexion à la session…'));return}
   if(C2.tab==='chat'){
     const a=CHAT().toArray();if(!a.length)body.append(h('p',{class:'dim'},'Aucun message. Dites bonjour 👋'));
-    for(const m of a){const mine=m.u===ME.id;body.append(h('div',{class:'cmsg'+(mine?' me':'')},h('div',{class:'cmeta'},h('b',{style:{color:m.c}},m.n),' ',h('span',null,hhmm(m.t))),
-      m.b?h('div',{class:'ctxt'},m.x+' : ',h('a',{href:bounceLink(m.b.f,m.b.title),target:'_blank',rel:'noopener'},'📀 '+m.b.title+' ('+Math.floor(m.b.dur/60)+':'+String(m.b.dur%60).padStart(2,'0')+')')):h('div',{class:'ctxt'},m.x)))}
+    for(const m of a){const mine=m.u===ME.id;let content;
+      if(m.voc){const au=h('audio',{controls:true,preload:'none',src:vocURL(m.voc)});
+        content=h('div',{class:'ctxt cvoc',draggable:!COLLAB.viewer,ondragstart:e=>{e.dataTransfer.setData('text/studio-voc',JSON.stringify({voc:m.voc,n:m.n}));e.dataTransfer.effectAllowed='copy'}},
+          au,h('div',{class:'vrow'},h('span',{class:'dim'},'🎤 '+Math.floor(m.voc.dur/60)+':'+String(m.voc.dur%60).padStart(2,'0')),
+            !COLLAB.viewer&&h('button',{title:'Ajouter ce vocal au projet (à la tête de lecture). Vous pouvez aussi le glisser sur une piste.',onclick:()=>vocToTrack(m.voc,PH,SEL,m.n)},'➕ Au projet')))}
+      else if(m.b)content=h('div',{class:'ctxt'},m.x+' : ',h('a',{href:bounceLink(m.b.f,m.b.title),target:'_blank',rel:'noopener'},'📀 '+m.b.title+' ('+Math.floor(m.b.dur/60)+':'+String(m.b.dur%60).padStart(2,'0')+')'));
+      else content=h('div',{class:'ctxt'},m.x);
+      body.append(h('div',{class:'cmsg'+(mine?' me':'')},h('div',{class:'cmeta'},h('b',{style:{color:m.c}},m.n),' ',h('span',null,hhmm(m.t))),content))}
     const inp=h('input',{type:'text',placeholder:'Écrire un message…',maxlength:1000,value:draft,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'){chatSend(inp.value);inp.value=''}}});
-    p.append(h('div',{class:'cquick'},['🔥','👍','😂','🎧','💯','🙏'].map(x=>h('button',{onclick:()=>chatSend(x)},x))),h('div',{class:'cin'},inp,h('button',{onclick:()=>{chatSend(inp.value);inp.value='';inp.focus()}},'➤')));
-    setTimeout(()=>{body.scrollTop=body.scrollHeight},0);if(!IS_TOUCH)setTimeout(()=>inp.focus(),0)}
+    const recUI=VOC.rec?h('div',{class:'cin rec'},h('span',{class:'vtime'},'● 0:00 / 2:00'),h('div',{style:{flex:1}}),h('button',{title:'Annuler',onclick:()=>vocStop(false)},'✕'),h('button',{class:'send',onclick:()=>vocStop(true)},'➤ Envoyer'))
+      :h('div',{class:'cin'},h('button',{title:'Message vocal (2 min max)',onclick:vocStart},'🎤'),inp,h('button',{onclick:()=>{chatSend(inp.value);inp.value='';inp.focus()}},'➤'));
+    p.append(h('div',{class:'cquick'},['🔥','👍','😂','🎧','💯','🙏'].map(x=>h('button',{onclick:()=>chatSend(x)},x))),recUI,h('span',{class:'vtime',style:{display:'none'}}));
+    setTimeout(()=>{body.scrollTop=body.scrollHeight},0);if(!IS_TOUCH&&!VOC.rec)setTimeout(()=>inp.focus(),0)}
   else if(C2.tab==='cmts'){
     const at=C2.newAt!=null?C2.newAt:(E.playing?E.pos():PH);
-    const ta=h('textarea',{class:'newc',rows:2,placeholder:'Ex : refais ce couplet ici, drop trop tôt…',onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();add()}}});
-    const add=()=>{const x=ta.value.trim();if(!x)return;cmtAdd(Math.max(0,at),x);C2.newAt=null;ta.value='';toast('📌 Commentaire ajouté '+fmtBar(at))};
-    body.append(h('div',{class:'cnew'},h('div',{class:'dim'},'📌 Nouveau commentaire '+fmtBar(at)+(C2.newAt==null?' (tête de lecture)':'')),ta,h('div',{style:{display:'flex',gap:'6px'}},h('button',{onclick:add},'Ajouter'),
+    const ta=h('textarea',{class:'newc',rows:2,placeholder:'Ex : refais ce couplet ici, drop trop tôt, ad-lib à ajouter…',onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();add()}}});
+    const add=()=>{const x=ta.value.trim();if(!x)return;cmtAdd(Math.max(0,at),x);C2.newAt=null;ta.value='';toast('📌 Note ajoutée '+fmtBar(at))};
+    body.append(h('div',{class:'cnew'},h('div',{class:'dim'},'📌 Nouvelle note '+fmtBar(at)+(C2.newAt==null?' (tête de lecture)':'')),ta,h('div',{style:{display:'flex',gap:'6px'}},h('button',{onclick:add},'Ajouter'),
       C2.newAt!=null&&h('button',{onclick:()=>{C2.newAt=null;drawPanel()}},'Annuler'))),
-      h('label',{class:'dim',style:{display:'flex',gap:'6px',alignItems:'center',margin:'6px 0'}},h('input',{type:'checkbox',checked:C2.showDone,onchange:e=>{C2.showDone=e.target.checked;drawPanel();renderPins()}}),'Afficher les commentaires résolus'),
-      h('p',{class:'dim',style:{fontSize:'11px'}},'Astuce : clic droit (ou appui long) dans la règle pour commenter à un endroit précis.'));
-    const list=cmtList().filter(c=>C2.showDone||!c.done);if(!list.length)body.append(h('p',{class:'dim'},'Aucun commentaire.'));
-    for(const c of list){const rep=h('input',{type:'text',placeholder:'Répondre…',maxlength:1000,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'&&rep.value.trim()){cmtReply(c.id,rep.value.trim());rep.value=''}}});
+      h('label',{class:'dim',style:{display:'flex',gap:'6px',alignItems:'center',margin:'6px 0'}},h('input',{type:'checkbox',checked:C2.showDone,onchange:e=>{C2.showDone=e.target.checked;drawPanel();renderPins()}}),'Afficher les notes résolues'),
+      h('p',{class:'dim',style:{fontSize:'11px'}},'Astuce : clic droit (ou appui long) dans la règle pour noter à un endroit précis. Les notes sont enregistrées avec le projet'+(COLLAB.on?' et partagées avec la session.':'.')));
+    const list=cmtList().filter(c=>C2.showDone||!c.done);if(!list.length)body.append(h('p',{class:'dim'},'Aucune note.'));
+    for(const c of list){const rep=h('input',{type:'text',placeholder:'Répondre…',maxlength:1000,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'&&rep.value.trim()){const v=rep.value.trim();rep.value='';rep.blur();cmtReply(c.id,v)}}});
       const canMod=!COLLAB.viewer;
       body.append(h('div',{class:'ccmt'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{'--cc':c.c}},
         h('div',{class:'cmeta'},h('a',{href:'#',onclick:e=>{e.preventDefault();C2.hi=c.id;setPH(c.beat);renderPins();drawPanel()}},'▶ '+fmtBar(c.beat)),' · ',h('b',{style:{color:c.c}},c.n),' ',h('span',null,hhmm(c.t))),
         h('div',{class:'ctxt'},c.x),(c.rep||[]).map(r=>h('div',{class:'crep'},h('b',{style:{color:r.c}},r.n),' ',r.x)),
-        h('div',{class:'cact'},rep,canMod&&h('button',{title:c.done?'Rouvrir':'Marquer comme résolu',onclick:()=>cmtSet(c.id,'done',!c.done)},c.done?'↺':'✔'),
-          canMod&&(c.u===ME.id)&&h('button',{title:'Supprimer',onclick:e=>{if(e.target.dataset.sure){cmtDel(c.id)}else{e.target.dataset.sure=1;e.target.textContent='Sûr ?'}}},'🗑'))))}
+        h('div',{class:'cact'},rep,canMod&&h('button',{title:c.done?'Rouvrir':'Marquer comme résolue',onclick:()=>cmtSet(c.id,'done',!c.done)},c.done?'↺':'✔'),
+          canMod&&(c.u===ME.id||!COLLAB.on)&&h('button',{title:'Supprimer',onclick:e=>{if(e.target.dataset.sure){cmtDel(c.id)}else{e.target.dataset.sure=1;e.target.textContent='Sûr ?'}}},'🗑'))))}
     if(keepScroll!=null)body.scrollTop=keepScroll;
     if(C2.hi){const el=body.querySelector('.ccmt.hi');if(el)setTimeout(()=>el.scrollIntoView({block:'nearest'}),0)}}
+  else if(C2.tab==='marks'){
+    const canMod=!COLLAB.viewer,at=E.playing?E.pos():PH;
+    body.append(h('div',{class:'cnew'},h('div',{class:'dim'},'Les marqueurs découpent le morceau (Intro, Couplet, Refrain…). Ils s’affichent dans la règle : clic = y aller, clic droit = renommer / couleur / supprimer, glisser = déplacer.'),
+      canMod&&h('div',{style:{display:'flex',gap:'4px',flexWrap:'wrap',marginTop:'6px'}},MARK_NAMES.map(n=>h('button',{onclick:()=>markAdd(snapB(at,P.sig),n)},'+ '+n)))));
+    const ms=P.marks||[];if(!ms.length)body.append(h('p',{class:'dim'},'Aucun marqueur. Ajoutez-en à la tête de lecture ('+fmtBar(snapB(at,P.sig))+').'));
+    for(const m of ms)body.append(h('div',{class:'ccmt',style:{'--cc':m.color}},h('div',{class:'cmeta'},h('a',{href:'#',onclick:e=>{e.preventDefault();setPH(m.beat)}},'▶ '+fmtBar(m.beat)),' · ',h('b',{style:{color:m.color}},m.name)),
+      canMod&&h('div',{class:'cact'},h('input',{type:'text',value:m.name,maxlength:40,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter')e.target.blur()},onchange:e=>markSet(m.id,'name',e.target.value.slice(0,40)||m.name)}),
+        h('button',{title:'Couleur',onclick:e=>colorPicker(e,{name:m.name,color:m.color,_set:c=>markSet(m.id,'color',c)})},'🎨'),h('button',{title:'Supprimer',onclick:()=>markDel(m.id)},'🗑'))))}
   else if(C2.tab==='vers'){
     const nom=h('input',{type:'text',placeholder:'Nom (ex : avant le mix)',maxlength:80,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter')save()}});
     const save=async()=>{sv.disabled=true;await versionSave(nom.value);nom.value='';sv.disabled=false};const sv=h('button',{onclick:save},'💾 Sauvegarder');
@@ -161,16 +239,17 @@ function drawPanel(){
         h('button',{title:'Supprimer cette version',onclick:async e=>{if(!e.target.dataset.sure){e.target.dataset.sure=1;e.target.textContent='Sûr ?';return}try{await rpc('version_del',{p_salle:COLLAB.room,p_id:v.id})}catch(err){toast('⚠ '+err.message)}versionsLoad()}},'🗑'))))}}
 
 // ---------- branchements ----------
-COLLAB_H.start=doc=>{C2.unread=0;C2.vers=null;C2.hi=null;C2.newAt=null;C2.clk={};
-  doc.getArray('chat').observe(onChatChange);doc.getArray('cmts').observeDeep(onCmtChange)};
-COLLAB_H.synced=()=>{renderPins();if(C2.open)drawPanel();COLLAB.timers.push(setInterval(()=>send({k:'ping',t0:Date.now()}),5000));setTimeout(()=>send({k:'ping',t0:Date.now()}),300)};
-COLLAB_H.stop=()=>{closePanel();renderPins()};
+COLLAB_H.start=doc=>{C2.unread=0;C2.vers=null;C2.hi=null;C2.newAt=null;C2.clk={};doc.getArray('chat').observe(onChatChange)};
+COLLAB_H.synced=()=>{
+  // v3.3 → v3.4+ : les commentaires étaient dans le document de session ; on les range dans le projet (une seule personne le fait)
+  const old=COLLAB.doc.getArray('cmts');if(old.length&&!COLLAB.viewer&&editorIds()[0]===ME.id){const have=new Set(cmtArr().map(c=>c.id)),add=old.toArray().map(m=>m.toJSON?m.toJSON():m).filter(c=>c&&c.id&&!have.has(c.id));
+    if(add.length){P.cmts.push(...add);collabFlush()}COLLAB.doc.transact(()=>old.delete(0,old.length),'cmt')}
+  renderPins();if(C2.open)drawPanel();COLLAB.timers.push(setInterval(()=>send({k:'ping',t0:Date.now()}),5000));setTimeout(()=>send({k:'ping',t0:Date.now()}),300)};
+COLLAB_H.stop=()=>{C2.knownC=null;if(C2.open)openPanel();renderPins()};
 COLLAB_H.joined=u=>{if(COLLAB.synced)toast('👋 '+(u.name||'Quelqu’un')+(u.role==='v'?' écoute la session (écoute seule)':' a rejoint la session'),2500);setTimeout(()=>send({k:'ping',t0:Date.now()}),200)};
 COLLAB_H.left=u=>{delete C2.clk[u.id]};
 COLLAB_H.bar=b=>{
   b.append(h('button',{class:'tbtn ens'+(C2.follow?' on':''),title:C2.follow?'🎧 Écouter ensemble : activé (▶ / ■ partagés). Cliquer pour écouter en solo.':'🎧 Écoute en solo. Cliquer pour écouter ensemble.',onclick:toggleFollow},'🎧'),
-    h('button',{class:'tbtn chatb',title:'Chat, commentaires et versions',onclick:()=>C2.open?closePanel():openPanel()},'💬'));renderBadge()};
-{const o=renderLanes;renderLanes=function(){const r=o.apply(this,arguments);if(COLLAB.on)renderPins();return r}}
-document.addEventListener('contextmenu',e=>{if(!COLLAB.on||!COLLAB.synced||!e.target.closest||!e.target.closest('#ruler'))return;e.preventDefault();e.stopPropagation();
-  const R=$('#ruler').getBoundingClientRect(),b=Math.max(0,snapB((e.clientX-R.left+$('#lanesWrap').scrollLeft)/PPB,1));
-  menu(e,['Commentaire',['📌 Commenter ici ('+fmtBar(b)+')',()=>askComment(b)],['💬 Ouvrir le chat',()=>openPanel('chat')]])},true);
+    h('button',{class:'tbtn chatb',title:'Chat, notes, marqueurs et versions',onclick:()=>C2.open?closePanel():openPanel(C2.tab==='cmts'&&!C2.unread?'cmts':'chat')},'💬'));renderBadge()};
+{const o=renderLanes;renderLanes=function(){const r=o.apply(this,arguments);renderPins();return r}}
+{const o=afterLoad;afterLoad=function(){const r=o.apply(this,arguments);C2.knownC=null;renderPins();if(C2.open)drawPanel();try{drawRuler()}catch(e){}return r}}
