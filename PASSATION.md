@@ -12,7 +12,7 @@
 |---|---|
 | **Appli en ligne** | https://1blazeleplufor.github.io/studio/ |
 | **Dépôt** | `github.com/1blazeleplufor/studio` (public, GitHub Pages sur `main`, dossier racine) |
-| **Version** | 3.0 (`APP_VERSION` dans `src/ui6.js`) |
+| **Version** | 3.1 (`APP_VERSION` dans `src/ui6.js`) |
 | **Utilisateur** | Francophone, débutant en MAO mais à l’aise avec les logiciels, fait du rap/trap (références : Timar, Leto, Djadja & Dinaz, Bouss). Travaille surtout sur **Mac**, veut aussi téléphone/tablette/Windows/Android. |
 | **Langue de l’UI** | Français partout. |
 | **Stack** | HTML/CSS/JS **vanilla** (aucun framework, aucune dépendance npm), Web Audio API + AudioWorklet, PWA (manifest + service worker), IndexedDB. |
@@ -39,7 +39,7 @@
   worklets.js           AudioWorkletProcessors
   dsp.js                plugins d’effets + instruments (synthé, batterie)
   engine.js             moteur audio (graphe, lecture, enregistrement, rendu offline, WAV)
-  ui1.js … ui6.js       interface (voir §5)
+  ui1.js … ui7.js       interface (voir §5)
   collab.js             v3.0 : session à plusieurs (pont P ↔ Yjs, cadenas, présence, transport)
   vendor/yjs.min.js     Yjs 13.6.33 + lib0 0.2.119 (MIT), bundle IIFE → global `Y` (esbuild, ~95 Ko)
   build.py              concatène tout → fichiers à la racine
@@ -51,7 +51,7 @@
 python3 src/build.py          # génère index.html, sw.js, worklets.js, icônes… à la racine
 git add -A && git commit -m "Studio vX.Y : …" && git push origin main
 ```
-GitHub Pages republie en 1–2 min. Le JS est concaténé dans cet ordre : `vendor/yjs.min.js, dsp.js, engine.js, ui1.js … ui6.js, collab.js` (portée globale partagée, pas de modules ES). Le build nécessite Python 3 + Pillow (icônes).
+GitHub Pages republie en 1–2 min. Le JS est concaténé dans cet ordre : `vendor/yjs.min.js, dsp.js, engine.js, ui1.js … ui7.js, collab.js` (portée globale partagée, pas de modules ES). Le build nécessite Python 3 + Pillow (icônes).
 
 ### Procédure de nouvelle version (à respecter)
 1. Incrémenter `APP_VERSION` dans `src/ui6.js`.
@@ -106,6 +106,7 @@ Region drums = { id, start, len, pat:{ steps, rows:{ kick:[0|{v,r /*roulement 1-
 - **Graphe par piste/aux** (`makeStrip`) : `playIn → input → [plugins…] → fader → pan(StereoPanner) → mute → analyser → master.input` ; envois post-fader vers les aux. `updateStrip(obj)` applique les paramètres ; la chaîne n’est reconstruite que si la **signature** (types + bypass) change.
 - **Lecture** : ordonnanceur « lookahead » (`tick` toutes les 20 ms, 160 ms d’avance) → `scheduleWindow(a,b,t0,fresh,stopCtx,metro)` programme audio, notes et pas de batterie ; gestion du cycle par segments (`segs`) ; `pos()` donne la position affichée. `stop()` coupe via un `playIn` neuf par lecture.
 - **Enregistrement** : `rec-proc` (worklet) envoie les blocs d’entrée horodatés ; `stopRec()` aligne la prise avec `outputLatency + baseLatency + latence d’entrée + réglage utilisateur`. `carve()` (ui2.js) remplace la zone ré-enregistrée.
+- **Plugins pro (v2.5)** : `verbpro` → `verb-proc` (FDN 8 lignes modulées, diffusion early/late, decay à 3 bandes, 14 modes `VMODES`, couleurs 70s/80s/moderne, gate pour le mode non-linéaire) ; `tunepro` → `tunepro-proc` (YIN + TD-PSOLA à 50 ms de latence, formants/gorge, humanize, flex-tune, vibrato, notes 0=corrigée/1=ignorée/2=retirée). **Compensation de latence** : un plugin peut déclarer `latency(sr)` (secondes) ; `rebuildChain` calcule `strip.latency` et `scheduleWindow` avance tous les évènements de la piste d’autant.
 - **Worklets** : `rec-proc`, `pitch-proc` (autotune : détection YIN décimée + lecture à vitesse variable avec sauts d’une période et fondu ; gamme/tonalité passées par `processorOptions` **obligatoirement** pour l’export offline), `gate-proc`, `crush-proc`, `limit-proc` (limiteur à anticipation 4 ms, plafond garanti).
 - **Plugins** (`PLUGINS` dans dsp.js) : `{name, cat, params:[{id,n,min,max,def,u,log,step,opts}], create(ctx,P,env) → {input, output, set(p), dispose?, comp?, filters?}}`. Plugins externes : fichier `.js` qui appelle `registerPlugin({...})` (même interface, id préfixé `ext:`), source stockée dans `P.ext`.
 - **Instruments** : `synthVoice()` (2 osc + sub + filtre + ADSR + glide mono pour la 808) et `drumHit()` (8 sons synthétisés). Presets : `SYNTH_PRESETS`, `DRUM_KITS`.
@@ -122,6 +123,7 @@ Region drums = { id, start, len, pat:{ steps, rows:{ kick:[0|{v,r /*roulement 1-
 | **ui3.js** | Fenêtres de plugins/instruments, panneau du bas (mixeur, **piano roll**, **step sequencer**), transport, enregistrement, import audio, `.studio`, export WAV/stems, modèle de plugin externe. |
 | **ui4.js** | `bindUI`, menu Fichier, **raccourcis clavier**, clavier musical, règle (cycle + scrub), boucle d’affichage (`loop` : tête de lecture, vumètres, LCD), réglages, aide, `main()`. |
 | **ui5.js** | IndexedDB, sauvegarde auto, « Mes projets », installation PWA, appui long tactile, enregistrement du service worker. |
+| **ui7.js** | Fenêtres dédiées des plugins pro : `openVerbPro` (Réverb « Ères ») et `openTunePro` (Pitch Pro, graphique de hauteur en direct alimenté par `inst.graph`). |
 | **ui6.js** | Version + nouveautés, réglages rapides (`QUICK`), atelier instru, analyses, navigation Logic (copier/coller, zoom, fit, nudge, mute région), modale des raccourcis. |
 
 Principe de rendu : **pas de virtual DOM**. Les fonctions `renderAll / renderHeads / renderLanes / renderInspector / renderBottom` reconstruisent leur zone ; les interactions continues (glisser, knobs) modifient directement le style puis re-rendent au relâchement.
@@ -176,14 +178,15 @@ Choix de l’utilisateur pour les cadenas : **toute la piste** (volume, pan, ré
 Implémentation (différente du « refactor store » prévu ci-dessous, pour ne rien casser) :
 - **Pont par différence** : `P` reste le modèle local de toute l’UI. `collabFlush()` (toutes les 100 ms + à chaque `snapshot()`) compare `sharedView(P)` à la dernière base (`COLLAB.last`) et écrit le diff dans le `Y.Doc` (`yObj`/`yArr` : réconciliation par `id` pour pistes/régions, par index sinon). Les changements des autres sont appliqués **en place** dans `P` (`patchRoot`, même identité d’objets → fenêtres et boutons restent branchés), puis `E.build(P)` + `renderAll()` (la lecture ne s’arrête pas).
 - Mises à jour distantes **différées** pendant un glisser, un enregistrement ou une saisie (`busy()`), pour ne jamais casser une interaction en cours.
-- **Non partagé** (propre à chacun) : `settings`, `midiMap`, `ext` (plugins externes : exécution de code → à traiter avec confirmation en v3.1), `cycle`, et sur les pistes `arm`, `mon`, `solo`.
+- **Non partagé** (propre à chacun) : `settings`, `midiMap`, `ext` (plugins externes : exécution de code → à traiter avec confirmation en v3.2), `cycle`, et sur les pistes `arm`, `mon`, `solo`.
 - **Cadenas** : `Y.Map('locks')` `{u, n, c, t}`. Vérifiés dans `collabFlush` (une action touchant une cible verrouillée par un autre est annulée entièrement et `P` revient à l’état partagé) + blocage préventif des clics (capture sur `[data-lk]`) + champs désactivés. Expiration : chez les autres, 2 min sans nouvelle du propriétaire (`lockSeen`, horloge locale, pas de souci de décalage d’horloge) ; chez le propriétaire, battement toutes les 20 s s’il a été actif, sinon il libère lui-même. Libérés aussi en quittant / fermant la fenêtre.
 - **Undo** : en session, `snapshot/undo/redo` sont remplacés par `Y.UndoManager` (origine locale seulement). Hors session, l’ancien undo JSON est inchangé.
 - **Transport v3.0** : `BroadcastChannel('studio-room-<id>')` → fonctionne entre fenêtres du même navigateur (essai). Messages : `hello`/`sync` (vecteurs d’état), `up` (updates Yjs), `pres` (présence, 4 s), `bye`, `bufq`/`buf` (sons). Le premier arrivé partage son projet (départage par id si arrivées simultanées) ; les suivants l’adoptent (leur projet perso reste dans 📂 Mes projets).
 - **Sons** : un client qui voit un `buf` inconnu le cherche dans IndexedDB puis le demande aux autres (`Float32Array` envoyés tels quels).
 - Tests : `tests/t13.py` (2 fenêtres : synchro, cadenas, refus, undo par personne, sons, expiration, départ) et `tests/t14.py` (3 arrivées simultanées, 250 actions aléatoires → même projet partout, rechargement).
 
-### Prochaine étape : v3.1 (réseau)
+### Prochaine étape : v3.2 (réseau)
+> Note : le numéro v3.1 a été pris par la Réverb Pro « Ères » + Pitch Pro (développés en parallèle). La suite multijoueur est donc décalée d’un numéro.
 Remplacer `send()`/`onMsg()` par un vrai transport (PartyKit / y-websocket) — le protocole de messages ci-dessus peut être gardé tel quel. À prévoir : compte chez l’hébergeur (choix de l’utilisateur), persistance du document de la salle côté serveur, envoi des sons par stockage objet (hash) plutôt qu’en direct, confirmation avant d’exécuter un plugin externe reçu.
 
 ### (Plan initial) Refactor store avant le réseau
@@ -196,10 +199,11 @@ Aujourd’hui l’UI **mute `P` directement** puis appelle `snapshot()` / `E.upd
 
 ### Plan par versions
 - **v3.0** : couche store + Yjs en local uniquement (aucune régression), undo Yjs.
-- **v3.1** : provider réseau + salles par lien + présence (qui est connecté).
-- **v3.2** : synchro des fichiers audio (upload/hash/téléchargement), enregistrements partagés.
-- **v3.3** : curseurs/sélections des autres, verrou doux pendant un glisser, « écouter ensemble ».
-- **v3.4** : comptes, droits, liste des projets partagés.
+- **v3.1** : *(fait, hors multijoueur)* Réverb Pro « Ères » + Pitch Pro + compensation de latence.
+- **v3.2** : provider réseau + salles par lien + présence (qui est connecté).
+- **v3.3** : synchro des fichiers audio (upload/hash/téléchargement), enregistrements partagés.
+- **v3.4** : curseurs/sélections des autres, verrou doux pendant un glisser, « écouter ensemble ».
+- **v3.5** : comptes, droits, liste des projets partagés.
 
 ### Points d’attention
 - Ajout d’un service tiers = clés/API, coût, RGPD ; conserver le fonctionnement **100 % local** si pas de connexion.
@@ -218,6 +222,7 @@ python3 tests/t7.py                # instru : BPM/tonalité, time-stretch, trans
 python3 tests/t9.py                # raccourcis : piste dupliquer/supprimer/annuler, zoom, sélection rectangle, couper/copier/coller
 python3 tests/t10.py               # barre du haut sans débordement, piste instru dédiée, zoom HD
 python3 tests/t12.py               # déplacement de la tête de lecture pendant la lecture
+python3 tests/t15.py               # v3.1 : Pitch Pro (justesse, latence compensée), Réverb Pro, fenêtres
 python3 tests/t13.py               # v3.0 : session à 2 fenêtres, cadenas, undo par personne, sons
 python3 tests/t14.py               # v3.0 : arrivées simultanées, actions aléatoires, rechargement
 ```

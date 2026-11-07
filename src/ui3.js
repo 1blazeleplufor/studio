@@ -13,6 +13,7 @@ function makeWin(key,title,body,onClose){
 }
 function openPlugin(o,i){
   const pl=o.plugins[i],def=PLUGINS[pl.type];if(!def)return toast('Plugin introuvable : rechargez le fichier .js');
+  if(pl.type==='verbpro')return openVerbPro(o,i);if(pl.type==='tunepro')return openTunePro(o,i);
   const body=h('div');const w=makeWin(o.id+':'+i,def.name+' — '+o.name,body);if(!w)return;
   const upd=()=>{E.updateStrip(o);if(disp)drawDisp()};let disp=null,drawDisp=null;
   const strip=()=>E.strips[o.id]&&E.strips[o.id].plugins[i];
@@ -28,7 +29,7 @@ function openPlugin(o,i){
     const tick=()=>{if(!WINS[o.id+':'+i])return;const inst=strip();if(inst&&inst.comp){gr.querySelector('i').style.width=Math.min(100,-inst.comp.reduction*5)+'%'}requestAnimationFrame(tick)};tick()}
   if(pl.type==='pitch')body.append(h('div',{style:{color:'var(--dim)',fontSize:'11px',maxWidth:'380px',margin:'0 auto 8px',textAlign:'center'}},'Vitesse 0 ms = effet robot « autotune » marqué. 30-60 ms = correction naturelle. Réglez la tonalité de l’instru (bouton en haut : Tonalité du projet).'),
     h('div',{class:'row'},h('button',{onclick:()=>{snapshot();pl.params.key=P.key;pl.params.scale=P.scaleIdx;closeAllPlugins();upd();openPlugin(o,i)}},'Prendre la tonalité du projet ('+NOTE_NAMES[P.key]+' '+Object.keys(SCALES)[P.scaleIdx]+')')));
-  const ks=h('div',{class:'knobs'});for(const d of def.params)ks.append(knob(d,()=>pl.params[d.id],v=>{pl.params[d.id]=v;upd()},{key:'p|'+o.id+'|'+i+'|'+d.id,w:d.opts?110:64}));
+  const ks=h('div',{class:'knobs'});for(const d of def.params.filter(x=>!x.hidden))ks.append(knob(d,()=>pl.params[d.id],v=>{pl.params[d.id]=v;upd()},{key:'p|'+o.id+'|'+i+'|'+d.id,w:d.opts?110:64}));
   body.append(ks,h('div',{class:'row'},h('button',{class:pl.byp?'':'on',onclick:e=>{snapshot();pl.byp=!pl.byp;e.target.classList.toggle('on',!pl.byp);e.target.textContent=pl.byp?'Contourné':'Actif';E.updateStrip(o);rerenderStrips()}},pl.byp?'Contourné':'Actif'),
     h('button',{onclick:()=>{snapshot();pl.params=Object.assign(defaultParams(pl.type),pl.type==='pitch'?{key:P.key,scale:P.scaleIdx}:{});closeAllPlugins();upd();openPlugin(o,i)}},'Réinitialiser'),
     h('span',{style:{color:'var(--dim)',fontSize:'10px'}},'Double-clic = valeur par défaut · Maj = réglage fin · clic droit = MIDI Learn')));

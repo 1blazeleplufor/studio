@@ -30,7 +30,7 @@ async def main():
         print('dbltap opened tab',await m.evaluate("TAB"))
         await m.screenshot(path=f'/home/claude/test/{name}_steps.png')
         await m.evaluate("$('#bInsp').click()");await m.wait_for_timeout(300);await m.screenshot(path=f'/home/claude/test/{name}_insp.png')
-        await m.evaluate("openPlugin(P.tracks[4],1)");await m.wait_for_timeout(300);await m.screenshot(path=f'/home/claude/test/{name}_plug.png')
+        await m.evaluate("P.tracks[4].plugins.push(plug('tunepro'));E.updateStrip(P.tracks[4]);openPlugin(P.tracks[4],0)");await m.wait_for_timeout(300);await m.screenshot(path=f'/home/claude/test/{name}_plug.png')
       await ctxm.close()
     print('ERR',errs[:20])
     await b.close()

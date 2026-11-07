@@ -194,3 +194,54 @@ Object.assign(PLUGINS,{
   create(ctx){const g=ctx.createGain(),lfo=ctx.createOscillator(),d=ctx.createGain();lfo.connect(d);d.connect(g.gain);lfo.start();
    return{input:g,output:g,dispose(){try{lfo.stop()}catch(e){}},set(p){lfo.frequency.value=p.rate;d.gain.value=p.depth/200;g.gain.value=1-p.depth/200}}}},
 });
+// ===== v2.5 : Réverb Pro « Ères » et Pitch Pro =====
+const VERB_MODES=['Grand hall','Hall brillant','Plaque','Pièce','Chambre','Espace aléatoire','Espace chorus','Ambiance','Cathédrale','Hall sale','Plaque sale','Plaque douce','Pièce douce','Non-linéaire (gated)'];
+const VERB_MODE_TXT=['Grand espace riche, idéal pour les voix chantées et les nappes.','Hall avec plus d’aigus, très présent sur les voix pop.','Son dense et lisse des plaques de studio : LA réverb des voix rap.','Petite pièce réaliste, pour épaissir sans noyer.','Chambre d’écho : chaleureuse et naturelle.','Hall à modulation aléatoire : large, mouvant, sans effet de chorus.','Hall très modulé : effet chorus spatial, magique sur les leads et les pads.','Ambiance très courte : donne de l’air et de la profondeur sans queue.','Immense espace, decays très longs.','Hall saturé, granuleux, façon vieux matériel.','Plaque saturée, grain lo-fi.','Plaque adoucie, moins de brillance, très musicale.','Pièce douce et diffuse.','Réverb coupée net (gated) : effet années 80 sur caisse claire ou voix.'];
+const VERB_PRESETS={
+ 'Voix rap – plaque courte':{mode:2,color:1,mix:22,pre:15,decay:1.1,size:45,attack:20,ed:70,ld:75,mrate:.6,mdepth:25,hicut:7000,locut:250,bmult:.8,bx:400,hshelf:-6,hfreq:4500},
+ 'Voix chantée – hall 80s':{mode:1,color:1,mix:25,pre:30,decay:2.8,size:75,attack:45,ed:65,ld:70,mrate:.5,mdepth:35,hicut:9000,locut:200,bmult:1,bx:500,hshelf:-4,hfreq:6000},
+ 'Voix autotune – espace aérien':{mode:5,color:2,mix:28,pre:40,decay:4,size:85,attack:55,ed:60,ld:80,mrate:.4,mdepth:45,hicut:10000,locut:250,bmult:.9,bx:500,hshelf:-5,hfreq:6000},
+ 'Ambiance serrée':{mode:7,color:2,mix:18,pre:5,decay:.6,size:40,attack:10,ed:80,ld:60,mdepth:15,hicut:11000,locut:150,bmult:1,hshelf:-3,hfreq:7000},
+ 'Grande salle':{mode:0,color:2,mix:30,pre:25,decay:3.5,size:85,attack:50,ed:60,ld:70,mdepth:30,hicut:9000,locut:120,bmult:1.3,bx:500,hshelf:-6,hfreq:5000},
+ 'Cathédrale infinie':{mode:8,color:2,mix:35,pre:60,decay:14,size:100,attack:70,ed:60,ld:85,mrate:.3,mdepth:50,hicut:7000,locut:150,bmult:1.4,bx:600,hshelf:-8,hfreq:4000},
+ 'Chorus spatial (lead, pad)':{mode:6,color:2,mix:35,pre:20,decay:2.5,size:70,attack:40,ed:55,ld:70,mrate:.8,mdepth:70,hicut:9000,locut:200,bmult:1,hshelf:-5,hfreq:5500},
+ 'Plaque sale lo-fi':{mode:10,color:0,mix:30,pre:10,decay:1.8,size:55,attack:25,ed:70,ld:70,mdepth:35,hicut:6000,locut:300,bmult:.9,hshelf:-8,hfreq:3500},
+ 'Pièce douce':{mode:12,color:2,mix:20,pre:8,decay:.9,size:50,attack:30,ed:75,ld:70,mdepth:20,hicut:8000,locut:180,bmult:1,hshelf:-6,hfreq:4500},
+ 'Caisse claire gated':{mode:13,color:1,mix:35,pre:0,decay:1,size:60,attack:0,ed:80,ld:80,mdepth:10,hicut:10000,locut:200,bmult:1,hshelf:-2,hfreq:8000},
+ 'Vintage 70s chambre':{mode:4,color:0,mix:28,pre:20,decay:1.6,size:60,attack:35,ed:65,ld:65,mrate:.7,mdepth:35,hicut:7500,locut:150,bmult:1.2,hshelf:-7,hfreq:4000},
+};
+const TUNE_INPUTS=['Soprano','Alto / Ténor','Voix grave (homme)','Instrument','Basse'];
+function scaleNotes(key,scaleIdx){const sc=SCALES[Object.keys(SCALES)[scaleIdx|0]]||SCALES['Chromatique'],a=new Array(12).fill(2);for(const s of sc)a[(key+s)%12]=0;return a}
+function tuneParams(p){return Object.assign({},p,{notes:Array.isArray(p.notes)?p.notes:scaleNotes(p.key|0,p.scale|0)})}
+const TUNE_PRESETS={
+ 'Robot trap (dur)':{retune:0,humanize:0,flex:0,vibrato:0,classic:1,formant:1},
+ 'Rap mélodique':{retune:12,humanize:15,flex:10,vibrato:0,classic:0,formant:1},
+ 'Chant pop naturel':{retune:35,humanize:40,flex:35,vibrato:0,classic:0,formant:1},
+ 'Correction discrète':{retune:80,humanize:60,flex:60,vibrato:0,classic:0,formant:1},
+ 'Vibrato renforcé':{retune:20,humanize:30,flex:20,vibrato:60,classic:0,formant:1},
+ 'Voix grave (−5)':{retune:20,transpose:-5,formant:1,throat:110},
+ 'Voix aiguë (+5)':{retune:20,transpose:5,formant:1,throat:92},
+};
+Object.assign(PLUGINS,{
+ verbpro:{name:'Réverb Pro « Ères »',cat:'Espace',presets:VERB_PRESETS,params:[
+  {id:'mode',n:'Mode',opts:VERB_MODES,def:2},{id:'color',n:'Couleur',opts:['Années 70','Années 80','Moderne'],def:1},
+  {id:'mix',n:'Mix',min:0,max:100,def:30,u:'%'},{id:'pre',n:'Pré-délai',min:0,max:500,def:20,u:'ms'},{id:'decay',n:'Decay',min:.2,max:70,def:2.5,u:'s',log:1},
+  {id:'size',n:'Taille',min:0,max:100,def:70,u:'%'},{id:'attack',n:'Attaque',min:0,max:100,def:40,u:'%'},
+  {id:'ed',n:'Diffusion early',min:0,max:100,def:60,u:'%'},{id:'ld',n:'Diffusion late',min:0,max:100,def:70,u:'%'},
+  {id:'mrate',n:'Mod. vitesse',min:.01,max:10,def:.5,u:'Hz',log:1},{id:'mdepth',n:'Mod. profondeur',min:0,max:100,def:30,u:'%'},
+  {id:'hicut',n:'Coupe-haut',min:200,max:20000,def:9000,u:'Hz',log:1},{id:'locut',n:'Coupe-bas',min:10,max:2000,def:120,u:'Hz',log:1},
+  {id:'bmult',n:'Mult. basses',min:.25,max:4,def:1.2,u:'x',log:1},{id:'bx',n:'Fréq. basses',min:100,max:4000,def:500,u:'Hz',log:1},
+  {id:'hshelf',n:'Atténuation aigus',min:-24,max:0,def:-6,u:'dB'},{id:'hfreq',n:'Fréq. aigus',min:200,max:20000,def:5000,u:'Hz',log:1}],
+  create(ctx,P){const n=new AudioWorkletNode(ctx,'verb-proc',{numberOfInputs:1,outputChannelCount:[2],processorOptions:{params:Object.assign({},P||{})}});
+   return{input:n,output:n,set(p){n.port.postMessage(Object.assign({},p))}}}},
+ tunepro:{name:'Pitch Pro (autotune avancé)',cat:'Voix',presets:TUNE_PRESETS,latency:sr=>Math.round(.05*sr)/sr,params:[
+  {id:'input',n:'Type de voix',opts:TUNE_INPUTS,def:1},{id:'tracking',n:'Tracking',min:0,max:100,def:50},
+  {id:'key',n:'Tonalité',opts:NOTE_NAMES,def:0},{id:'scale',n:'Gamme',opts:Object.keys(SCALES),def:0},
+  {id:'retune',n:'Vitesse de correction',min:0,max:400,def:20,u:'ms'},{id:'humanize',n:'Humanize',min:0,max:100,def:0},
+  {id:'flex',n:'Flex-Tune',min:0,max:100,def:0},{id:'vibrato',n:'Vibrato naturel',min:-100,max:100,def:0,u:'%'},
+  {id:'transpose',n:'Transposer',min:-24,max:24,def:0,u:'dt',step:1},{id:'detune',n:'Désaccord',min:-100,max:100,def:0,u:'ct',step:1},
+  {id:'formant',n:'Formants',opts:['Non','Oui'],def:1},{id:'throat',n:'Gorge',min:50,max:150,def:100,u:'%'},
+  {id:'mix',n:'Mix',min:0,max:100,def:100,u:'%'},{id:'classic',n:'Mode classique',opts:['Non','Oui'],def:0},{id:'notes',hidden:1,def:null}],
+  create(ctx,P){P=P||{};const n=new AudioWorkletNode(ctx,'tunepro-proc',{numberOfInputs:1,outputChannelCount:[2],processorOptions:{params:tuneParams(P)}});
+   const inst={input:n,output:n,graph:[],set(p){n.port.postMessage(tuneParams(p))}};n.port.onmessage=e=>{inst.graph.push(e.data);if(inst.graph.length>1200)inst.graph.splice(0,200)};return inst}},
+});

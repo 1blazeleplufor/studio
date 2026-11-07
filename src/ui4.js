@@ -23,7 +23,7 @@ function bindUI(){
   $('#bpm').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')e.target.blur()});
   $('#keySel').append(...NOTE_NAMES.map(n=>h('option',null,n)));$('#scaleSel').append(...Object.keys(SCALES).map(n=>h('option',null,n)));
   const keyCh=()=>{snapshot();P.key=$('#keySel').selectedIndex;P.scaleIdx=$('#scaleSel').selectedIndex;let n=0;
-    for(const o of [...P.tracks,...P.auxes])o.plugins.forEach(pl=>{if(pl.type==='pitch'){pl.params.key=P.key;pl.params.scale=P.scaleIdx;n++}});E.updateAll();if(n)toast('Autotune réglé sur '+NOTE_NAMES[P.key]+' '+Object.keys(SCALES)[P.scaleIdx]+' ('+n+' piste'+(n>1?'s':'')+')')};
+    for(const o of [...P.tracks,...P.auxes])o.plugins.forEach(pl=>{if(pl.type==='pitch'||pl.type==='tunepro'){pl.params.key=P.key;pl.params.scale=P.scaleIdx;if(pl.type==='tunepro')pl.params.notes=null;n++}});E.updateAll();if(n)toast('Autotune réglé sur '+NOTE_NAMES[P.key]+' '+Object.keys(SCALES)[P.scaleIdx]+' ('+n+' piste'+(n>1?'s':'')+')')};
   $('#keySel').addEventListener('change',keyCh);$('#scaleSel').addEventListener('change',keyCh);
   $('#sigSel').addEventListener('change',e=>{snapshot();P.sig=+e.target.value;renderLanes()});
   document.querySelectorAll('#btabs [data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));

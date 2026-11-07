@@ -37,6 +37,7 @@ class Engine{
       prev.connect(inst.input);prev=inst.output;
     }
     prev.connect(s.fader);
+    s.latency=(obj.plugins||[]).reduce((a,pl)=>a+(!pl.byp&&PLUGINS[pl.type]&&PLUGINS[pl.type].latency?PLUGINS[pl.type].latency(this.ctx.sampleRate):0),0);
     s.sig=(obj.plugins||[]).map(p=>p.type+(p.byp?'b':'')).join(',');
   }
   build(project){
@@ -67,15 +68,15 @@ class Engine{
   // ---- lecture ----
   spb(){return 60/this.project.bpm}
   scheduleWindow(a,b,t0,fresh,stopCtx,metro){
-    const p=this.project,spb=this.spb(),c=this.ctx,T=x=>t0+(x-a)*spb;
+    const p=this.project,spb=this.spb(),c=this.ctx,minT=this.live?c.currentTime+.003:0;
     for(const tr of p.tracks){
-      const s=this.strips[tr.id];if(!s)continue;const dest=s.playIn;
+      const s=this.strips[tr.id];if(!s)continue;const dest=s.playIn,lat=s.latency||0,T=x=>t0+(x-a)*spb-lat,stopC=stopCtx-lat;
       for(const r of tr.regions){if(r.mute)continue;
         if(tr.type==='audio'){
           const buf=BUFS[r.buf];if(!buf)continue;const rs=r.start,re=rs+r.dur/spb;let st=null,off=r.offset;
           if(rs>=a&&rs<b)st=T(rs);else if(fresh&&rs<a&&re>a){st=T(a);off=r.offset+(a-rs)*spb}
           if(st===null)continue;
-          let end=T(re);if(fresh&&rs<a)end=st+(re-a)*spb;end=Math.min(end,stopCtx);if(end<=st+.002)continue;
+          let end=T(re);if(fresh&&rs<a)end=st+(re-a)*spb;end=Math.min(end,stopC);if(st<minT){off+=minT-st;st=minT}if(end<=st+.002)continue;
           const src=c.createBufferSource(),g=c.createGain();src.buffer=buf;src.connect(g);g.connect(dest);
           const G=r.gain!=null?dbToG(r.gain):1,fromStart=off<=r.offset+1e-4,toEnd=end>=T(re)-1e-4,span=end-st;
           const fi=Math.min(fromStart?Math.max(.005,r.fi||0):.005,span/2),fo=Math.min(toEnd?Math.max(.005,r.fo||0):.005,span/2);
@@ -84,7 +85,7 @@ class Engine{
         }else if(tr.type==='synth'){
           const re=r.start+r.len;
           for(const n of r.notes){const ab=r.start+n.s;if(n.s>=r.len||ab<a||ab>=b)continue;
-            const st=T(ab);let e=T(Math.min(ab+n.l,re));e=Math.min(e,stopCtx);
+            const st=Math.max(minT,T(ab));let e=T(Math.min(ab+n.l,re));e=Math.min(e,stopC);if(e<=st)continue;
             const v=synthVoice(c,dest,st,n.p,n.v??.8,tr.instr,s.st);v.release(e);s.st.lastEnd=e;}
         }else if(tr.type==='drums'){
           const pat=r.pat,N=pat.steps,re=r.start+r.len,lo=Math.max(a,r.start),hi=Math.min(b,re);if(lo>=hi)continue;
@@ -92,12 +93,12 @@ class Engine{
           for(;;k++){const pos=r.start+k*.25;if(pos>=hi)break;if(pos<lo)continue;const si=k%N;
             const sw=(k%2===1)?(tr.instr.swing||0)*.25*spb:0;
             for(const [row] of DRUM_ROWS){const cell=pat.rows[row]&&pat.rows[row][si];if(!cell)continue;
-              const rr=cell.r||1;for(let j=0;j<rr;j++){const tt=T(pos)+sw+j*.25*spb/rr;if(tt>=stopCtx)break;drumHit(c,dest,row,tt,(cell.v||.8)*(j?.75:1),tr.instr,s.st)}}
+              const rr=cell.r||1;for(let j=0;j<rr;j++){const tt=Math.max(minT,T(pos)+sw+j*.25*spb/rr);if(tt>=stopC)break;drumHit(c,dest,row,tt,(cell.v||.8)*(j?.75:1),tr.instr,s.st)}}
           }
         }
       }
     }
-    if(metro){const sig=p.sig||4;for(let x=Math.ceil(a-1e-9);x<b;x++){this.click(T(x),((x%sig)+sig)%sig===0)}}
+    if(metro){const sig=p.sig||4,Tm=x=>t0+(x-a)*spb;for(let x=Math.ceil(a-1e-9);x<b;x++){this.click(Tm(x),((x%sig)+sig)%sig===0)}}
   }
   click(t,acc){const c=this.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.value=acc?1760:1100;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.35,t+.001);g.gain.exponentialRampToValueAtTime(.001,t+.06);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.08)}
   play(fromBeat,opt={}){

@@ -21,7 +21,7 @@ function findRegion(id){for(const t of P.tracks){const r=t.regions.find(r=>r.id=
 const spb=()=>60/P.bpm;
 function rLen(t,r){return t.type==='audio'?r.dur/spb():r.len}
 function snapB(b,s){s=s===undefined?P.settings.snap:s;return s?Math.round(b/s)*s:b}
-function plug(type,over){const p=defaultParams(type);if(type==='pitch'){p.key=P?P.key:0;p.scale=P?P.scaleIdx:0}return{type,params:Object.assign(p,over||{}),byp:false}}
+function plug(type,over){const p=defaultParams(type);if(type==='pitch'||type==='tunepro'){p.key=P?P.key:0;p.scale=P?P.scaleIdx:0}return{type,params:Object.assign(p,over||{}),byp:false}}
 function emptyPat(n){const rows={};for(const [r] of DRUM_ROWS)rows[r]=new Array(n).fill(0);return{steps:n,rows}}
 function newTrack(type,name,extra){
   const n=P.tracks.length,t={id:uid('t'),type,name,color:COLORS[n%COLORS.length],vol:0,pan:0,mute:false,solo:false,arm:false,mon:false,plugins:[],sends:P.auxes.map(()=>-60),regions:[]};
@@ -54,7 +54,7 @@ const VOCAL_PRESETS={
 function applyVocalPreset(t,name){snapshot();const v=VOCAL_PRESETS[name];t.plugins=v.pl.map(([ty,o])=>plug(ty,o));t.sends=P.auxes.map((a,i)=>v.sends[i]??-60);t.preset=name;closeAllPlugins();E.updateStrip(t);renderAll();toast('Préréglage « '+name+' » appliqué')}
 function newProject(demo){
   P={name:'Mon morceau',bpm:140,sig:4,key:0,scaleIdx:0,tracks:[],auxes:[],master:{id:'master',name:'Sortie stéréo',vol:0,pan:0,plugins:[]},cycle:{on:false,start:0,end:16},settings:{snap:.25,latencyMs:0,countIn:1,metro:true,metroPlay:false,inputDev:''},midiMap:{},ext:{}};
-  P.auxes=[{id:'aux1',name:'Bus Réverb',color:'#5e5ce6',vol:0,pan:0,mute:false,plugins:[plug('eq',{hp:250,lp:12000}),plug('reverb',{mix:100,size:2.2,pre:25})]},
+  P.auxes=[{id:'aux1',name:'Bus Réverb',color:'#5e5ce6',vol:0,pan:0,mute:false,plugins:[plug('eq',{hp:200,lp:14000}),plug('verbpro',Object.assign({},VERB_PRESETS['Voix chantée – hall 80s'],{mix:100}))]},
            {id:'aux2',name:'Bus Délai',color:'#5e5ce6',vol:0,pan:0,mute:false,plugins:[plug('delay',{mix:100,sync:6,fb:30,lp:4500}),plug('eq',{hp:300})]}];
   P.master.plugins=[plug('limiter',{gain:0,ceil:-1})];
   if(!demo){P.tracks.push(newTrack('audio','Voix 1'));return}

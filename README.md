@@ -6,6 +6,7 @@ Fonctionne hors ligne et s'installe comme une appli (iPhone, iPad, Android, Mac,
 **Ouvrir l'appli : https://1blazeleplufor.github.io/studio/**
 
 ## Versions
+- **v3.1** : Réverb Pro « Ères » (14 modes, couleurs 70s/80s/moderne, réglages complets, préréglages) et Pitch Pro (autotune avancé : graphique de hauteur, humanize, flex-tune, vibrato, formants, éditeur de notes), compensation automatique de latence.
 - **v3.0** : 👥 session à plusieurs (essai, entre fenêtres du même navigateur) avec 🔒 cadenas sur les pistes, bus, sortie et tempo/tonalité ; Ctrl+Z n’annule que vos propres actions.
 - **v2.4** : la tête de lecture se déplace à la souris aussi pendant la lecture (règle ou ligne blanche), la lecture suit en direct.
 - **v2.3** : barre du haut compacte (Fichier à gauche, mixeur/piano/batterie à droite, flèche de sauvegarde verte/orange), mixeur ouvert au démarrage, sections repliables, instru sur sa propre piste, zoom haute définition jusqu'à l'échantillon, palette de couleurs des pistes.
