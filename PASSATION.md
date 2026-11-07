@@ -12,7 +12,7 @@
 |---|---|
 | **Appli en ligne** | https://1blazeleplufor.github.io/studio/ |
 | **Dépôt** | `github.com/1blazeleplufor/studio` (public, GitHub Pages sur `main`, dossier racine) |
-| **Version** | 3.7 (`APP_VERSION` dans `src/ui6.js`) |
+| **Version** | 3.7.1 (`APP_VERSION` dans `src/ui6.js`) |
 | **Utilisateur** | Francophone, débutant en MAO mais à l’aise avec les logiciels, fait du rap/trap (références : Timar, Leto, Djadja & Dinaz, Bouss). Travaille surtout sur **Mac**, veut aussi téléphone/tablette/Windows/Android. |
 | **Langue de l’UI** | Français partout. |
 | **Stack** | HTML/CSS/JS **vanilla** (aucun framework, aucune dépendance npm), Web Audio API + AudioWorklet, PWA (manifest + service worker), IndexedDB. |
@@ -265,6 +265,7 @@ Tests : `tests/t17.py` (avec `LIMIT=400000 node tests/mock_supabase.js 8790`, mo
 - Barre d’outils `#arrtools` : `fitTools()` cache ce qui dépasse dans le menu « ⋯ ».
 - `Element.prototype.append/prepend` ignorent `false`/`null` (évite le texte « false » des `cond&&h(...)`).
 - Tests : `tests/t19.py`.
+- v3.7.1 : paroles à droite par défaut (comme Logic) ; `studio_ui.v2` force une fois le passage à droite pour ceux qui avaient l’ancienne valeur.
 
 ### Prochaines étapes
 - v3.4 : curseurs/sélections des autres, notifications, plugins externes partagés avec confirmation, appel vocal (WebRTC + TURN).

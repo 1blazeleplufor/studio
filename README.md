@@ -8,6 +8,7 @@ Fonctionne hors ligne et s'installe comme une appli (iPhone, iPad, Android, Mac,
 **Plugins AU/VST3 de l'ordinateur** : voir [bridge/LISEZ-MOI.md](bridge/LISEZ-MOI.md).
 
 ## Versions
+- **v3.7.1** : le panneau des paroles s’ouvre à droite, comme dans Logic.
 - **v3.7** : 📝 paroles (projet + par piste, à gauche comme Logic, écriture à plusieurs), 🎤 prompteur, 🎙 prises multiples, panneaux redimensionnables / déplaçables / détachables, 🖥 dispositions 1-2-3, 🎯 mode focus, raccourcis L/T/N/F, notes par piste toujours visibles, correctifs chat et bouton 📌.
 - **v3.6** : défilement automatique de la timeline (en glissant et pendant la lecture), roue de couleurs + pipette, préréglages « Style ZZ », notes et marqueurs de structure (aussi hors session), messages vocaux dans le chat, panneau redimensionnable gauche/droite, fenêtres détachables (2ᵉ écran) avec disposition mémorisée.
 - **v3.5** : 🔌 Bibliothèque de plugins (touche Y) + **Studio Bridge** (dossier `bridge/`) pour ouvrir les plugins AU/VST3 de l'ordinateur directement depuis Studio (latence compensée, réglages mémorisés, export en temps réel).

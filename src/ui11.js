@@ -2,9 +2,11 @@
 // dispositions enregistrées, raccourcis, menu « ⋯ », notes dans la règle, prises multiples =====
 // Seules deux zones sont fixes : les pistes (#lanesWrap) et leurs noms (#heads). Le reste s'ouvre, se ferme, se redimensionne,
 // s'accroche à gauche / à droite (/ en bas pour les paroles) ou se détache dans une fenêtre.
-const UI=(()=>{const d={insp:{open:true,w:236,side:'left'},lyr:{open:false,w:340,side:'left',where:'side',font:16,tab:'proj'},focus:false,prompt:true};
-  try{const o=JSON.parse(localStorage.getItem('studio_ui')||'{}');for(const k of ['insp','lyr'])Object.assign(d[k],o[k]||{});if(o.prompt===false)d.prompt=false}catch(e){}return d})();
-const saveUI=()=>{try{localStorage.setItem('studio_ui',JSON.stringify({insp:UI.insp,lyr:UI.lyr,prompt:UI.prompt}))}catch(e){}};
+const UI=(()=>{const d={insp:{open:true,w:236,side:'left'},lyr:{open:false,w:340,side:'right',where:'side',font:16,tab:'proj'},focus:false,prompt:true};
+  try{const o=JSON.parse(localStorage.getItem('studio_ui')||'{}');for(const k of ['insp','lyr'])Object.assign(d[k],o[k]||{});if(o.prompt===false)d.prompt=false;
+    if(!o.v2){d.lyr.side='right'} // v3.7.1 : les paroles passent à droite, comme dans Logic
+  }catch(e){}return d})();
+const saveUI=()=>{try{localStorage.setItem('studio_ui',JSON.stringify({insp:UI.insp,lyr:UI.lyr,prompt:UI.prompt,v2:1}))}catch(e){}};
 const PANEL_NAMES={insp:'ⓘ Inspecteur',lyr:'📝 Paroles',chat:'💬 Chat · notes'};
 
 // ---------- panneaux latéraux dans #main (grille calculée) ----------
@@ -156,8 +158,8 @@ document.addEventListener('contextmenu',e=>{if(!e.target.closest||!e.target.clos
 function toggleFocus(){UI.focus=!UI.focus;applyLayout();layoutPanel();toast(UI.focus?'🎯 Mode focus : seulement les pistes. F (ou Échap) pour tout réafficher.':'Mode focus désactivé',3000)}
 
 // ---------- 🖥 dispositions enregistrées (1, 2, 3) ----------
-const SCREEN_DEF={1:{n:'Écriture',insp:{open:false},lyr:{open:true,where:'side',side:'left',w:380},chat:{open:true,side:'right',tab:'chat'},bottom:{open:false}},
-  2:{n:'Enregistrement',insp:{open:true,side:'left'},lyr:{open:true,where:'side',side:'left',w:420,font:20},chat:{open:false},bottom:{open:false},prompt:true},
+const SCREEN_DEF={1:{n:'Écriture',insp:{open:false},lyr:{open:true,where:'side',side:'right',w:380},chat:{open:true,side:'right',tab:'chat'},bottom:{open:false}},
+  2:{n:'Enregistrement',insp:{open:true,side:'left'},lyr:{open:true,where:'side',side:'right',w:420,font:20},chat:{open:false},bottom:{open:false},prompt:true},
   3:{n:'Mix',insp:{open:true,side:'left'},lyr:{open:false},chat:{open:false},bottom:{open:true,tab:'mixer',h:.55}}};
 const SCREENS=()=>{const s=JSON.parse(JSON.stringify(SCREEN_DEF));try{Object.assign(s,JSON.parse(localStorage.getItem('studio_screens')||'{}'))}catch(e){}return s};
 function captureScreen(n){const B=$('#bottom');return{n,insp:Object.assign({},UI.insp),lyr:Object.assign({},UI.lyr),prompt:UI.prompt,chat:{open:C2.open,side:C2.side,w:C2.w,tab:C2.tab},
@@ -171,7 +173,7 @@ function applyScreen(i){const s=SCREENS()[i];if(!s)return;UI.focus=false;Object.
   if(UI.lyr.open&&UI.lyr.where==='bottom'){TAB=null;setTab('lyrics')}
   applyLayout();renderLyrics();renderInspector();layoutPanel();saveUI();toast('🖥 Disposition '+i+' · '+s.n,2200)}
 function resetLayout(){for(const k of Object.keys(DET.w))detachClose(k);try{['studio_ui','studio_cpanel','studio_layout'].forEach(k=>localStorage.removeItem(k))}catch(e){}
-  Object.assign(UI.insp,{open:true,w:236,side:'left'});Object.assign(UI.lyr,{open:false,w:340,side:'left',where:'side',font:16});UI.focus=false;C2.w=330;C2.side='right';
+  Object.assign(UI.insp,{open:true,w:236,side:'left'});Object.assign(UI.lyr,{open:false,w:340,side:'right',where:'side',font:16});UI.focus=false;C2.w=330;C2.side='right';
   document.documentElement.style.removeProperty('--bh');if(C2.open)closePanel();applyLayout();renderLyrics();renderInspector();toast('Disposition réinitialisée')}
 function screensModal(){const box=h('div'),m=modal(box);const draw=()=>{box.innerHTML='';const S=SCREENS();
   box.append(h('h2',null,'🖥 Dispositions et panneaux'),h('p',{style:{color:'var(--dim)'}},'Une disposition retient quels panneaux sont ouverts, leur côté et leur taille. Passez de l’une à l’autre avec les touches 1, 2, 3.'),
