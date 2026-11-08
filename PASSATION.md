@@ -12,7 +12,7 @@
 |---|---|
 | **Appli en ligne** | https://1blazeleplufor.github.io/studio/ |
 | **Dépôt** | `github.com/1blazeleplufor/studio` (public, GitHub Pages sur `main`, dossier racine) |
-| **Version** | 3.7.4 (`APP_VERSION` dans `src/ui6.js`) |
+| **Version** | 3.7.5 (`APP_VERSION` dans `src/ui6.js`) |
 | **Utilisateur** | Francophone, débutant en MAO mais à l’aise avec les logiciels, fait du rap/trap (références : Timar, Leto, Djadja & Dinaz, Bouss). Travaille surtout sur **Mac**, veut aussi téléphone/tablette/Windows/Android. |
 | **Langue de l’UI** | Français partout. |
 | **Stack** | HTML/CSS/JS **vanilla** (aucun framework, aucune dépendance npm), Web Audio API + AudioWorklet, PWA (manifest + service worker), IndexedDB. |
@@ -265,6 +265,7 @@ Tests : `tests/t17.py` (avec `LIMIT=400000 node tests/mock_supabase.js 8790`, mo
 - Barre d’outils `#arrtools` : `fitTools()` cache ce qui dépasse dans le menu « ⋯ ».
 - `Element.prototype.append/prepend` ignorent `false`/`null` (évite le texte « false » des `cond&&h(...)`).
 - Tests : `tests/t19.py`.
+- v3.7.5 : `ui12.js` test de latence : 4 + 10 clics à 100 BPM via `E.click`, capture par le même `rec-proc` qu’une prise (horodatage `currentFrame`), enveloppe 2 ms, attaque = premier passage du seuil (max(5×bruit, 22 % du pic)) dans [clic−60 ms, clic+550 ms], médiane → retard total ; conseil = total − (outputLatency+baseLatency+latence d’entrée). Validé en boucle simulée (150 → 150 ms, 230 → 230 ms, ±1 ms). **Le réglage reste par projet (`P.settings.latencyMs`) — l’utilisateur ne veut PAS d’un réglage global par défaut** (il a 200 ms dans « Mon morceau », trouvé à la main ; matériel : Windows, SteelSeries Sonar + Arctis Nova 5 sans fil).
 - v3.7.4 : accroche aux objets pour les régions (`edgeCands`/`magnet`/`showGuide` dans ui1, branchés dans `lanesPointer` d’ui2 pour déplacer et rogner) : tolérance 10 px, priorité sur la grille, ligne `.sguide` + losange `.sgdot` sur la piste cible ; Maj = désactivé.
 - v3.7.3 : `snapB` (ui1) utilise `gridStep()` : le pas du magnétisme est divisé par 2 tant qu’il fait ≥ 24 px à l’écran (zoom extrême = libre). `snapPH(b,e)` pour la tête de lecture (règle, glisser la ligne) : aimant 8 px sur débuts/fins de régions, marqueurs, cycle, 0 ; Alt = libre.
 - v3.7.2 : l’utilisateur ne comprend pas « mesure · temps » : positions en minutes/secondes (« 1m25 », `fmtMS`/`fmtBar` dans collab2.js), compteur `#lcdTime` en premier et toujours visible. La barre compacte (`body.cp-tight`) ne s’active que si l’appli devient étroite (panneau ouvert et moins de 1400 px restants) et cache alors `.cell.pos` (mesure), jamais les minutes. Repères de paroles `[1m25]` / `[1:25]` (les `[5]` = mesure 5 restent acceptés).
