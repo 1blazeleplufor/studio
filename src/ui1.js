@@ -20,7 +20,12 @@ function findObj(id){return id==='master'?P.master:P.tracks.find(t=>t.id===id)||
 function findRegion(id){for(const t of P.tracks){const r=t.regions.find(r=>r.id===id);if(r)return[t,r]}return null}
 const spb=()=>60/P.bpm;
 function rLen(t,r){return t.type==='audio'?r.dur/spb():r.len}
-function snapB(b,s){s=s===undefined?P.settings.snap:s;return s?Math.round(b/s)*s:b}
+function gridStep(){let s=P.settings.snap;if(!s)return 0;while(s*PPB>=24&&s>1/2048)s/=2;return s*PPB<1?0:s} // plus on zoome, plus c'est fin (zoom extrême = libre)
+function snapB(b,s){s=s===undefined?gridStep():s;return s?Math.round(b/s)*s:b}
+// tête de lecture : grille adaptée au zoom + aimant sur les débuts/fins de régions, marqueurs et cycle (8 px) ; Alt = placement libre
+function snapPH(b,e){if(e&&e.altKey)return Math.max(0,b);const tol=8/PPB;let best=null,bd=tol;const chk=x=>{const d=Math.abs(x-b);if(d<bd){bd=d;best=x}};
+  for(const t of P.tracks)for(const r of t.regions){chk(r.start);chk(r.start+rLen(t,r))}for(const m of P.marks||[])chk(m.beat);if(P.cycle.on){chk(P.cycle.start);chk(P.cycle.end)}chk(0);
+  return Math.max(0,best!=null?best:snapB(b))}
 function plug(type,over){const p=defaultParams(type);if(type==='pitch'||type==='tunepro'){p.key=P?P.key:0;p.scale=P?P.scaleIdx:0}return{type,params:Object.assign(p,over||{}),byp:false}}
 function emptyPat(n){const rows={};for(const [r] of DRUM_ROWS)rows[r]=new Array(n).fill(0);return{steps:n,rows}}
 function newTrack(type,name,extra){

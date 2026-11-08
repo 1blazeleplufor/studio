@@ -57,8 +57,8 @@ function rulerPointer(){const R=$('#ruler');let d=null;
   const beatAt=e=>(e.clientX-R.getBoundingClientRect().left+$('#lanesWrap').scrollLeft)/PPB;
   R.addEventListener('pointerdown',e=>{R.setPointerCapture(e.pointerId);const b=beatAt(e);
     if(e.offsetY<11){const s=Math.floor(b);d={cyc:true,s};P.cycle.start=s;P.cycle.end=s+1;P.cycle.on=true;renderBar();updateCycleShade();drawRuler()}
-    else{d={cyc:false};scrubTo(snapB(b),true)}});
-  R.addEventListener('pointermove',e=>{if(!d)return;const b=beatAt(e);if(d.cyc){const x=Math.round(b);P.cycle.start=Math.max(0,Math.min(d.s,x));P.cycle.end=Math.max(d.s+1,x,P.cycle.start+1);updateCycleShade();drawRuler()}else scrubTo(snapB(b))});
+    else{d={cyc:false};scrubTo(snapPH(b,e),true)}});
+  R.addEventListener('pointermove',e=>{if(!d)return;const b=beatAt(e);if(d.cyc){const x=Math.round(b);P.cycle.start=Math.max(0,Math.min(d.s,x));P.cycle.end=Math.max(d.s+1,x,P.cycle.start+1);updateCycleShade();drawRuler()}else scrubTo(snapPH(b,e))});
   R.addEventListener('pointerup',()=>{if(d&&!d.cyc)scrubEnd();d=null});R.addEventListener('pointercancel',()=>{if(d&&!d.cyc)scrubEnd();d=null})}
 // Déplacement de la tête de lecture, aussi pendant la lecture (la lecture suit en direct)
 let SCRUB=null,scrubT=0;
@@ -67,7 +67,7 @@ function scrubTo(b,now){b=Math.max(0,b);SCRUB=b;PH=b;updatePlayhead(b);lcd(b);dr
 function scrubEnd(){if(SCRUB==null)return;const b=SCRUB;SCRUB=null;if(E.playing&&!REC){E.stop();E.play(b)}PH=b;updatePlayhead(b);drawRuler()}
 function playheadDrag(){const ph=()=>$('#playhead');let on=false;
   document.addEventListener('pointerdown',e=>{if(e.target.id!=='playhead'||e.button)return;e.stopPropagation();e.preventDefault();on=true;e.target.setPointerCapture(e.pointerId)},true);
-  document.addEventListener('pointermove',e=>{if(!on)return;const L=$('#lanes').getBoundingClientRect();scrubTo(snapB((e.clientX-L.left)/PPB))},true);
+  document.addEventListener('pointermove',e=>{if(!on)return;const L=$('#lanes').getBoundingClientRect();scrubTo(snapPH((e.clientX-L.left)/PPB,e))},true);
   const up=()=>{if(on){on=false;scrubEnd()}};document.addEventListener('pointerup',up,true);document.addEventListener('pointercancel',up,true)}
 function onKey(e){
   const tg=e.target.tagName;if((tg==='INPUT'&&e.target.type!=='range')||tg==='SELECT'||tg==='TEXTAREA')return;
