@@ -83,12 +83,12 @@ function renderLyrics(){if(!P)return;
   el.append(phead('lyr',h('span',{class:'lyrfs'},h('button',{title:'Texte plus petit',onclick:()=>{UI.lyr.font=Math.max(11,fs-2);saveUI();renderLyrics()}},'A−'),h('button',{title:'Texte plus grand',onclick:()=>{UI.lyr.font=Math.min(40,fs+2);saveUI();renderLyrics()}},'A+'))));
   const sel=h('select',{class:'lyrsel',onchange:e=>{UI.lyr.tab=e.target.value;saveUI();renderLyrics()}},h('option',{value:'proj',selected:k==='proj'},'📄 Paroles du projet'),
     (P.tracks||[]).map(t=>h('option',{value:t.id,selected:k===t.id},tIco(t)+' '+t.name+((t.lyrics||'').trim()?' ✎':''))));
-  const ta=h('textarea',{class:'lyrtxt',spellcheck:true,readonly:locked||null,style:{fontSize:fs+'px'},placeholder:k==='proj'?'Toutes les paroles du morceau…\n\n[1] Intro\n[5] Couplet 1 : …\n[13] Refrain : …\n\nAstuce : [5] en début de ligne = mesure 5 (le prompteur suit la lecture).':'Paroles de cette piste (couplet, ad-libs, backs…)',
+  const ta=h('textarea',{class:'lyrtxt',spellcheck:true,readonly:locked||null,style:{fontSize:fs+'px'},placeholder:k==='proj'?'Toutes les paroles du morceau…\n\n[0m00] Intro\n[0m14] Couplet 1 : …\n[0m41] Refrain : …\n\nAstuce : [1m25] en début de ligne = à 1 min 25 (le prompteur suit la lecture). Bouton « [ ] Temps » pour l’ajouter.':'Paroles de cette piste (couplet, ad-libs, backs…)',
     onfocus:e=>{if(e.target.dataset.nosnap){delete e.target.dataset.nosnap;return}if(!locked)snapshot()},oninput:e=>{if(lyrLocked(k)){e.target.value=lyrGet(k);return lockToast(k,lockedByOther(k)||VIEW_LOCK)}lyrSet(k,e.target.value)},onkeydown:e=>e.stopPropagation()});
   ta.value=lyrGet(k);
   el.append(h('div',{class:'lyrbar'},sel,h('button',{title:'Afficher les paroles de la piste sélectionnée',onclick:()=>{const t=findTrack(SEL);if(t){UI.lyr.tab=t.id;saveUI();renderLyrics()}}},'↳ Piste sélectionnée')),
-    ta,h('div',{class:'lyrbar'},h('button',{title:'Insérer le repère de la mesure où est la tête de lecture',disabled:locked||null,onclick:()=>{const b='['+(Math.floor((E.playing?E.pos():PH)/P.sig)+1)+'] ',p=ta.selectionStart||0;
-        const ls=ta.value.lastIndexOf('\n',p-1)+1;snapshot();ta.value=ta.value.slice(0,ls)+b+ta.value.slice(ls);lyrSet(k,ta.value);ta.dataset.nosnap=1;ta.focus();ta.selectionStart=ta.selectionEnd=p+b.length}},'[ ] Mesure'),
+    ta,h('div',{class:'lyrbar'},h('button',{title:'Insérer le temps où est la tête de lecture (ex. [1m25])',disabled:locked||null,onclick:()=>{const b='['+fmtMS((E.playing?E.pos():PH)*spb())+'] ',p=ta.selectionStart||0;
+        const ls=ta.value.lastIndexOf('\n',p-1)+1;snapshot();ta.value=ta.value.slice(0,ls)+b+ta.value.slice(ls);lyrSet(k,ta.value);ta.dataset.nosnap=1;ta.focus();ta.selectionStart=ta.selectionEnd=p+b.length}},'[ ] Temps'),
       h('button',{title:'Afficher les paroles en grand (prompteur)',onclick:()=>showPrompter(true)},'🎤 Prompteur'),
       h('label',{class:'dim',title:'Afficher le prompteur automatiquement quand on enregistre'},h('input',{type:'checkbox',checked:UI.prompt,onchange:e=>{UI.prompt=e.target.checked;saveUI()}}),' auto à l’enregistrement')),
     locked&&h('div',{class:'dim',style:{padding:'0 10px 8px'}},COLLAB.viewer?'👁 Écoute seule : lecture seulement.':'🔒 Piste verrouillée par '+lockedByOther(k).n+' : lecture seulement.'));
@@ -110,12 +110,14 @@ function prompterSrc(){const armed=(P.tracks||[]).find(t=>t.arm&&(t.lyrics||'').
   const s=findTrack(SEL);if(s&&(s.lyrics||'').trim())return{txt:s.lyrics,src:s.name};if((P.lyrics||'').trim())return{txt:P.lyrics,src:'Projet'};
   const k=UI.lyr.tab;if(k!=='proj'&&(lyrGet(k)||'').trim())return{txt:lyrGet(k),src:(findTrack(k)||{}).name};return null}
 function showPrompter(manual){hidePrompter();const s=prompterSrc();if(!s){if(manual)toast('Écrivez d’abord des paroles (touche L)');return}
-  const lines=s.txt.split('\n').map(l=>{const m=/^\s*\[(\d+)\]\s*/.exec(l);return{bar:m?+m[1]:null,txt:m?l.slice(m[0].length):l}});
+  const lines=s.txt.split('\n').map(l=>{const m=/^\s*\[\s*(?:(\d+)\s*m\s*(\d{1,2})|(\d+):(\d{2})|(\d+))\s*\]\s*/.exec(l);if(!m)return{at:null,txt:l};
+    const at=m[5]!=null?(+m[5]-1)*P.sig:((+(m[1]||m[3]))*60+(+(m[2]||m[4])))/spb(); // [1m25] / [1:25] = temps ; [5] = mesure 5 (anciens repères)
+    return{at,txt:l.slice(m[0].length)}});
   const box=h('div',{class:'pbody',style:{fontSize:Math.round((UI.lyr.font||16)*1.9)+'px'}},lines.map((l,i)=>h('div',{class:'pl','data-i':i},l.txt||' ')));
   const el=h('div',{id:'prompter'},h('div',{class:'phd'},h('span',null,'🎤 '+s.src),h('div',{style:{flex:1}}),h('button',{title:'Plus petit',onclick:()=>{UI.lyr.font=Math.max(11,(UI.lyr.font||16)-2);saveUI();showPrompter(PROMPT&&PROMPT.manual)}},'A−'),
     h('button',{title:'Plus grand',onclick:()=>{UI.lyr.font=Math.min(40,(UI.lyr.font||16)+2);saveUI();showPrompter(PROMPT&&PROMPT.manual)}},'A+'),h('button',{title:'Fermer',onclick:hidePrompter},'✕')),box);
   document.body.append(el);let last=-1;
-  PROMPT={el,manual,t:setInterval(()=>{const pos=SCRUB!=null?SCRUB:E.playing?E.pos():PH,bar=Math.floor(Math.max(0,pos)/P.sig)+1;let cur=-1;lines.forEach((l,i)=>{if(l.bar!=null&&l.bar<=bar)cur=i});
+  PROMPT={el,manual,t:setInterval(()=>{const pos=SCRUB!=null?SCRUB:E.playing?E.pos():PH;let cur=-1;lines.forEach((l,i)=>{if(l.at!=null&&l.at<=pos+1e-6)cur=i});
     if(cur!==last){last=cur;box.querySelectorAll('.pl.cur').forEach(x=>x.classList.remove('cur'));const c=box.querySelector('.pl[data-i="'+cur+'"]');if(c){c.classList.add('cur');c.scrollIntoView({block:'center',behavior:'smooth'})}}},120)}}
 function hidePrompter(){if(!PROMPT)return;clearInterval(PROMPT.t);PROMPT.el.remove();PROMPT=null}
 {const o=toggleRecord;toggleRecord=async function(){const wasRec=!!REC;const r=await o.apply(this,arguments);if(!wasRec&&REC&&UI.prompt&&prompterSrc()&&!PROMPT)showPrompter(false);return r}}

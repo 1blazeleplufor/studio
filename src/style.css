@@ -145,7 +145,7 @@ select,input[type=text],input[type=number]{background:#161618;border:1px solid #
 #lcd .cell{white-space:nowrap}
 #lcd select{font-size:13px}
 #bar .sp{min-width:0}
-@media (max-width:1400px){#lcd .cell.tm{display:none}#bTyping,#bMidi,#bFile{padding:3px 6px}}
+@media (max-width:1400px){#lcd .cell.pos{display:none}#bTyping,#bMidi,#bFile{padding:3px 6px}}
 
 .reg,.knob canvas,#ruler,.step,.pt,#resizer,.fader{touch-action:none}
 #lanesWrap,#prScroll,#bcontent,#insp{touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
@@ -161,7 +161,7 @@ select,input[type=text],input[type=number]{background:#161618;border:1px solid #
  :root{--hdr:128px}
  #bar{overflow-x:auto;overflow-y:hidden;gap:6px;padding:0 6px}
  #bar>*{flex:none}#bar .sp{display:none}
- #lcd{gap:8px;padding:2px 8px}#lcd .cell.tm,#lcd .cell.sg{display:none}
+ #lcd{gap:8px;padding:2px 8px}#lcd .cell.pos,#lcd .cell.sg{display:none}
  #main,#main.noinsp{grid-template-columns:1fr}
  #insp{position:fixed;left:0;top:52px;bottom:0;width:280px;z-index:40;transform:translateX(-105%);transition:transform .2s;box-shadow:6px 0 24px rgba(0,0,0,.6)}
  #main.showinsp #insp{transform:none}
@@ -313,10 +313,10 @@ body.detached.det-bottom #bottom{height:100vh!important;border:none}
 body.detached.det-plug .pwin{position:static!important;width:100%;height:100vh;max-height:none;box-shadow:none;border:none;border-radius:0;overflow:auto}
 body:not(.detached).det-bottom #resizer{display:none}
 #cpanel{width:var(--cpw-real,330px)}
-body.cp-open #bTyping,body.cp-open #bMidi{display:none}
+body.cp-tight #bTyping,body.cp-tight #bMidi{display:none}
 /* panneau latéral ouvert à côté de l'appli : barre du haut plus compacte */
-body.cp-open #bar{gap:4px;padding:0 6px}body.cp-open #lcd .cell.tm,body.cp-open #bCount,body.cp-open #bStart{display:none}
-body.cp-open #scaleSel{max-width:76px}body.cp-open #keySel{max-width:46px}body.cp-open #lcd .cell{padding-left:5px;padding-right:5px}
+body.cp-tight #bar{gap:4px;padding:0 6px}body.cp-tight #lcd .cell.pos,body.cp-tight #bCount,body.cp-tight #bStart{display:none}
+body.cp-tight #scaleSel{max-width:76px}body.cp-tight #keySel{max-width:46px}body.cp-tight #lcd .cell{padding-left:5px;padding-right:5px}
 /* v3.7 : panneaux fluides, paroles, prompteur, focus, prises, notes dans la règle */
 #main{position:relative}
 #main>.pgrip{position:absolute;top:0;bottom:0;width:6px;cursor:ew-resize;z-index:30}#main>.pgrip:hover,#main>.pgrip.on{background:rgba(79,163,255,.45)}

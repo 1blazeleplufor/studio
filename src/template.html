@@ -19,8 +19,9 @@ Studio</title><style>/*CSS*/</style></head><body>
    <button id="bCycle" class="tbtn" title="Cycle / boucle (C)">🔁</button>
   </div>
   <div id="lcd">
-   <div class="cell"><span class="v" id="lcdPos">  1 1 1</span><span class="l">Mesure · temps</span></div>
-   <div class="cell tm"><span class="v" id="lcdTime">00:00.0</span><span class="l">Temps</span></div>
+   <div class="cell tm"><span class="v" id="lcdTime">0m00</span><span class="l">Minutes</span></div>
+   <div class="cell pos"><span class="v" id="lcdPos">  1 1 1</span><span class="l">Mesure · temps</span></div>
+   
    <div class="cell"><input id="bpm" type="number" min="40" max="250"><span class="l">BPM</span></div>
    <div class="cell sg"><select id="sigSel"><option value="3">3/4</option><option value="4">4/4</option><option value="6">6/8</option></select><span class="l">Mesure</span></div>
    <div class="cell"><span><select id="keySel"></select><select id="scaleSel"></select></span><span class="l">Tonalité</span></div>

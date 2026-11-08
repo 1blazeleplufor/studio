@@ -5,7 +5,8 @@ const C2={follow:true,clk:{},seenTP:new Set(),tpToast:0,unread:0,open:false,tab:
 try{C2.follow=localStorage.getItem('studio_follow')!=='0'}catch(e){}
 const CHAT=()=>COLLAB.doc&&COLLAB.doc.getArray('chat');
 const meUser=()=>({u:ME.id,n:ME.name||'?',c:ME.color});
-const fmtBar=b=>{const s=P?P.sig:4;return'mesure '+(Math.floor(b/s)+1)+(b%s>.01?' · temps '+(Math.floor(b%s)+1):'')};
+const fmtMS=sec=>{sec=Math.max(0,sec);const m=Math.floor(sec/60),s=Math.floor(sec%60);return m+'m'+String(s).padStart(2,'0')};
+const fmtBar=b=>'à '+fmtMS(b*60/(P?P.bpm:120)); // position dans le morceau en minutes/secondes (ex. « à 1m25 »)
 const hhmm=t=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 
 // ---------- 🎧 Écouter ensemble (horloges recalées par ping/pong) ----------
@@ -169,7 +170,7 @@ function openPanel(tab){C2.open=true;if(tab)C2.tab=tab;if(!panelTabs().some(t=>t
 function closePanel(){if(VOC.rec)vocStop(false);C2.open=false;const p=$('#cpanel');if(p)p.remove();if(typeof detachClose==='function')detachClose('chat');C2.hi=null;layoutPanel();renderPins()}
 function renderBadge(){const b=$('#collabBar .chatb');if(!b)return;const n=C2.unread;b.dataset.n=n>99?'99+':n||'';b.classList.toggle('has',n>0)}
 function layoutPanel(){const det=typeof isDetached==='function'&&isDetached('chat'),on=C2.open&&!!$('#cpanel')&&!det&&innerWidth-C2.w>=1080; // assez de place : l'appli se pousse à côté, sinon le panneau passe par-dessus
-  document.body.classList.toggle('cp-open',on);document.body.classList.toggle('cp-left',on&&C2.side==='left');document.documentElement.style.setProperty('--cpw',(on?C2.w:0)+'px');
+  document.body.classList.toggle('cp-open',on);document.body.classList.toggle('cp-tight',on&&innerWidth-C2.w<1400);document.body.classList.toggle('cp-left',on&&C2.side==='left');document.documentElement.style.setProperty('--cpw',(on?C2.w:0)+'px');
   const p=$('#cpanel');if(p){p.classList.toggle('left',C2.side==='left');p.classList.toggle('det',!!det);if(!det)p.style.width=Math.min(C2.w,innerWidth)+'px'}
   setTimeout(()=>{try{drawRuler();schedulePaint()}catch(e){}},0)}
 function panelResize(e){if(e.button)return;e.preventDefault();e.stopPropagation();const h0=e.currentTarget;h0.setPointerCapture(e.pointerId);const x0=e.clientX,w0=C2.w;

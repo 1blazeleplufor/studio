@@ -124,7 +124,7 @@ function onKey(e){
 }
 function onKeyUp(e){const k=e.key.toLowerCase();if(HELD[k]!==undefined){const t=findTrack(SEL);if(t)E.noteOff(t,HELD[k]);delete HELD[k]}}
 function lcd(pos){const b=Math.max(0,pos);const bar=Math.floor(b/P.sig)+1,beat=Math.floor(b%P.sig)+1,six=Math.floor((b%1)*4)+1,s=b*spb();
-  $('#lcdPos').textContent=`${String(bar).padStart(3,' ')} ${beat} ${six}`;$('#lcdTime').textContent=`${String(Math.floor(s/60)).padStart(2,'0')}:${(s%60).toFixed(1).padStart(4,'0')}`}
+  $('#lcdPos').textContent=`${String(bar).padStart(3,' ')} ${beat} ${six}`;$('#lcdTime').textContent=Math.floor(s/60)+'m'+String(Math.floor(s%60)).padStart(2,'0')}
 let lastRecDraw=0;
 function loop(){
   const pos=SCRUB!=null?SCRUB:E.playing?E.pos():PH;updatePlayhead(pos);lcd(pos);
