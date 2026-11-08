@@ -13,7 +13,7 @@ open(D+'/index.html','w').write(t.replace('<!--PWA-->',pwa))
 open(D+'/worklets.js','w').write(wk)
 shutil.copy('vendor/lame.min.js',D+'/lame.min.js')  # encodeur MP3 (LGPL), chargé à la demande
 shutil.copy('ecoute.html',D+'/ecoute.html')  # page d'écoute d'un bounce partagé
-VER='studio-v3.7.3'
+VER='studio-v3.7.4'
 open(D+'/sw.js','w').write("""const V='%s';const FILES=['./','./index.html','./worklets.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-maskable.png','./apple-touch-icon.png','./lame.min.js','./ecoute.html'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(FILES)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

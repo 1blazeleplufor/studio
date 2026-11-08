@@ -350,3 +350,5 @@ body.focus #bottom,body.focus #resizer,body.focus #cpanel,body.focus #library{di
 body.detached.det-insp #insp,body.detached.det-lyr #lyr,body.detached.det-library #library{position:static!important;display:flex;width:100%!important;height:100vh;border:none;box-shadow:none;transform:none!important}
 body.detached.det-insp #insp{display:block;overflow:auto}
 @media (max-width:1500px){body.collab #bTyping,body.collab #bMidi{display:none}}
+#lanes .sguide{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed #ffd60a;box-shadow:0 0 6px rgba(255,214,10,.7);z-index:8;pointer-events:none}
+#lanes .sgdot{position:absolute;width:9px;height:9px;margin:-5px 0 0 -5px;border:2px solid #ffd60a;background:#1b1b1d;transform:rotate(45deg);z-index:9;pointer-events:none}

@@ -22,6 +22,14 @@ const spb=()=>60/P.bpm;
 function rLen(t,r){return t.type==='audio'?r.dur/spb():r.len}
 function gridStep(){let s=P.settings.snap;if(!s)return 0;while(s*PPB>=24&&s>1/2048)s/=2;return s*PPB<1?0:s} // plus on zoome, plus c'est fin (zoom extrême = libre)
 function snapB(b,s){s=s===undefined?gridStep():s;return s?Math.round(b/s)*s:b}
+// accroche aux objets (comme AutoCAD) : en glissant une région, ses bords se collent aux bords des autres régions (toutes pistes),
+// aux marqueurs, à la tête de lecture et à la boucle, à moins de 10 px ; une ligne de projection montre l'alignement. Maj = sans accroche.
+function edgeCands(ex){const c=[{v:0},{v:PH,k:'ph'}];for(const t of P.tracks)for(const r of t.regions){if(ex.has(r.id))continue;c.push({v:r.start,t:t.id},{v:r.start+rLen(t,r),t:t.id})}
+  for(const m of P.marks||[])c.push({v:m.beat,k:'mk'});if(P.cycle.on)c.push({v:P.cycle.start},{v:P.cycle.end});return c}
+function magnet(edges,ex,e){if(e&&e.shiftKey)return null;const tol=10/PPB;let best=null;
+  for(const c of edgeCands(ex))for(const v of edges){const d=c.v-v;if(Math.abs(d)<tol&&(!best||Math.abs(d)<Math.abs(best.d)-1e-9))best={d,at:c.v,t:c.t}}return best}
+function showGuide(g){document.querySelectorAll('#lanes .sguide,#lanes .sgdot').forEach(x=>x.remove());if(!g)return;const L=$('#lanes');if(!L)return;
+  L.append(h('div',{class:'sguide',style:{left:g.at*PPB+'px'}}));if(g.t){const i=P.tracks.findIndex(t=>t.id===g.t);if(i>=0)L.append(h('div',{class:'sgdot',style:{left:g.at*PPB+'px',top:(i*TH+TH/2)+'px'}}))}}
 // tête de lecture : grille adaptée au zoom + aimant sur les débuts/fins de régions, marqueurs et cycle (8 px) ; Alt = placement libre
 function snapPH(b,e){if(e&&e.altKey)return Math.max(0,b);const tol=8/PPB;let best=null,bd=tol;const chk=x=>{const d=Math.abs(x-b);if(d<bd){bd=d;best=x}};
   for(const t of P.tracks)for(const r of t.regions){chk(r.start);chk(r.start+rLen(t,r))}for(const m of P.marks||[])chk(m.beat);if(P.cycle.on){chk(P.cycle.start);chk(P.cycle.end)}chk(0);

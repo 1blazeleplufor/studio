@@ -8,6 +8,7 @@ Fonctionne hors ligne et s'installe comme une appli (iPhone, iPad, Android, Mac,
 **Plugins AU/VST3 de l'ordinateur** : voir [bridge/LISEZ-MOI.md](bridge/LISEZ-MOI.md).
 
 ## Versions
+- **v3.7.4** : lignes de projection : en glissant/rognant une région, ses bords s’accrochent aux bords des régions des autres pistes, marqueurs, tête de lecture et boucle (Maj = sans accroche).
 - **v3.7.3** : tête de lecture précise selon le zoom, aimantée aux débuts/fins de régions, marqueurs et boucle ; Alt+clic = libre ; régions plus fines au zoom.
 - **v3.7.2** : temps en minutes et secondes partout (compteur « 1m25 » en haut, toujours affiché, même panneau ouvert ; notes et marqueurs « à 1m25 »), repères de paroles [1m25].
 - **v3.7.1** : le panneau des paroles s’ouvre à droite, comme dans Logic.

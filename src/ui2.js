@@ -144,19 +144,20 @@ function lanesPointer(){
     if(!drag.moved){if(Math.abs(e.clientX-drag.cx0)<3&&Math.abs(e.clientY-drag.y0)<3)return;drag.moved=true;snapshot();
       if(drag.alt&&drag.mode==='move'){for(const o of drag.orig){const c=deep(o.o);c.id=uid('r');o.t.regions.push(c);}}}
     const prim=drag.orig.find(o=>o.r.id===drag.id)||drag.orig[0];
-    if(drag.mode==='move'){const ns=Math.max(0,snapB(prim.o.start+dx)),d=ns-prim.o.start;
+    const ex=new Set(drag.orig.map(o=>o.r.id));
+    if(drag.mode==='move'){const raw=prim.o.start+dx,len=rLen(prim.t,prim.o),mg=magnet([raw,raw+len],ex,e);showGuide(mg);const ns=Math.max(0,mg?raw+mg.d:snapB(raw)),d=ns-prim.o.start;
       for(const o of drag.orig){o.r.start=Math.max(0,o.o.start+d);const el=document.querySelector(`.reg[data-r="${o.r.id}"]`);if(el)el.style.left=o.r.start*PPB+'px'}
       if(drag.orig.length===1){const rect=L.getBoundingClientRect(),ti=Math.floor((e.clientY-rect.top)/TH),nt=P.tracks[ti];
         if(nt&&nt!==prim.t&&nt.type===prim.t.type){prim.t.regions.splice(prim.t.regions.indexOf(prim.r),1);nt.regions.push(prim.r);prim.t=nt;selectTrack(nt.id);renderLanes()}}}
     else{const o=prim,r=o.r,t=o.t,sp=spb();
-      if(drag.mode==='r'){const end=snapB(o.o.start+rLen(t,o.o)+dx);let nl=Math.max(.25,end-r.start);
+      if(drag.mode==='r'){const rawE=o.o.start+rLen(t,o.o)+dx,mg=magnet([rawE],ex,e);showGuide(mg);const end=mg?rawE+mg.d:snapB(rawE);let nl=Math.max(.25,end-r.start);
         if(t.type==='audio'){r.dur=Math.min(nl*sp,BUFS[r.buf].duration-r.offset)}else r.len=nl}
-      else{let ns=snapB(o.o.start+dx);const endB=o.o.start+rLen(t,o.o);ns=Math.min(ns,endB-.25);
+      else{const rawS=o.o.start+dx,mg=magnet([rawS],ex,e);showGuide(mg);let ns=mg?rawS+mg.d:snapB(rawS);const endB=o.o.start+rLen(t,o.o);ns=Math.min(ns,endB-.25);
         if(t.type==='audio'){ns=Math.max(ns,o.o.start-o.o.offset/sp,0);const d=ns-o.o.start;r.start=ns;r.offset=o.o.offset+d*sp;r.dur=o.o.dur-d*sp}
         else{ns=Math.max(0,ns);const d=ns-o.o.start;r.start=ns;r.len=o.o.len-d;if(t.type==='synth')r.notes=o.o.notes.map(n=>Object.assign({},n,{s:n.s-d}));else r.phase=((o.o.phase||0)+Math.round(d/.25)%r.pat.steps+r.pat.steps*64)%r.pat.steps}}
       const el=document.querySelector(`.reg[data-r="${r.id}"]`);if(el){el.style.left=r.start*PPB+'px';el.style.width=rLen(t,r)*PPB+'px'}}
   });
-  L.addEventListener('pointerup',()=>{const mq=$('#marquee');if(mq)mq.remove();if(drag&&drag.mode==='box'){drag=null;renderInspector();return}if(drag&&drag.moved){renderLanes();if(TAB==='piano'||TAB==='steps')renderBottom()}drag=null});
+  L.addEventListener('pointerup',()=>{showGuide(null);const mq=$('#marquee');if(mq)mq.remove();if(drag&&drag.mode==='box'){drag=null;renderInspector();return}if(drag&&drag.moved){renderLanes();if(TAB==='piano'||TAB==='steps')renderBottom()}drag=null});
   L.addEventListener('dblclick',e=>laneDbl(e.clientX,e.clientY));
   function laneDbl(cx,cy){
     const tgt=document.elementFromPoint(cx,cy);if(!tgt)return;const reg=tgt.closest('.reg'),lane=tgt.closest('.lane');
