@@ -173,13 +173,18 @@ async function openProject(f){
     E.stop();P=j.project;P.midiMap=P.midiMap||{};P.ext=P.ext||{};UNDO=[];REDO=[];PH=0;SEL=P.tracks[0]&&P.tracks[0].id;SELR.clear();EDIT=null;afterLoad();DIRTY=false;toast('Projet ouvert : '+P.name)}
   catch(e){console.error(e);alert('Impossible d’ouvrir : '+e.message)}
 }
-async function exportMix(mode){
+async function exportMix(mode,fmt){fmt=fmt||'wav';
   if(E.playing)E.stop();const ends=P.tracks.flatMap(t=>t.regions.map(r=>r.start+rLen(t,r)));if(!ends.length)return toast('Rien à exporter');
   let a=0,b=Math.max(...ends);if(mode==='cycle'){if(!P.cycle.on)return toast('Activez le cycle (C) pour définir la zone');a=P.cycle.start;b=P.cycle.end}
-  const base=(P.name||'morceau').replace(/[^\w\- ]/g,'_');
-  const doOne=async(pr,name)=>{toast('Export en cours… ('+name+')',60000);const buf=await renderMix(pr,a,b);download(wavEncode(buf),name+'.wav')};
-  try{if(mode==='stems'){for(const t of P.tracks){const pr=deep(P);pr.tracks.forEach(x=>{x.solo=false;x.mute=x.id!==t.id});await doOne(pr,base+' - '+t.name)}}
-    else await doOne(P,base+(mode==='cycle'?' (cycle)':''));toast('Export terminé ✔ (dossier Téléchargements)')}
+  const base=(P.name||'morceau').replace(/[^\w\- ]/g,'_'),t0=performance.now();let where='dl';
+  const doOne=async(pr,name,i,n)=>{const tag=n>1?' '+i+'/'+n:'';toast('Export'+tag+' : calcul du son… ('+name+')',600000);const buf=await renderMix(pr,a,b);
+    let blob;if(fmt==='mp3')blob=await encodeMP3(buf,320,p=>toast('Export'+tag+' : MP3 '+Math.round(p*100)+' %',600000));else blob=wavEncode(buf);
+    where=await saveOut(blob,name+'.'+fmt)};
+  try{if(mode==='stems'){const ts=P.tracks.filter(t=>t.regions.length);let i=0;
+      // stem : on ne calcule que la piste visée (+ ses bus d'effets), pas tout le projet
+      for(const t of ts){const pr=deep(P);pr.tracks=pr.tracks.filter(x=>x.id===t.id);pr.tracks.forEach(x=>{x.solo=false;x.mute=false});await doOne(pr,base+' - '+t.name,++i,ts.length)}}
+    else await doOne(P,base+(mode==='cycle'?' (cycle)':''),1,1);
+    toast('Export terminé ✔ en '+Math.round((performance.now()-t0)/1000)+' s ('+(where==='dossier'?'dossier d’enregistrement / Exports':'dossier Téléchargements')+')',6000)}
   catch(e){console.error(e);toast('Erreur d’export : '+e.message,6000)}
 }
 const PLUGIN_TEMPLATE=`// Modèle de plugin externe pour Studio

@@ -32,6 +32,7 @@ class Engine{
     s.plugins=[];let prev=s.input;
     for(const pl of obj.plugins||[]){
       if(!PLUGINS[pl.type]){s.plugins.push(null);continue}
+      if(pl.byp&&!this.live){s.plugins.push(null);continue} // export : effet contourné = rien à calculer
       let inst;try{inst=PLUGINS[pl.type].create(this.ctx,pl.params,this.env());inst.set(pl.params)}catch(e){console.error(e);s.plugins.push(null);continue}
       s.plugins.push(inst);if(pl.byp)continue;
       prev.connect(inst.input);prev=inst.output;
@@ -173,9 +174,23 @@ class Engine{
 }
 function peakOf(d){let p=0;for(let i=0;i<d.length;i++){const a=Math.abs(d[i]);if(a>p)p=a}return p}
 function meterLevel(an){const d=an._buf||(an._buf=new Float32Array(an.fftSize));an.getFloatTimeDomainData(d);let p=0;for(let i=0;i<d.length;i++){const a=Math.abs(d[i]);if(a>p)p=a}return p}
+let RENDER_GATING=true,RENDER_NOAN=true,RENDER_SPANS=true; // v3.7.6 : export rapide (mettre false pour comparer)
 async function renderMix(project,from,to){
-  const sr=44100,spb=60/project.bpm,len=Math.ceil(((to-from)*spb+2.5)*sr);
+  const sr=44100,spb=60/project.bpm,len=Math.ceil(((to-from)*spb+2.5)*sr),dur=len/sr;
   const ctx=new OfflineAudioContext(2,len,sr),e=new Engine(ctx,false);await e.init();e.build(project);
+  if(RENDER_GATING){
+    // 1) pas de vumètres dans un export : un AnalyserNode oblige le navigateur à calculer toute la chaîne en permanence
+    if(RENDER_NOAN)for(const id in e.strips){const s=e.strips[id];try{s.mute.disconnect(s.an)}catch(err){}if(id==='master'){try{s.an.disconnect()}catch(err){}s.mute.connect(ctx.destination)}}
+    // 2) chaque piste n'est branchée que pendant ses passages (+ la queue de ses effets) : le reste du temps, ses effets ne calculent rien
+    const q=t=>Math.max(0,Math.round(t*sr/128)*128/sr),ev=new Map(),add=(t,f)=>{t=q(t);if(t<=0||t>=dur-.01)return;(ev.get(t)||ev.set(t,[]).get(t)).push(f)};
+    if(RENDER_SPANS)for(const t of project.tracks){const s=e.strips[t.id];if(!s)continue;
+             if((t.plugins||[]).some(p=>!p.byp&&(p.type==='chorus'||p.type==='filter')))continue; // effet à LFO : on garde la piste branchée pour un rendu identique
+      const tail=4+(t.plugins||[]).reduce((m,p)=>p.byp?m:Math.max(m,p.type==='verbpro'?Math.min(70,(p.params.decay||3)*1.5+(p.params.pre||0)/1000):p.type==='reverb'||p.type==='delay'?10:0),0);
+      const sp=t.regions.filter(r=>!r.mute).map(r=>[(r.start-from)*spb-.15,(r.start+rLen(t,r)-from)*spb+tail]).filter(x=>x[1]>0&&x[0]<dur).sort((a,b)=>a[0]-b[0]);
+      const m=[];for(const x of sp){const l=m[m.length-1];if(l&&x[0]<=l[1]+.5)l[1]=Math.max(l[1],x[1]);else m.push(x.slice())}
+      let on=true;const set=v=>()=>{if(v===on)return;on=v;try{v?s.fader.connect(s.pan):s.fader.disconnect(s.pan)}catch(err){}};
+      if(!m.length||m[0][0]>0)set(false)();for(const [a,b] of m){add(a,set(true));add(b,set(false))}}
+    for(const [t,fs] of ev)ctx.suspend(t).then(()=>{for(const f of fs)f();ctx.resume()})}
   e.scheduleWindow(from,to,0,true,(to-from)*spb,false);
   return await ctx.startRendering();
 }

@@ -316,3 +316,14 @@ class CapProc extends AudioWorkletProcessor{
   process(inputs){const i=inputs[0];if(this.on&&i&&i[0]){this.port.postMessage({t:currentFrame,l:i[0].slice(0),r:(i[1]||i[0]).slice(0)})}return true}
 }
 registerProcessor('cap-proc',CapProc);
+
+// ===== v3.7.6 : saut du silence =====
+// Quand l'entrée est muette (piste sans son à cet endroit, effet contourné…) et que la sortie est retombée à zéro
+// (queue de réverb / délai terminée), on sort du silence sans calculer : exports bien plus rapides, moins de CPU en lecture.
+for(const C of [PitchProc,GateProc,CrushProc,LimitProc,VerbProc,TuneProProc]){const p=C.prototype.process;
+  C.prototype.process=function(inputs,outputs,params){
+    const inp=inputs[0];let silent=true;if(inp)for(let c=0;c<inp.length&&silent;c++){const d=inp[c];for(let i=0;i<d.length;i++)if(d[i]!==0){silent=false;break}}
+    if(silent&&this._quiet>=3){for(const o of outputs)for(const ch of o)ch.fill(0);return true}
+    const r=p.call(this,inputs,outputs,params);
+    if(silent){let pk=0;for(const o of outputs)for(const ch of o)for(let i=0;i<ch.length;i++){const a=ch[i]<0?-ch[i]:ch[i];if(a>pk)pk=a}this._quiet=pk<1e-6?(this._quiet||0)+1:0}else this._quiet=0;
+    return r}}
