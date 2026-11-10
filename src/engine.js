@@ -1,5 +1,14 @@
 // ===== Moteur audio =====
 const BUFS={};let bufSeq=1;
+// v3.8 : réglage du son par prise (égaliser le son des prises)
+const TONE_BANDS=[['lowshelf',180,'low'],['peaking',500,'mid'],['peaking',2800,'pres'],['highshelf',8000,'air']];
+// v3.8 : fondu enchaîné automatique entre deux prises qui se touchent sur la même piste
+function autoXfades(tr,spb,p){const L=((p.settings&&p.settings.xfade!=null)?+p.settings.xfade:30)/1000;if(!(L>0))return null;
+  const rs=tr.regions.filter(r=>!r.mute&&BUFS[r.buf]).sort((a,b)=>a.start-b.start);if(rs.length<2)return null;const m={};
+  for(let i=0;i<rs.length-1;i++){const A=rs[i],B=rs[i+1],gap=(B.start-(A.start+A.dur/spb))*spb;if(Math.abs(gap)>.003)continue;
+    const room=BUFS[A.buf].duration-(A.offset+A.dur),ext=Math.max(0,Math.min(L,room-.001));
+    const a=m[A.id]=m[A.id]||{},b=m[B.id]=m[B.id]||{};if(ext>=.004){a.ext=ext;b.in=ext}else{a.out=L/2;b.in=L/2}}
+  return m}
 function addBuffer(b,id){id=id||('b'+Date.now().toString(36)+(bufSeq++));BUFS[id]=b;PEAKS[id]=null;return id}
 const PEAKS={};
 function getPeaks(id){ // min/max par bloc de 256 échantillons
@@ -72,16 +81,19 @@ class Engine{
     const p=this.project,spb=this.spb(),c=this.ctx,minT=this.live?c.currentTime+.003:0;
     for(const tr of p.tracks){
       const s=this.strips[tr.id];if(!s)continue;const dest=s.playIn,lat=s.latency||0,T=x=>t0+(x-a)*spb-lat,stopC=stopCtx-lat;
+      const xf=tr.type==='audio'?autoXfades(tr,spb,p):null;
       for(const r of tr.regions){if(r.mute)continue;
         if(tr.type==='audio'){
-          const buf=BUFS[r.buf];if(!buf)continue;const rs=r.start,re=rs+r.dur/spb;let st=null,off=r.offset;
+          const buf=BUFS[r.buf];if(!buf)continue;const X=xf&&xf[r.id],rs=r.start,re=rs+(r.dur+(X&&X.ext||0))/spb;let st=null,off=r.offset;
           if(rs>=a&&rs<b)st=T(rs);else if(fresh&&rs<a&&re>a){st=T(a);off=r.offset+(a-rs)*spb}
           if(st===null)continue;
           let end=T(re);if(fresh&&rs<a)end=st+(re-a)*spb;end=Math.min(end,stopC);if(st<minT){off+=minT-st;st=minT}if(end<=st+.002)continue;
           if(off<0){st-=off;off=0;if(end<=st+.002)continue} // prise qui commence plus tard dans la région (silence au début)
-          const src=c.createBufferSource(),g=c.createGain();src.buffer=buf;src.connect(g);g.connect(dest);
+          const src=c.createBufferSource(),g=c.createGain();src.buffer=buf;let nd=src;
+          if(r.tone)for(const [ty,f,k] of TONE_BANDS){const v=r.tone[k];if(!v)continue;const bq=c.createBiquadFilter();bq.type=ty;bq.frequency.value=f;if(ty==='peaking')bq.Q.value=.9;bq.gain.value=v;nd.connect(bq);nd=bq}
+          nd.connect(g);g.connect(dest);
           const G=r.gain!=null?dbToG(r.gain):1,fromStart=off<=r.offset+1e-4,toEnd=end>=T(re)-1e-4,span=end-st;
-          const fi=Math.min(fromStart?Math.max(.005,r.fi||0):.005,span/2),fo=Math.min(toEnd?Math.max(.005,r.fo||0):.005,span/2);
+          const fi=Math.min(fromStart?Math.max(.005,r.fi||0,X&&X.in||0):.005,span/2),fo=Math.min(toEnd?Math.max(.005,r.fo||0,X&&(X.ext||X.out)||0):.005,span/2);
           g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(G,st+fi);g.gain.setValueAtTime(G,end-fo);g.gain.linearRampToValueAtTime(0,end);
           src.start(st,Math.max(0,off),end-st+.01);this.sources.push(src);
         }else if(tr.type==='synth'){

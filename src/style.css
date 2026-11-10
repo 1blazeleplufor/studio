@@ -353,3 +353,11 @@ body.detached.det-insp #insp{display:block;overflow:auto}
 #lanes .sguide{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed #ffd60a;box-shadow:0 0 6px rgba(255,214,10,.7);z-index:8;pointer-events:none}
 #lanes .sgdot{position:absolute;width:9px;height:9px;margin:-5px 0 0 -5px;border:2px solid #ffd60a;background:#1b1b1d;transform:rotate(45deg);z-index:9;pointer-events:none}
 .lt-run{font-size:22px;font-weight:700;text-align:center;padding:18px;margin:8px 0;background:#1e1e22;border-radius:10px}.lt-res{background:#1e1e22;border-radius:10px;padding:8px 12px;margin:8px 0}
+
+/* v3.8 : poignées de fondu, outils voix */
+.reg .fh{position:absolute;top:1px;width:10px;height:10px;margin:0 -5px;border-radius:50%;background:#fff;border:1px solid rgba(0,0,0,.5);opacity:0;cursor:ew-resize;z-index:4;transition:opacity .12s}
+.reg .fh.l{margin-left:-5px}.reg .fh.r{margin-right:-5px}
+.reg:hover .fh,.reg.sel .fh{opacity:.9}.reg .fh:hover{opacity:1;transform:scale(1.25)}
+.reg .fhtip{position:absolute;top:2px;font-size:10px;background:rgba(0,0,0,.8);color:#fff;padding:1px 4px;border-radius:3px;z-index:5;pointer-events:none;white-space:nowrap}
+.vtools button{font-size:11px;padding:5px 6px}
+@media (pointer:coarse){.reg .fh{width:18px;height:18px;opacity:.8}}
