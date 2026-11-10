@@ -3,7 +3,7 @@ import os,shutil,json
 HERE=os.path.dirname(os.path.abspath(__file__));os.chdir(HERE)
 from PIL import Image,ImageDraw
 t=open('template.html').read()
-js='\n'.join(open(f).read() for f in ['vendor/yjs.min.js','dsp.js','engine.js','ui1.js','ui2.js','ui3.js','ui4.js','ui5.js','ui6.js','ui7.js','ui8.js','ui9.js','flac.js','collab.js','collab2.js','ui10.js','ui11.js','ui12.js','ui13.js'])
+js='\n'.join(open(f).read() for f in ['vendor/yjs.min.js','dsp.js','engine.js','ui1.js','ui2.js','ui3.js','ui4.js','ui5.js','ui6.js','ui7.js','ui8.js','ui9.js','flac.js','collab.js','collab2.js','ui10.js','ui11.js','ui12.js','ui13.js','ui14.js'])
 wk=open('worklets.js').read()
 t=t.replace('/*CSS*/',open('style.css').read()).replace('/*WORKLET*/',wk).replace('/*JS*/',js)
 open('../Studio-fichier-unique.html','w').write(t.replace('<!--PWA-->',''))
@@ -13,7 +13,7 @@ open(D+'/index.html','w').write(t.replace('<!--PWA-->',pwa))
 open(D+'/worklets.js','w').write(wk)
 shutil.copy('vendor/lame.min.js',D+'/lame.min.js')  # encodeur MP3 (LGPL), chargé à la demande
 shutil.copy('ecoute.html',D+'/ecoute.html')  # page d'écoute d'un bounce partagé
-VER='studio-v3.7.6'
+VER='studio-v3.7.7'
 open(D+'/sw.js','w').write("""const V='%s';const FILES=['./','./index.html','./worklets.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-maskable.png','./apple-touch-icon.png','./lame.min.js','./ecoute.html'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(FILES)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
