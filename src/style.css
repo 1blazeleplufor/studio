@@ -361,3 +361,13 @@ body.detached.det-insp #insp{display:block;overflow:auto}
 .reg .fhtip{position:absolute;top:2px;font-size:10px;background:rgba(0,0,0,.8);color:#fff;padding:1px 4px;border-radius:3px;z-index:5;pointer-events:none;white-space:nowrap}
 .vtools button{font-size:11px;padding:5px 6px}
 @media (pointer:coarse){.reg .fh{width:18px;height:18px;opacity:.8}}
+/* v3.8.1 : historique */
+#bUndo,#bRedo,#bHist{min-width:30px}#bUndo:disabled,#bRedo:disabled{opacity:.35}
+.histm .box{max-width:620px;width:92vw}
+.hbody h4{margin:12px 0 4px;font-size:11px;color:var(--dim);text-transform:uppercase}
+.hrow{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;font-size:12px}
+.hrow:nth-child(odd){background:rgba(255,255,255,.03)}.hrow.last{background:rgba(43,111,214,.18)}
+.hrow .hn{color:var(--dim);width:18px;text-align:right}.hrow .hl{flex:1}.hrow .ht{color:var(--dim);font-size:10px;white-space:nowrap}
+.hrow button{font-size:11px;padding:3px 7px;white-space:nowrap}.hrow.redo{opacity:.75}
+.hmaster{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 10px;border-radius:8px;background:rgba(255,159,10,.14);border:1px solid rgba(255,159,10,.4);font-size:12px}
+.hmaster.ok{background:rgba(255,255,255,.04);border-color:#333;color:var(--dim)}
