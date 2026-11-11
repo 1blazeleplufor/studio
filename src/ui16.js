@@ -35,7 +35,7 @@ function describeChange(A,B){if(!A||!B)return['Modification'];const out=[],add=s
       else{if(nAdd)add(n+' : '+(nAdd>1?nAdd+' régions ajoutées':b.type==='audio'?'prise ajoutée':'région ajoutée'));if(nDel)add(n+' : '+(nDel>1?nDel+' régions supprimées':'région supprimée'))}
       if(what.size)add(n+' : '+(what.has('notes')||what.has('rythme')?'':'région ')+[...what].join(', '))}}
   if(J(A.auxes)!==J(B.auxes))add('Bus écho / réverb modifié');if(J(A.lyrics)!==J(B.lyrics))add('Paroles du projet');
-  if(J(A.markers)!==J(B.markers))add('Marqueurs');if(J(A.notes)!==J(B.notes)||J(A.cmts)!==J(B.cmts))add('Notes');if(J(A.cycle)!==J(B.cycle))add('Zone de cycle');
+  if(J(A.marks)!==J(B.marks))add('Marqueurs');if(J(A.cmts)!==J(B.cmts))add('Notes');if(J(A.cycle)!==J(B.cycle))add('Zone de cycle');
   if(J(A.settings)!==J(B.settings))add(A.settings&&B.settings&&A.settings.xfade!==B.settings.xfade?'Fondu entre prises':'Réglages');
   return out.length?out:['Petit changement']}
 const parseJ=s=>{try{return typeof s==='string'?JSON.parse(s):s}catch(e){return null}};

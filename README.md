@@ -8,6 +8,7 @@ Fonctionne hors ligne et s'installe comme une appli (iPhone, iPad, Android, Mac,
 **Plugins AU/VST3 de l'ordinateur** : voir [bridge/LISEZ-MOI.md](bridge/LISEZ-MOI.md).
 
 ## Versions
+- **v3.8.2** : historique — marqueurs et notes bien décrits.
 - **v3.8.1** : historique lisible (↶ ↷ 🕘) avec confirmation de ce qui sera annulé, retrait du mastering en 1 clic.
 - **v3.8** : outils voix — fondus enchaînés auto, égaliser les prises, égaliseur visuel, assistant « Analyser ma voix », volume régulier, nettoyage respirations/bruit, mastering 1 clic, comparaison A/B.
 - **v3.7.7** : ⭐ Mes réglages voix (enregistrer son réglage, l’appliquer à une piste ou à toutes les voix).
