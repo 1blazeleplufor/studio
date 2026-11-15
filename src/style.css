@@ -385,3 +385,8 @@ body.detached.det-insp #insp{display:block;overflow:auto}
 .foldm .fpick{display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer;border-radius:6px}
 .foldm .fpick:hover{background:rgba(255,255,255,.05)}
 .foldm .fdot{width:10px;height:10px;border-radius:3px;flex:none}
+
+/* nouveautés rangées */
+details.cl{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:6px 0}
+details.cl summary{cursor:pointer;font-weight:600}
+details.cl h5{margin:10px 0 2px;color:var(--dim)}
