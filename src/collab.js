@@ -326,7 +326,7 @@ async function loadBuf(id){
   if(SUPA.url&&m){const name=bufLabel(id);
     try{const parts=[];for(let i=0;i<m.n;i++)parts.push(await fetchBytes(SUPA.url+'/storage/v1/object/public/sons/'+sonKey(id,m.f,i,m.n),f=>xfer(id,'down',name,(i+f)/m.n*.95,'réception'),m.size?m.size/m.n:0));
       let all=parts[0];if(parts.length>1){all=new Uint8Array(parts.reduce((a,p)=>a+p.length,0));let o=0;for(const p of parts){all.set(p,o);o+=p.length}}
-      xfer(id,'down',name,.97,'décodage');const ab=await ctx.decodeAudioData(all.buffer.slice(all.byteOffset,all.byteOffset+all.length));
+      xfer(id,'down',name,.95,'décodage');const ab=await decodeSon(all,m.f,f=>xfer(id,'down',name,.95+.05*f,'décodage'));parts.length=0;all=null;
       if(!BUFS[id])addBuffer(ab,id);xferDone(id);bufsArrived()}
     catch(e){console.warn('Session : réception du son impossible',e);xferErr(id,'⚠ « '+name+' » n’a pas pu être reçu ('+e.message+'). Nouvel essai bientôt.');await new Promise(r=>setTimeout(r,8000))}
     return}

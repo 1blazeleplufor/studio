@@ -50,7 +50,7 @@ const flacCost=(x,n)=>{let s=0;for(let i=2;i<n;i++){const r=x[i]-2*x[i-1]+x[i-2]
 async function encodeFLAC(buf,onProg){
   const ch=Math.min(2,buf.numberOfChannels),sr=buf.sampleRate,len=buf.length,BS=4096,src=[];
   for(let c=0;c<ch;c++){const d=buf.getChannelData(c),q=new Int32Array(len);for(let i=0;i<len;i++){const s=d[i];q[i]=s>=1?32767:s<=-1?-32768:Math.round(s*32767)}src.push(q)}
-  const bw=new FlacBits(Math.max(1<<16,len*ch));
+  const bw=new FlacBits(Math.max(1<<16,len*ch));const srCode={88200:1,176400:2,192000:3,8000:4,16000:5,22050:6,24000:7,32000:8,44100:9,48000:10,96000:11}[sr]||0;
   bw.w(0x664c6143,32); // "fLaC"
   bw.w(0x80,8);bw.w(34,24); // STREAMINFO (dernier bloc de métadonnées)
   bw.w(BS,16);bw.w(BS,16);bw.w(0,24);bw.w(0,24);bw.w(sr,20);bw.w(ch-1,3);bw.w(15,5);bw.w(Math.floor(len/2**32),4);bw.w(len>>>0,32);
@@ -64,7 +64,7 @@ async function encodeFLAC(buf,onProg){
       opts.sort((a,b)=>a[0]-b[0]);[,mode,chans,bpss]=opts[0]}
     const h0=bw.p;
     bw.w(0x3ffe,14);bw.w(0,1);bw.w(0,1); // synchro, bloc de taille fixe
-    bw.w(7,4);bw.w(0,4); // taille de bloc sur 16 bits en fin d'en-tête ; fréquence : voir STREAMINFO
+    bw.w(7,4);bw.w(srCode,4); // taille de bloc sur 16 bits en fin d'en-tête ; fréquence écrite en clair si standard (iPhone)
     bw.w(ch===1?0:mode===1?1:mode,4);bw.w(4,3);bw.w(0,1); // canaux ; 16 bits
     bw.utf8(f);bw.w(n-1,16);
     let crc=0;for(let i=h0;i<bw.p;i++)crc=FLAC_CRC8[crc^bw.b[i]];bw.w(crc,8);
