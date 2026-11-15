@@ -67,7 +67,7 @@ async function installApp(){
   for(const ev of ['pointerup','pointercancel'])document.addEventListener(ev,()=>{if(lp){clearTimeout(lp.t);lp=null}},true);
 })();
 function initApp(){
-  if(navigator.audioSession)try{navigator.audioSession.type='playback'}catch(e){}
+  if(navigator.audioSession)try{let f=null;try{f=localStorage.getItem('studio_ios_rec')}catch(e){}if(f!=='1')navigator.audioSession.type='playback'}catch(e){} // v3.10.4 : plus de mode « lecture seule » une fois qu'on a voulu enregistrer (il interdit le micro)
   if('serviceWorker' in navigator&&location.protocol.startsWith('http')){const had=!!navigator.serviceWorker.controller;navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(e=>console.warn(e));
     let done=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!had||done||REC)return;done=true;saveLocal(true).finally(()=>location.reload())})}
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
