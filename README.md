@@ -8,6 +8,7 @@ Fonctionne hors ligne et s'installe comme une appli (iPhone, iPad, Android, Mac,
 **Plugins AU/VST3 de l'ordinateur** : voir [bridge/LISEZ-MOI.md](bridge/LISEZ-MOI.md).
 
 ## Versions
+- **v3.10.1** : enregistrement sur iPhone plus fiable (déblocage audio, micro par défaut, messages d’aide).
 - **v3.10.0** : dossiers de pistes (ranger plusieurs pistes sur une seule ligne, ▸ pour ouvrir).
 - **v3.9.1** : décodeur FLAC intégré — les sons de session se chargent sur iPhone.
 - **v3.9.0** : retour casque sans décalage (circuit rapide séparé, effets lents coupés dans le casque seulement).
