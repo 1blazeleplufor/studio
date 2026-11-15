@@ -5,6 +5,11 @@
 // 2) un micro choisi sur un autre appareil (ex. le casque du PC, dans un projet importé) n'existe pas sur le téléphone → micro par défaut.
 // 3) le retour casque « sans décalage » (2e moteur audio) est désactivé par défaut sur iPhone, où il peut couper le micro.
 // 4) si une prise revient vide, on explique quoi faire au lieu de ne rien dire.
+// 0) Studio met l'iPhone en mode audio « lecture » (le son passe même en mode silencieux) : ce mode INTERDIT le micro
+//    (« AudioSession category is not compatible with audio capture »). Avant chaque ouverture du micro → « lecture + enregistrement ».
+if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){const md=navigator.mediaDevices,gum=md.getUserMedia.bind(md);
+  md.getUserMedia=async function(c){if(c&&c.audio&&navigator.audioSession&&navigator.audioSession.type!=='play-and-record')try{navigator.audioSession.type='play-and-record'}catch(e){}
+    try{return await gum(c)}catch(e){if(navigator.audioSession&&e.name==='InvalidStateError'){try{navigator.audioSession.type='play-and-record'}catch(x){}return await gum(c)}throw e}}}
 const IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
 function audioUnlock(){try{if(ctx&&ctx.state!=='running')ctx.resume()}catch(e){}try{if(MON.ctx&&MON.ctx.state!=='running')MON.ctx.resume()}catch(e){}}
 for(const ev of ['touchend','click','keydown'])document.addEventListener(ev,audioUnlock,true);
