@@ -29,7 +29,7 @@ function renderHeads(){
 function selectTrack(id){if(SEL===id)return;SEL=id;document.querySelectorAll('#heads .head[data-t]').forEach(d=>d.classList.toggle('sel',d.dataset.t===id));document.querySelectorAll('#lanes .lane[data-t]').forEach(d=>d.classList.toggle('sel',d.dataset.t===id));renderInspector()}
 function dupTrack(t){if(!t)return;snapshot();const c=deep(t);c.id=uid('t');c.name+=' copie';c.regions.forEach(r=>r.id=uid('r'));c.arm=false;c.mon=false;c.solo=false;P.tracks.splice(P.tracks.indexOf(t)+1,0,c);SEL=c.id;E.build(P);renderAll();toast('Piste dupliquée')}
 function delTrack(t){if(!t)return;snapshot();E.setMonitor(t,false);const i=P.tracks.indexOf(t);P.tracks.splice(i,1);SEL=(P.tracks[i]||P.tracks[i-1]||{}).id;SELR.clear();closeAllPlugins();E.build(P);renderAll();toast('Piste « '+t.name+' » supprimée — Ctrl+Z pour annuler')}
-function trackMenu(e,t){menu(e,['Piste : '+t.name,['Dupliquer la piste  (Maj+D)',()=>dupTrack(t)],
+function trackMenu(e,t){menu(e,['Piste : '+t.name,['Dupliquer la piste  (Ctrl+D)',()=>dupTrack(t)],
   ['Monter',()=>moveTrack(t,-1)],['Descendre',()=>moveTrack(t,1)],
   ['Changer la couleur…',()=>colorPicker(e,t)],'-',
   ...folderMenuItems(t),'-',
@@ -169,7 +169,7 @@ function lanesPointer(){
     t.regions.push(r);SELR=new Set([r.id]);renderLanes();openEditorFor(t,r,true);
   }
   L.addEventListener('contextmenu',e=>{const reg=e.target.closest('.reg');if(!reg)return;e.preventDefault();const [t,r]=findRegion(reg.dataset.r);if(!SELR.has(r.id)){SELR=new Set([r.id]);renderLanes()}
-    menu(e,['Région : '+(r.name||''),['Renommer',()=>renameRegion(r)],['Dupliquer (Ctrl+D)',dupRegions],['Couper à la tête de lecture (Ctrl+T)',splitAtPH],['Rendre muette / réactiver (Ctrl+M)',muteRegions],['Copier (Ctrl+C)',copyRegions],['Couper (Ctrl+X)',()=>{copyRegions();deleteRegions()}],
+    menu(e,['Région : '+(r.name||''),['Renommer',()=>renameRegion(r)],['Dupliquer (Ctrl+Maj+D)',dupRegions],['Couper à la tête de lecture (Ctrl+T)',splitAtPH],['Rendre muette / réactiver (Ctrl+M)',muteRegions],['Copier (Ctrl+C)',copyRegions],['Couper (Ctrl+X)',()=>{copyRegions();deleteRegions()}],
       t.type==='audio'&&['Gain de la région…',()=>{const v=prompt('Gain en dB (ex : -3 ou 4)',r.gain||0);if(v!==null&&!isNaN(+v)){snapshot();r.gain=clamp(+v,-24,18);renderLanes()}}],
       t.type==='audio'&&['Normaliser',()=>{snapshot();const pk=getPeaks(r.buf);let m=0;for(let i=0;i<pk.mx.length;i++)m=Math.max(m,pk.mx[i],-pk.mn[i]);if(m>0)r.gain=20*Math.log10(.89/m);renderLanes()}],
       t.type==='audio'&&['Inverser (reverse)',()=>{snapshot();const b=BUFS[r.buf],nb=ctx.createBuffer(b.numberOfChannels,b.length,b.sampleRate);for(let c=0;c<b.numberOfChannels;c++){const s=b.getChannelData(c),d=nb.getChannelData(c);for(let i=0;i<s.length;i++)d[i]=s[s.length-1-i]}r.buf=addBuffer(nb);r.offset=Math.max(0,b.duration-r.offset-r.dur);renderLanes()}],

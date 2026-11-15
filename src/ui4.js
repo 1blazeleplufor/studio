@@ -91,7 +91,7 @@ function onKey(e){
   if(c&&k==='y'){e.preventDefault();redo();return}
   if(c&&k==='s'){e.preventDefault();if(e.shiftKey)saveProject();else saveLocal(true).then(()=>toast('Projet sauvegardé ✔'));return}
   if(c&&k==='o'){e.preventDefault();$('#fileProj').click();return}
-  if(c&&k==='d'){e.preventDefault();dupRegions();return}
+  if(c&&k==='d'){e.preventDefault();if(e.shiftKey)dupRegions();else dupTrack(findTrack(SEL));return}
   if(c&&k==='t'){e.preventDefault();splitAtPH();return}
   if(c&&k==='k'){e.preventDefault();$('#bTyping').click();return}
   if(c&&k==='a'){e.preventDefault();SELR=new Set(P.tracks.flatMap(t=>t.regions.map(r=>r.id)));renderLanes();return}

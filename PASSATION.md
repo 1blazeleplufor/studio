@@ -335,7 +335,7 @@
 
 - **Message (tel quel)** : « tu peux me faire une maj pour permettre le regroupement de plusisurs piste ? genre de les mettre dans un "dossier", si par exemple jai fais 3 lignes pour mon couplet je voudrais pouvoir les fusionner en gros, fusionner ou ranger pour plus voir les 3 lignes sur lecran tu comprends? »
 - **Accès GitHub réglé** : `1blazeleplufor/studio` est maintenant dans la session en écriture ; je publie directement. J’ai aussi remis dans `src/` et `tests/` les fichiers que l’utilisateur avait déposés à la racine.
-- **Ce que j’ai fait** : dossiers (voir C8 v3.10.0). Pas fait : « fusionner en une seule piste audio » (je l’ai proposé, il n’a rien demandé de plus).
+- **Ce que j’ai fait** : dossiers (voir C8 v3.10.0). Ensuite, à sa demande : **Ctrl+D = dupliquer la piste** (Maj+D marche toujours), dupliquer des régions = **Ctrl+Maj+D** (ui4.js). Pas fait : « fusionner en une seule piste audio » (je l’ai proposé, il n’a rien demandé de plus).
 
 ## B.3 Où on en est (à lire avant de répondre)
 
