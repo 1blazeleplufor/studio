@@ -174,3 +174,18 @@ function ROWS(){const out=[],seen=new Set();if(!P)return out;
 function rowTrack(i){const r=ROWS()[i];return r&&r.t||null}
 function rowIndex(tid){const R=ROWS();let i=R.findIndex(r=>r.t&&r.t.id===tid);
   if(i<0){const t=P.tracks.find(x=>x.id===tid),f=t&&FOLD(t.fold);if(f)i=R.findIndex(r=>!r.t&&r.f===f)}return i}
+
+// ===== iPhone : autoriser le micro (v3.10.5) =====
+// Au démarrage, Studio met navigator.audioSession.type='playback' (son même en mode silencieux). Safari refuse alors
+// TOUT micro (InvalidStateError « AudioSession category is not compatible with audio capture »).
+// À appeler juste avant chaque getUserMedia audio. Mémorise aussi qu'on enregistre : au démarrage suivant, plus de 'playback'.
+let MIC_TRY=[];
+function micAllow(){try{localStorage.setItem('studio_ios_rec','1')}catch(e){}const AS=navigator.audioSession;if(!AS)return;
+  if(AS.type!=='play-and-record'){const was=AS.type;try{AS.type='play-and-record'}catch(e){MIC_TRY.push('changement refusé : '+e.name)}MIC_TRY.push('mode '+was+' → '+AS.type)}}
+async function getMic(c){micAllow();const md=navigator.mediaDevices;
+  try{return await md.getUserMedia(c)}catch(e){if(e.name!=='InvalidStateError'||!navigator.audioSession)throw e;MIC_TRY.push('1er essai : '+e.name)}
+  try{navigator.audioSession.type='auto'}catch(e){}MIC_TRY.push('mode → '+navigator.audioSession.type);await new Promise(r=>setTimeout(r,150));
+  try{return await md.getUserMedia(c)}catch(e){MIC_TRY.push('2e essai : '+e.name);
+    if(e.name==='InvalidStateError'&&typeof ctx!=='undefined'){try{await ctx.suspend()}catch(x){}try{navigator.audioSession.type='play-and-record'}catch(x){}await new Promise(r=>setTimeout(r,300));
+      try{const s=await md.getUserMedia(c);MIC_TRY.push('3e essai (audio en pause) : ok');return s}catch(e2){MIC_TRY.push('3e essai : '+e2.name);e2.studioRestart=true;throw e2}finally{try{await ctx.resume()}catch(x){}}}
+    throw e}}

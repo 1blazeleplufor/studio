@@ -80,7 +80,7 @@ function vocMime(){for(const m of ['audio/webm;codecs=opus','audio/mp4','audio/o
 async function vocStart(){
   if(!window.MediaRecorder)return toast('Ce navigateur ne permet pas d’enregistrer un message vocal');
   if(!SUPA.url)return toast('Les messages vocaux ont besoin d’internet');
-  try{VOC.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}catch(e){return micError(e)}
+  try{VOC.stream=await getMic({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}catch(e){return micError(e)}
   VOC.mime=vocMime();VOC.chunks=[];VOC.rec=new MediaRecorder(VOC.stream,VOC.mime?{mimeType:VOC.mime,audioBitsPerSecond:64000}:undefined);
   VOC.rec.ondataavailable=e=>{if(e.data&&e.data.size)VOC.chunks.push(e.data)};VOC.rec.start(250);VOC.t0=Date.now();
   VOC.timer=setInterval(()=>{const s=Math.floor((Date.now()-VOC.t0)/1000);const t=$('#cpanel .vtime');if(t)t.textContent='● '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' / 2:00';if(s>=120)vocStop(true)},250);drawPanel()}

@@ -7,19 +7,6 @@
 // 4) si une prise revient vide, on explique quoi faire au lieu de ne rien dire.
 // 0) Studio met l'iPhone en mode audio « lecture » (le son passe même en mode silencieux) : ce mode INTERDIT le micro
 //    (« AudioSession category is not compatible with audio capture »). Avant chaque ouverture du micro → « lecture + enregistrement ».
-if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){const md=navigator.mediaDevices,gum=md.getUserMedia.bind(md),AS=navigator.audioSession,wait=ms=>new Promise(r=>setTimeout(r,ms));
-  const setT=t=>{try{if(AS&&AS.type!==t)AS.type=t}catch(e){}};
-  md.getUserMedia=async function(c){if(!c||!c.audio||!AS)return gum(c);
-    try{localStorage.setItem('studio_ios_rec','1')}catch(e){} // au prochain démarrage : plus de mode « lecture seule »
-    MIC_TRY=[];let last;
-    for(const [t,pause] of [[null,0],['auto',0],['play-and-record',0],['play-and-record',1],['auto',1]]){
-      if(t)setT(t);let paused=false;
-      if(pause&&typeof ctx!=='undefined'&&ctx.state==='running'){try{await ctx.suspend();paused=true}catch(e){}}
-      if(t||pause)await wait(pause?300:80);
-      try{const s=await gum(c);MIC_TRY.push((AS.type||'?')+(pause?' (pause)':'')+' → ok');if(paused)try{await ctx.resume()}catch(e){}return s}
-      catch(e){last=e;MIC_TRY.push((AS.type||'?')+(pause?' (pause)':'')+' → '+e.name);if(paused)try{await ctx.resume()}catch(x){}if(e.name!=='InvalidStateError')throw e}}
-    last.studioRestart=true;throw last}}
-let MIC_TRY=[];
 const IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
 function audioUnlock(){try{if(ctx&&ctx.state!=='running')ctx.resume()}catch(e){}try{if(MON.ctx&&MON.ctx.state!=='running')MON.ctx.resume()}catch(e){}}
 for(const ev of ['touchend','click','keydown'])document.addEventListener(ev,audioUnlock,true);
@@ -57,8 +44,8 @@ async function micTest(){
   say(null,'Moteur audio : '+ctx.state+', '+ctx.sampleRate+' Hz');
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){say(false,'Ce navigateur ne donne pas accès au micro (page non sécurisée ?)');return}
   if(navigator.audioSession)say(null,'Mode audio iOS au départ : '+navigator.audioSession.type);
-  let st;try{st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});say(true,'Micro autorisé'+(MIC_TRY.length?' ('+MIC_TRY.join(' ; ')+')':''))}
-  catch(e){say(false,'Micro refusé : '+e.name+' — '+e.message);if(MIC_TRY.length)say(null,'Essais : '+MIC_TRY.join(' ; '));if(e.studioRestart)say(null,'→ Ferme Studio complètement (balaye-le vers le haut), rouvre-le et refais le test : il démarrera sans le mode qui bloque le micro.');return}
+  MIC_TRY=[];let st;try{st=await getMic({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});say(true,'Micro autorisé'+(MIC_TRY.length?' ('+MIC_TRY.join(' ; ')+')':''))}
+  catch(e){say(false,'Micro refusé : '+e.name+' — '+e.message);say(null,'Essais : '+(MIC_TRY.join(' ; ')||'aucun'));if(e.studioRestart)say(null,'→ Ferme Studio complètement (balaye-le vers le haut), rouvre-le et refais le test : il démarrera sans le mode qui bloque le micro.');return}
   const tr=st.getAudioTracks()[0],s=tr.getSettings?tr.getSettings():{};say(null,'Micro : '+(tr.label||'?')+' — '+(s.sampleRate||'?')+' Hz, état '+tr.readyState+(tr.muted?' (coupé par le système !)':''));
   try{await ctx.resume()}catch(e){}say(ctx.state==='running',' Moteur audio après relance : '+ctx.state);
   let src;try{src=ctx.createMediaStreamSource(st)}catch(e){say(false,'Brancher le micro au moteur : '+e.name+' — '+e.message);st.getTracks().forEach(t=>t.stop());return}

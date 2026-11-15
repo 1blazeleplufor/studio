@@ -157,7 +157,7 @@ class Engine{
     if(this.mic&&this.micDev===deviceId)return true;
     if(this.micStream)this.micStream.getTracks().forEach(t=>t.stop());
     const cons={echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1};if(deviceId)cons.deviceId={exact:deviceId};
-    this.micStream=await navigator.mediaDevices.getUserMedia({audio:cons});this.micDev=deviceId;
+    this.micStream=await getMic({audio:cons});this.micDev=deviceId;
     const c=this.ctx;await c.resume();this.mic=c.createMediaStreamSource(this.micStream);
     if(!this.recNode){this.recNode=new AudioWorkletNode(c,'rec-proc',{numberOfOutputs:1,outputChannelCount:[1]});const z=c.createGain();z.gain.value=0;this.recNode.connect(z);z.connect(c.destination);
       this.recNode.port.onmessage=e=>{const m=e.data;if(m.peak!==undefined){this.inPeak=m.peak;return}if(this.recording){this.recChunks.push(m);this.recLive.push(peakOf(m.d))}}}
