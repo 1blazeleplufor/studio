@@ -8,6 +8,7 @@ Fonctionne hors ligne et s'installe comme une appli (iPhone, iPad, Android, Mac,
 **Plugins AU/VST3 de l'ordinateur** : voir [bridge/LISEZ-MOI.md](bridge/LISEZ-MOI.md).
 
 ## Versions
+- **v3.9.1** : décodeur FLAC intégré — les sons de session se chargent sur iPhone.
 - **v3.9.0** : retour casque sans décalage (circuit rapide séparé, effets lents coupés dans le casque seulement).
 - **v3.8.2** : historique — marqueurs et notes bien décrits.
 - **v3.8.1** : historique lisible (↶ ↷ 🕘) avec confirmation de ce qui sera annulé, retrait du mastering en 1 clic.

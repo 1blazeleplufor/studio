@@ -1,4 +1,4 @@
-# Studio — Passation complète (v3.9.0, 14 novembre 2026)
+# Studio — Passation complète (v3.9.1, 15 novembre 2026)
 
 > **À qui s’adresse ce document :** à un autre Claude qui reprend le projet **Studio** (une station audio de type Logic Pro qui tourne dans le navigateur) avec le même utilisateur. Il doit pouvoir continuer **comme si c’était la même conversation**.
 >
@@ -19,7 +19,7 @@
 |---|---|
 | **Appli en ligne** | https://1blazeleplufor.github.io/studio/ (installable en PWA ; l’utilisateur se sert de l’appli installée) |
 | **Dépôt** | `github.com/1blazeleplufor/studio`, public. GitHub Pages publie la branche `main` (dossier racine). |
-| **Version actuelle** | **3.9.0** (`APP_VERSION` dans `src/ui6.js`, cache `VER='studio-v3.9.0'` dans `src/build.py`) |
+| **Version actuelle** | **3.9.1** (`APP_VERSION` dans `src/ui6.js`, cache `VER='studio-v3.9.1'` dans `src/build.py`) |
 | **Technique** | HTML/CSS/JS **vanilla**, sans framework ni npm. Web Audio API + AudioWorklet, PWA, IndexedDB. Yjs embarqué pour le multijoueur, Supabase (Realtime, Storage, fonctions SQL) pour les sessions entre appareils. |
 | **Code source** | `/src`. Les fichiers à la racine sont **générés** par `python3 src/build.py` : ne jamais les éditer à la main. |
 | **Langue** | **Français partout** : interface, messages, réponses à l’utilisateur. |
@@ -56,7 +56,7 @@
 
 1. **Récupérer le dépôt** dans la session (outil `add_repo` avec `owner=1blazeleplufor`, `repo=studio`, `access=push`), le cloner, puis `git pull` avant tout changement.
 2. **Coder dans `/src`**. Le JS est concaténé dans **une seule portée globale**, sans modules ES, dans cet ordre (voir `src/build.py`) :
-   `vendor/yjs.min.js, dsp.js, engine.js, ui1.js … ui9.js, flac.js, collab.js, collab2.js, ui10.js … ui17.js`.
+   `vendor/yjs.min.js, dsp.js, engine.js, ui1.js … ui9.js, flac.js, flacdec.js, collab.js, collab2.js, ui10.js … ui17.js`.
    Les worklets sont dans `src/worklets.js`. `vendor/lame.min.js` et `ecoute.html` sont copiés à la racine.
 3. **Style de code habituel** : on ajoute une fonctionnalité dans un **nouveau fichier `uiNN.js`**, qu’on ajoute à la liste de `build.py`. Il **enveloppe** les fonctions globales existantes au lieu de réécrire les anciens fichiers :
    `{const o=renderInspector;renderInspector=function(){const r=o.apply(this,arguments); … ;return r}}`.
@@ -325,6 +325,12 @@
 - **Ce que j’ai fait** : nouveau fichier `ui17.js` (voir C8 v3.9.0). Conseil donné : le retour micro du casque (« sidetone » dans SteelSeries GG / Sonar) pour avoir zéro décalage.
 - Le mode audio et sa latence de 200 ms n’ont pas été touchés.
 
+### 15 novembre 2026, 00h54 — v3.9.1 : sessions sur téléphone
+
+- **Message (tel quel)** : « Pourquoi quand j’ouvre studio sur mon tel je peux pas écouter la session genre les piste ne chargent pas »
+- **Ce que j’ai fait** : décodeur FLAC maison (voir C8 v3.9.1).
+- **Publication bloquée** (v3.9.0 et v3.9.1) : le GitHub relié à Claude dans cette session est `indirahenry-sketch`, qui n’a pas le droit d’écrire sur `1blazeleplufor/studio`, et le connecteur GitHub refuse chez l’utilisateur. Je lui ai envoyé un zip des fichiers modifiés à déposer lui-même (Add file → Upload files), ou bien il ajoute `indirahenry-sketch` comme collaborateur. Avant de publier quoi que ce soit, vérifier que le dépôt en ligne a bien reçu ces versions.
+
 ## B.3 Où on en est (à lire avant de répondre)
 
 - Tout ce qui a été demandé est **construit et publié** (v3.8.2). Aucune demande de l’utilisateur n’est en cours de construction.
@@ -456,7 +462,8 @@ Region drums = { id, start, len, pat:{ steps, rows:{ kick:[0|{v,r /*roulement 1-
 | **ui16.js** | v3.8.1 — historique lisible (`histSteps`, `describeChange`, `histPanel`, `confirmUndo`), `removeMaster`. |
 | **ui17.js** | v3.9 — retour casque sans décalage (`MON`, 2e `AudioContext` « interactive », `monOn/monOff/monApply`, `MON_SLOW`), ligne « Retour casque (I) » dans ⚙ Réglages. |
 | **collab.js / collab2.js** | Sessions à plusieurs (voir C8). |
-| **flac.js** | Encodeur FLAC (envoi des sons en session). |
+| **flac.js** | Encodeur FLAC (envoi des sons en session). Depuis v3.9.1, la fréquence d’échantillonnage est écrite en clair dans chaque trame. |
+| **flacdec.js** | v3.9.1 — décodeur FLAC complet (`decodeFLAC`, `decodeSon`) : constant, verbatim, fixe, LPC, Rice/Rice2, bits perdus, stéréo ; écrit directement dans l’AudioBuffer. `loadBuf` (collab.js) l’utilise, avec `decodeAudioData` en secours. |
 
 Principe de rendu : **pas de virtual DOM**. Les fonctions `renderAll / renderHeads / renderLanes / renderInspector / renderBottom` reconstruisent leur zone ; les interactions continues (glisser, knobs) modifient directement le style puis re-rendent au relâchement.
 
@@ -593,6 +600,7 @@ Tests : `tests/t17.py` (avec `LIMIT=400000 node tests/mock_supabase.js 8790`, mo
 - v3.7.7 : `ui14.js` ⭐ Mes réglages voix : localStorage `studio_mypresets` = [{name,plugins,sends,vol,withVol,at}] (global à tous les projets, pas dans P). `applyMine(pistes,r,nom)` remplace plugins+sends(+vol), l’autotune reprend la tonalité du projet, ignore les pistes verrouillées par un autre, pose `t.mine` (lien → « Mettre à jour »). Section insérée par wrap de `renderInspector` avant « Préréglages voix ». `applyVocalPreset` efface `t.mine`.
 - v3.8.0 : `engine.js` `autoXfades(tr,spb,p)` : deux régions audio qui se touchent (±3 ms) → A prolongée de `P.settings.xfade` ms (défaut 30) si son buffer continue, fondu de sortie sur la prolongation, fondu d’entrée de B ; sinon fondus L/2 de part et d’autre. `r.tone={low,mid,pres,air}` dB → biquads par source (`TONE_BANDS`). `ui15.js` : FFT maison (`powerSpec`), `regionSpectrum`, `loudnessOf` (blocs 400 ms, portes −70/−10) ; `matchTakes` (r.gain + r.tone, modèle = moyenne ou une prise) ; poignées `.fh` (wrap `regionEl`) ; `drawTile` dessine les fondus auto ; `levelBuffer` / `cleanBuffer` → nouveau buffer (tout le son, pas seulement la région) via `processTakes` ; `analyzeVoice` (11 bandes vs `AV_TARGET`, dynamique, sifflantes, bruit → eq/comp/deess/gate) ; `eqVisual` remplace le canvas de la fenêtre EQ (points draggables, molette = Q, analyseur 8192 sur `strip.fader`) ; A/B `t.ab={cur,A,B}` (Maj+B) ; `masterModal`/`applyMaster` (plugins `_master`, 2 rendus pour caler le gain du limiteur sur la cible) ; section « 🪄 Outils voix » + entrées dans le menu clic droit région (wrap `menu`). Tests : `tests/t22.py`.
 - v3.8.1 : `ui16.js` historique : wrap `snapshot/undo/redo` ; hors session, étapes = `UNDO` (JSON) + heures `UTIMES` ; en session, copies `CH`/`CR` à côté du `Y.UndoManager`. `describeChange(A,B)` décrit l’écart entre deux états en français (mastering, pistes, effets, régions, tempo…). Boutons `#bUndo #bRedo #bHist` après `#bInsp`, `confirmUndo(n)` liste ce qui sera annulé. `removeMaster()` retire les plugins `_master` et restaure `P.master._pre` (copie de la sortie avant mastering, posée par wrap d’`applyMaster`), sinon limiteur par défaut. L’historique ne survit pas au rechargement (comme avant). Tests : `tests/t23.py`.
+- v3.9.1 : sur iPhone, les pistes d’une session ne se chargeaient pas. Hypothèse retenue : `decodeAudioData` de Safari ne lit pas les FLAC de l’appli (trames sans fréquence en clair, gros fichiers, mémoire). Correctif : `src/flacdec.js`, testé au bit près contre l’encodeur et contre ffmpeg (16 et 24 bits, LPC, mono et stéréo, 44,1/48/96 kHz) avec `tests/t25.py` et les fichiers `tests/*.flac` ; t16 (son reçu via le stockage) passe. **Pas testé sur un vrai iPhone** : si ça bloque encore, demander le message du panneau des transferts.
 - v3.9.0 : `ui17.js` retour casque sans décalage. Le I (monitoring) ne passe plus par le moteur principal (qui garde le mode audio de l’utilisateur, « Stable » chez lui) mais par un 2e `AudioContext({latencyHint:'interactive'})` alimenté par le même `E.micStream`. Chaîne par piste : copie des effets SAUF `tunepro`, `pitch`, `shifter`, `bridge` et tout plugin avec `latency()` (coupés dans le casque seulement), volume/pan/mute/solo, envois vers des copies des bus aux (réverb dans le casque), volume du master (pas de limiteur, pour ne rien retarder). Suivi par wrap de `Engine.prototype.updateStrip/openMic/build/setMonitor`. `localStorage.studio_mon` = `direct` (défaut) | `full` (ancien comportement). Les prises (micro brut via `rec-proc` du moteur principal) et `latencyMs` ne changent pas. Test : `tests/t24.py`. Retard affiché : 93 ms + 50 ms (Pitch Pro) dans l’ancien circuit en headless « Stable », contre environ 50 ms dans le nouveau, plus le casque sans fil.
 - v3.8.2 : `describeChange` lit `P.marks` / `P.cmts` (au lieu de noms erronés) pour décrire marqueurs et notes.
 - v3.7.4 : accroche aux objets pour les régions (`edgeCands`/`magnet`/`showGuide` dans ui1, branchés dans `lanesPointer` d’ui2 pour déplacer et rogner) : tolérance 10 px, priorité sur la grille, ligne `.sguide` + losange `.sgdot` sur la piste cible ; Maj = désactivé.
@@ -654,6 +662,7 @@ WS_MODULE=/opt/npm-tools/node_modules/ws node tests/mock_supabase.js 8790   # fa
 | `t21.py` | v3.7.7 : ⭐ Mes réglages (enregistrer, appliquer à toutes les voix, gardé après rechargement) |
 | `t22.py` | v3.8 : outils voix (fondus auto, égaliser, nettoyage, volume régulier, assistant, EQ visuel, A/B, mastering) |
 | `t23.py` | v3.8.1 : historique lisible, confirmation, retrait du mastering |
+| `t25.py` | v3.9.1 : décodeur FLAC (nos fichiers, ffmpeg, secours) |
 | `t24.py` | v3.9 : retour casque sans décalage (effets lents coupés dans le casque, réverb, volume, modes, prise toujours enregistrée) |
 
 Les scripts affichent des valeurs à lire. Certains « False » sont attendus : comparer à l’exécution précédente, et regarder les captures dans `/home/claude/test/`. Il n’y a pas d’assertion automatique partout. Les chemins (`/usr/bin/google-chrome`, `/home/claude/test`) sont à adapter à la machine.
