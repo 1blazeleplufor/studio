@@ -1,3 +1,5 @@
+// dossier (groupe de pistes) d'une piste, ou null
+function trkFold(p,t){return t&&t.fold&&p&&p.folders&&p.folders.find(f=>f.id===t.fold)||null}
 // ===== Moteur audio =====
 const BUFS={};let bufSeq=1;
 // v3.8 : réglage du son par prise (égaliser le son des prises)
@@ -65,8 +67,9 @@ class Engine{
     const sig=(obj.plugins||[]).map(q=>q.type+(q.byp?'b':'')).join(',');
     if(sig!==s.sig||!s.built){this.rebuildChain(s,obj);s.built=1}
     else (obj.plugins||[]).forEach((pl,i)=>{const inst=s.plugins[i];if(inst)try{inst.set(pl.params)}catch(e){}});
-    const t=this.ctx.currentTime;s.fader.gain.setTargetAtTime(dbToG(obj.vol),t,.01);s.pan.pan.setTargetAtTime(obj.pan||0,t,.01);
-    const anySolo=p.tracks.some(x=>x.solo);let audible=!obj.mute;
+    const F=p.tracks.includes(obj)?trkFold(p,obj):null;
+    const t=this.ctx.currentTime;s.fader.gain.setTargetAtTime(dbToG(obj.vol+(F&&F.vol||0)),t,.01);s.pan.pan.setTargetAtTime(obj.pan||0,t,.01);
+    const anySolo=p.tracks.some(x=>x.solo);let audible=!obj.mute&&!(F&&F.mute);
     if(anySolo&&p.tracks.includes(obj))audible=audible&&obj.solo;
     s.mute.gain.setTargetAtTime(audible?1:0,t,.005);
     if(obj.sends){ // envois vers les bus

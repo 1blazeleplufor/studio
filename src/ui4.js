@@ -44,11 +44,11 @@ function bindUI(){
   let dc=0;document.addEventListener('dragenter',e=>{e.preventDefault();dc++;$('#drop').style.display='flex'});document.addEventListener('dragleave',()=>{if(--dc<=0){dc=0;$('#drop').style.display='none'}});
   document.addEventListener('dragover',e=>e.preventDefault());
   document.addEventListener('drop',async e=>{e.preventDefault();dc=0;$('#drop').style.display='none';const fs=[...e.dataTransfer.files],ents=dropEntries(e.dataTransfer);
-    const Lr=$('#lanes').getBoundingClientRect();let dBeat=null,dTr=null;if(e.clientX>Lr.left&&e.clientY>Lr.top){dBeat=snapB((e.clientX-Lr.left)/PPB,P.sig);const t=P.tracks[Math.floor((e.clientY-Lr.top)/TH)];dTr=t?t.id:null}
+    const Lr=$('#lanes').getBoundingClientRect();let dBeat=null,dTr=null;if(e.clientX>Lr.left&&e.clientY>Lr.top){dBeat=snapB((e.clientX-Lr.left)/PPB,P.sig);const t=rowTrack(Math.floor((e.clientY-Lr.top)/TH));dTr=t?t.id:null}
     const hasDir=ents.some(x=>x.isDirectory),special=fs.some(f=>MIDI_RE.test(f.name)||/\.(aif|aiff|aifc|caf|logicx)$/i.test(f.name)),nAudio=fs.filter(f=>AUDIO_RE.test(f.name)).length;
     if(hasDir||special||nAudio>1){const items=await walkEntries(ents);return importDropped(items,dBeat,dTr)}
     for(const f of fs){if(/\.studio$/i.test(f.name))return openProject(f);if(/\.js$/i.test(f.name)){try{const id=loadExternalPlugin(await f.text());P.ext[id]=EXT_SRC[id];toast('Plugin chargé : '+PLUGINS[id].name)}catch(err){alert(err.message)}return}}
-    const L=$('#lanes').getBoundingClientRect();let beat=PH,tid=SEL;if(e.clientX>L.left&&e.clientY>L.top){beat=snapB((e.clientX-L.left)/PPB,P.sig);const t=P.tracks[Math.floor((e.clientY-L.top)/TH)];tid=t?t.id:null}
+    const L=$('#lanes').getBoundingClientRect();let beat=PH,tid=SEL;if(e.clientX>L.left&&e.clientY>L.top){beat=snapB((e.clientX-L.left)/PPB,P.sig);const t=rowTrack(Math.floor((e.clientY-L.top)/TH));tid=t?t.id:null}
     importAudio(fs.filter(f=>/audio|\.(wav|mp3|ogg|m4a|flac|aac)$/i.test(f.type+f.name)),beat,tid)});
   addEventListener('resize',()=>{drawRuler();schedulePaint()});
 }
@@ -119,7 +119,7 @@ function onKey(e){
     if(SELR.size)deleteRegions();else delTrack(findTrack(SEL));return}
   if(k==='arrowleft'){e.preventDefault();setPH(Math.max(0,(Math.ceil(PH/P.sig)-1)*P.sig));return}
   if(k==='arrowright'){e.preventDefault();setPH((Math.floor(PH/P.sig)+1)*P.sig);return}
-  if(k==='arrowup'||k==='arrowdown'){e.preventDefault();const i=P.tracks.findIndex(t=>t.id===SEL)+(k==='arrowup'?-1:1);if(P.tracks[i])selectTrack(P.tracks[i].id);return}
+  if(k==='arrowup'||k==='arrowdown'){e.preventDefault();const V=ROWS().filter(r=>r.t).map(r=>r.t),i=V.findIndex(t=>t.id===SEL)+(k==='arrowup'?-1:1);if(V[i])selectTrack(V[i].id);return}
   if(k==='+'||k==='='){zoom(1.25);return}if(k==='-'){zoom(.8);return}
 }
 function onKeyUp(e){const k=e.key.toLowerCase();if(HELD[k]!==undefined){const t=findTrack(SEL);if(t)E.noteOff(t,HELD[k]);delete HELD[k]}}

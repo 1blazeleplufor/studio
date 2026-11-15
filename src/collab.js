@@ -468,7 +468,7 @@ function clearLk(){document.querySelectorAll('[data-lk]').forEach(el=>{el.classL
   el.querySelectorAll('[data-lkdis]').forEach(x=>{x.disabled=false;delete x.dataset.lkdis})});document.querySelectorAll('.lkb').forEach(b=>b.remove())}
 function decorateLocks(){
   if(!COLLAB.on||!P){clearLk();return}
-  document.querySelectorAll('#heads .head').forEach((d,i)=>{const t=P.tracks[i];if(!t)return;const o=d.querySelector(':scope>.lkb');if(o)o.remove();d.append(lockBtn(t.id));markLk(d,t.id)});
+  document.querySelectorAll('#heads .head[data-t]').forEach(d=>{const t=findTrack(d.dataset.t);if(!t)return;const o=d.querySelector(':scope>.lkb');if(o)o.remove();d.append(lockBtn(t.id));markLk(d,t.id)});
   document.querySelectorAll('#lanes .lane[data-t]').forEach(ln=>{const k=ln.dataset.t,L=lockedByOther(k);markLk(ln,k);ln.dataset.lkn=L?'🔒 '+L.n:''});
   document.querySelectorAll('.strip').forEach(s=>{const f=s.querySelector('input.fader[data-id]');if(!f)return;const k=f.dataset.id,o=s.querySelector(':scope>.lkb');if(o)o.remove();s.prepend(lockBtn(k,true));markLk(s,k)});
   const ins=$('#insp');if(SEL&&findTrack(SEL))markLk(ins,SEL);

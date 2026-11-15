@@ -29,7 +29,7 @@ function edgeCands(ex){const c=[{v:0},{v:PH,k:'ph'}];for(const t of P.tracks)for
 function magnet(edges,ex,e){if(e&&e.shiftKey)return null;const tol=10/PPB;let best=null;
   for(const c of edgeCands(ex))for(const v of edges){const d=c.v-v;if(Math.abs(d)<tol&&(!best||Math.abs(d)<Math.abs(best.d)-1e-9))best={d,at:c.v,t:c.t}}return best}
 function showGuide(g){document.querySelectorAll('#lanes .sguide,#lanes .sgdot').forEach(x=>x.remove());if(!g)return;const L=$('#lanes');if(!L)return;
-  L.append(h('div',{class:'sguide',style:{left:g.at*PPB+'px'}}));if(g.t){const i=P.tracks.findIndex(t=>t.id===g.t);if(i>=0)L.append(h('div',{class:'sgdot',style:{left:g.at*PPB+'px',top:(i*TH+TH/2)+'px'}}))}}
+  L.append(h('div',{class:'sguide',style:{left:g.at*PPB+'px'}}));if(g.t){const i=rowIndex(g.t);if(i>=0)L.append(h('div',{class:'sgdot',style:{left:g.at*PPB+'px',top:(i*TH+TH/2)+'px'}}))}}
 // tête de lecture : grille adaptée au zoom + aimant sur les débuts/fins de régions, marqueurs et cycle (8 px) ; Alt = placement libre
 function snapPH(b,e){if(e&&e.altKey)return Math.max(0,b);const tol=8/PPB;let best=null,bd=tol;const chk=x=>{const d=Math.abs(x-b);if(d<bd){bd=d;best=x}};
   for(const t of P.tracks)for(const r of t.regions){chk(r.start);chk(r.start+rLen(t,r))}for(const m of P.marks||[])chk(m.beat);if(P.cycle.on){chk(P.cycle.start);chk(P.cycle.end)}chk(0);
@@ -160,3 +160,17 @@ function onMidi(m){
   const t=findTrack(SEL);if(!t||t.type==='audio')return;
   if(cmd===0x90&&d2>0)E.noteOn(t,d1,d2/127);else if(cmd===0x80||(cmd===0x90&&d2===0))E.noteOff(t,d1);
 }
+
+// ===== Dossiers de pistes (v3.10) — lignes affichées dans l'arrangement =====
+// P.folders=[{id,name,color,vol,mute}] ; une piste rangée a t.fold=id. Ouvert/fermé : propre à chacun (localStorage).
+const FOLD_OPEN=(()=>{try{return new Set(JSON.parse(localStorage.getItem('studio_fold')||'[]'))}catch(e){return new Set()}})();
+function saveFoldOpen(){try{localStorage.setItem('studio_fold',JSON.stringify([...FOLD_OPEN]))}catch(e){}}
+function FOLD(id){return trkFold(P,{fold:id})}
+function foldMembers(f){return P.tracks.filter(t=>t.fold===f.id)}
+function ROWS(){const out=[],seen=new Set();if(!P)return out;
+  for(const t of P.tracks){const f=FOLD(t.fold);if(!f){out.push({t});continue}if(seen.has(f.id))continue;seen.add(f.id);
+    out.push({f});if(FOLD_OPEN.has(f.id))for(const m of P.tracks)if(m.fold===f.id)out.push({t:m,f})}
+  return out}
+function rowTrack(i){const r=ROWS()[i];return r&&r.t||null}
+function rowIndex(tid){const R=ROWS();let i=R.findIndex(r=>r.t&&r.t.id===tid);
+  if(i<0){const t=P.tracks.find(x=>x.id===tid),f=t&&FOLD(t.fold);if(f)i=R.findIndex(r=>!r.t&&r.f===f)}return i}

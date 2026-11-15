@@ -66,9 +66,9 @@ function renderPins(){
   const list=cmtList();
   if(C2.knownC){for(const c of list)if(!C2.knownC.has(c.id)&&c.u!==ME.id&&COLLAB.on)toast('📌 '+c.n+' a commenté '+fmtBar(c.beat)+' : '+String(c.x).slice(0,60),3500)}
   C2.knownC=new Set(list.map(c=>c.id));
-  for(const c of list){const x=c.beat*PPB,ti=c.tid?P.tracks.findIndex(t=>t.id===c.tid):-1,pos=ti>=0?{top:ti*TH+'px',bottom:'auto',height:TH+'px'}:{};
+  for(const c of list){const x=c.beat*PPB,ti=c.tid?rowIndex(c.tid):-1,pos=ti>=0?{top:ti*TH+'px',bottom:'auto',height:TH+'px'}:{};
     L.append(h('div',{class:'cline'+(c.done?' done':''),style:Object.assign({left:x+'px','--cc':c.c},pos)}),
-      ti>=0&&h('div',{class:'cpin'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{left:x+'px',top:(ti*TH+2)+'px','--cc':c.c},title:c.n+' ('+fmtBar(c.beat)+', '+P.tracks[ti].name+') : '+c.x+(c.done?' ✔ résolue':''),
+      ti>=0&&h('div',{class:'cpin'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{left:x+'px',top:(ti*TH+2)+'px','--cc':c.c},title:c.n+' ('+fmtBar(c.beat)+', '+((P.tracks.find(t=>t.id===c.tid)||{}).name||'')+') : '+c.x+(c.done?' ✔ résolue':''),
         onpointerdown:e=>e.stopPropagation(),onclick:e=>{e.stopPropagation();C2.hi=c.id;openPanel('cmts')}},(c.done?'✔ ':'📌 ')+(c.n||'?').slice(0,1).toUpperCase()+((c.rep&&c.rep.length)?' '+(c.rep.length+1):'')))}
   try{drawRuler()}catch(e){}
   for(const m of (P.marks||[]))L.append(h('div',{class:'mline',style:{left:m.beat*PPB+'px','--mc':m.color}}))}
@@ -104,7 +104,7 @@ async function vocToTrack(v,beat,trackId,label){
 document.addEventListener('dragover',e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('text/studio-voc')&&e.target.closest&&e.target.closest('#lanes,#heads')){e.preventDefault();e.stopPropagation();e.dataTransfer.dropEffect='copy'}},true);
 document.addEventListener('drop',e=>{if(!e.dataTransfer||![...e.dataTransfer.types].includes('text/studio-voc'))return;e.preventDefault();e.stopPropagation();
   let d;try{d=JSON.parse(e.dataTransfer.getData('text/studio-voc'))}catch(err){return}const L=$('#lanes').getBoundingClientRect();
-  const beat=e.clientX>L.left?snapB((e.clientX-L.left)/PPB):PH,t=P.tracks[Math.floor((e.clientY-L.top)/TH)];vocToTrack(d.voc,beat,t&&t.id,d.n)},true);
+  const beat=e.clientX>L.left?snapB((e.clientX-L.left)/PPB):PH,t=rowTrack(Math.floor((e.clientY-L.top)/TH));vocToTrack(d.voc,beat,t&&t.id,d.n)},true);
 
 // ---------- 🕘 Versions de la session (table « versions », fonctions version_*) ----------
 async function versionsLoad(){if(!SUPA.url||COLLAB.viewer||!COLLAB.room)return;try{C2.vers=await rpc('version_list',{p_salle:COLLAB.room})}catch(e){C2.vers='err';console.warn(e)}if(C2.open&&C2.tab==='vers')drawPanel()}

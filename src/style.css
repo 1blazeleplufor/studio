@@ -371,3 +371,17 @@ body.detached.det-insp #insp{display:block;overflow:auto}
 .hrow button{font-size:11px;padding:3px 7px;white-space:nowrap}.hrow.redo{opacity:.75}
 .hmaster{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 10px;border-radius:8px;background:rgba(255,159,10,.14);border:1px solid rgba(255,159,10,.4);font-size:12px}
 .hmaster.ok{background:rgba(255,255,255,.04);border-color:#333;color:var(--dim)}
+
+/* v3.10 dossiers de pistes */
+.head.fhead{background:#2b2b31;align-items:center}
+.head.fhead.sel{background:#3a3a40}
+.head .ftog{flex:none;padding:4px 6px;font-size:14px;background:transparent;border:1px solid var(--line);border-radius:6px;cursor:pointer;color:inherit;white-space:nowrap}
+.head .fcount{font-size:11px;color:var(--dim);align-self:center;margin-left:4px}
+.head.infold{padding-left:16px}
+.head.infold::before{content:'';position:absolute;left:5px;top:0;bottom:0;width:3px;background:var(--fc,#888);opacity:.7}
+.flane{height:var(--th,84px);border-bottom:1px solid #18181a;position:relative;background:rgba(255,255,255,.035)}
+.flane .fsum{position:absolute;border-radius:2px;pointer-events:auto}
+.foldm .flist{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px;margin-top:8px}
+.foldm .fpick{display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer;border-radius:6px}
+.foldm .fpick:hover{background:rgba(255,255,255,.05)}
+.foldm .fdot{width:10px;height:10px;border-radius:3px;flex:none}

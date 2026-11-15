@@ -33,8 +33,8 @@ function monRebuild(s,obj){const c=MON.ctx;try{s.inp.disconnect()}catch(e){}
 function monApply(obj,s,isTrack){const t=MON.ctx.currentTime;
   if(monSig(obj)!==s.sig)monRebuild(s,obj);
   else(obj.plugins||[]).forEach((pl,i)=>{const inst=s.plugins[i];if(inst)try{inst.set(pl.params)}catch(e){}});
-  s.fader.gain.setTargetAtTime(dbToG(obj.vol),t,.01);s.pan.pan.setTargetAtTime(obj.pan||0,t,.01);
-  let audible=!obj.mute;if(isTrack&&P.tracks.some(x=>x.solo))audible=audible&&obj.solo;
+  const F=isTrack?trkFold(P,obj):null;s.fader.gain.setTargetAtTime(dbToG(obj.vol+(F&&F.vol||0)),t,.01);s.pan.pan.setTargetAtTime(obj.pan||0,t,.01);
+  let audible=!obj.mute&&!(F&&F.mute);if(isTrack&&P.tracks.some(x=>x.solo))audible=audible&&obj.solo;
   s.mute.gain.setTargetAtTime(audible?1:0,t,.005);
   if(isTrack&&obj.sends)P.auxes.forEach((a,i)=>{const db=obj.sends[i]??-60;let g=s.sends[i];
     if(db<=-60&&!g)return;

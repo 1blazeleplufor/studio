@@ -182,7 +182,7 @@ async function exportMix(mode,fmt){fmt=fmt||'wav';
     where=await saveOut(blob,name+'.'+fmt)};
   try{if(mode==='stems'){const ts=P.tracks.filter(t=>t.regions.length);let i=0;
       // stem : on ne calcule que la piste visée (+ ses bus d'effets), pas tout le projet
-      for(const t of ts){const pr=deep(P);pr.tracks=pr.tracks.filter(x=>x.id===t.id);pr.tracks.forEach(x=>{x.solo=false;x.mute=false});await doOne(pr,base+' - '+t.name,++i,ts.length)}}
+      for(const t of ts){const pr=deep(P);pr.tracks=pr.tracks.filter(x=>x.id===t.id);pr.tracks.forEach(x=>{x.solo=false;x.mute=false});(pr.folders||[]).forEach(f=>f.mute=false);await doOne(pr,base+' - '+t.name,++i,ts.length)}}
     else await doOne(P,base+(mode==='cycle'?' (cycle)':''),1,1);
     toast('Export terminé ✔ en '+Math.round((performance.now()-t0)/1000)+' s ('+(where==='dossier'?'dossier d’enregistrement / Exports':'dossier Téléchargements')+')',6000)}
   catch(e){console.error(e);toast('Erreur d’export : '+e.message,6000)}

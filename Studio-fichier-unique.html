@@ -376,6 +376,20 @@ body.detached.det-insp #insp{display:block;overflow:auto}
 .hrow button{font-size:11px;padding:3px 7px;white-space:nowrap}.hrow.redo{opacity:.75}
 .hmaster{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 10px;border-radius:8px;background:rgba(255,159,10,.14);border:1px solid rgba(255,159,10,.4);font-size:12px}
 .hmaster.ok{background:rgba(255,255,255,.04);border-color:#333;color:var(--dim)}
+
+/* v3.10 dossiers de pistes */
+.head.fhead{background:#2b2b31;align-items:center}
+.head.fhead.sel{background:#3a3a40}
+.head .ftog{flex:none;padding:4px 6px;font-size:14px;background:transparent;border:1px solid var(--line);border-radius:6px;cursor:pointer;color:inherit;white-space:nowrap}
+.head .fcount{font-size:11px;color:var(--dim);align-self:center;margin-left:4px}
+.head.infold{padding-left:16px}
+.head.infold::before{content:'';position:absolute;left:5px;top:0;bottom:0;width:3px;background:var(--fc,#888);opacity:.7}
+.flane{height:var(--th,84px);border-bottom:1px solid #18181a;position:relative;background:rgba(255,255,255,.035)}
+.flane .fsum{position:absolute;border-radius:2px;pointer-events:auto}
+.foldm .flist{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px;margin-top:8px}
+.foldm .fpick{display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer;border-radius:6px}
+.foldm .fpick:hover{background:rgba(255,255,255,.05)}
+.foldm .fdot{width:10px;height:10px;border-radius:3px;flex:none}
 </style></head><body>
 <div id="app">
  <div id="bar">
@@ -1022,6 +1036,8 @@ Object.assign(PLUGINS,{
    const inst={input:n,output:n,graph:[],set(p){n.port.postMessage(tuneParams(p))}};n.port.onmessage=e=>{inst.graph.push(e.data);if(inst.graph.length>1200)inst.graph.splice(0,200)};return inst}},
 });
 
+// dossier (groupe de pistes) d'une piste, ou null
+function trkFold(p,t){return t&&t.fold&&p&&p.folders&&p.folders.find(f=>f.id===t.fold)||null}
 // ===== Moteur audio =====
 const BUFS={};let bufSeq=1;
 // v3.8 : réglage du son par prise (égaliser le son des prises)
@@ -1089,8 +1105,9 @@ class Engine{
     const sig=(obj.plugins||[]).map(q=>q.type+(q.byp?'b':'')).join(',');
     if(sig!==s.sig||!s.built){this.rebuildChain(s,obj);s.built=1}
     else (obj.plugins||[]).forEach((pl,i)=>{const inst=s.plugins[i];if(inst)try{inst.set(pl.params)}catch(e){}});
-    const t=this.ctx.currentTime;s.fader.gain.setTargetAtTime(dbToG(obj.vol),t,.01);s.pan.pan.setTargetAtTime(obj.pan||0,t,.01);
-    const anySolo=p.tracks.some(x=>x.solo);let audible=!obj.mute;
+    const F=p.tracks.includes(obj)?trkFold(p,obj):null;
+    const t=this.ctx.currentTime;s.fader.gain.setTargetAtTime(dbToG(obj.vol+(F&&F.vol||0)),t,.01);s.pan.pan.setTargetAtTime(obj.pan||0,t,.01);
+    const anySolo=p.tracks.some(x=>x.solo);let audible=!obj.mute&&!(F&&F.mute);
     if(anySolo&&p.tracks.includes(obj))audible=audible&&obj.solo;
     s.mute.gain.setTargetAtTime(audible?1:0,t,.005);
     if(obj.sends){ // envois vers les bus
@@ -1270,7 +1287,7 @@ function edgeCands(ex){const c=[{v:0},{v:PH,k:'ph'}];for(const t of P.tracks)for
 function magnet(edges,ex,e){if(e&&e.shiftKey)return null;const tol=10/PPB;let best=null;
   for(const c of edgeCands(ex))for(const v of edges){const d=c.v-v;if(Math.abs(d)<tol&&(!best||Math.abs(d)<Math.abs(best.d)-1e-9))best={d,at:c.v,t:c.t}}return best}
 function showGuide(g){document.querySelectorAll('#lanes .sguide,#lanes .sgdot').forEach(x=>x.remove());if(!g)return;const L=$('#lanes');if(!L)return;
-  L.append(h('div',{class:'sguide',style:{left:g.at*PPB+'px'}}));if(g.t){const i=P.tracks.findIndex(t=>t.id===g.t);if(i>=0)L.append(h('div',{class:'sgdot',style:{left:g.at*PPB+'px',top:(i*TH+TH/2)+'px'}}))}}
+  L.append(h('div',{class:'sguide',style:{left:g.at*PPB+'px'}}));if(g.t){const i=rowIndex(g.t);if(i>=0)L.append(h('div',{class:'sgdot',style:{left:g.at*PPB+'px',top:(i*TH+TH/2)+'px'}}))}}
 // tête de lecture : grille adaptée au zoom + aimant sur les débuts/fins de régions, marqueurs et cycle (8 px) ; Alt = placement libre
 function snapPH(b,e){if(e&&e.altKey)return Math.max(0,b);const tol=8/PPB;let best=null,bd=tol;const chk=x=>{const d=Math.abs(x-b);if(d<bd){bd=d;best=x}};
   for(const t of P.tracks)for(const r of t.regions){chk(r.start);chk(r.start+rLen(t,r))}for(const m of P.marks||[])chk(m.beat);if(P.cycle.on){chk(P.cycle.start);chk(P.cycle.end)}chk(0);
@@ -1402,6 +1419,20 @@ function onMidi(m){
   if(cmd===0x90&&d2>0)E.noteOn(t,d1,d2/127);else if(cmd===0x80||(cmd===0x90&&d2===0))E.noteOff(t,d1);
 }
 
+// ===== Dossiers de pistes (v3.10) — lignes affichées dans l'arrangement =====
+// P.folders=[{id,name,color,vol,mute}] ; une piste rangée a t.fold=id. Ouvert/fermé : propre à chacun (localStorage).
+const FOLD_OPEN=(()=>{try{return new Set(JSON.parse(localStorage.getItem('studio_fold')||'[]'))}catch(e){return new Set()}})();
+function saveFoldOpen(){try{localStorage.setItem('studio_fold',JSON.stringify([...FOLD_OPEN]))}catch(e){}}
+function FOLD(id){return trkFold(P,{fold:id})}
+function foldMembers(f){return P.tracks.filter(t=>t.fold===f.id)}
+function ROWS(){const out=[],seen=new Set();if(!P)return out;
+  for(const t of P.tracks){const f=FOLD(t.fold);if(!f){out.push({t});continue}if(seen.has(f.id))continue;seen.add(f.id);
+    out.push({f});if(FOLD_OPEN.has(f.id))for(const m of P.tracks)if(m.fold===f.id)out.push({t:m,f})}
+  return out}
+function rowTrack(i){const r=ROWS()[i];return r&&r.t||null}
+function rowIndex(tid){const R=ROWS();let i=R.findIndex(r=>r.t&&r.t.id===tid);
+  if(i<0){const t=P.tracks.find(x=>x.id===tid),f=t&&FOLD(t.fold);if(f)i=R.findIndex(r=>!r.t&&r.f===f)}return i}
+
 // ===== Interface : arrangement, inspecteur, mixeur =====
 const TYPE_ICO={audio:'🎤',synth:'🎹',drums:'🥁'};const tIco=t=>isInstru(t)?'🎵':TYPE_ICO[t.type];
 function renderAll(){renderBar();renderHeads();renderLanes();renderInspector();renderBottom()}
@@ -1414,7 +1445,7 @@ function renderBar(){
 function totalBeats(){let m=0;for(const t of P.tracks)for(const r of t.regions)m=Math.max(m,r.start+rLen(t,r));return Math.max(P.sig*48,Math.ceil((m+P.sig*16)/P.sig)*P.sig)}
 function renderHeads(){
   const H=$('#heads');H.innerHTML='';
-  P.tracks.forEach((t,i)=>{
+  ROWS().forEach(row=>{if(!row.t){H.append(folderHead(row.f));return}const t=row.t,inF=row.f;
     const b=(cls,lab,on,fn,tip)=>h('button',{class:cls+(on?' on':''),title:tip,onclick:e=>{e.stopPropagation();fn()}},lab);
     const vol=h('input',{type:'range',min:-60,max:6,step:.5,value:t.vol,title:'Volume',oninput:e=>{t.vol=+e.target.value;E.updateStrip(t);syncFaders(t.id)},onpointerdown:e=>{e.stopPropagation();snapshot()}});
     const name=h('input',{class:'tname',value:t.name,onchange:e=>{snapshot();t.name=e.target.value;renderInspector();if(TAB==='mixer')renderBottom()},onkeydown:e=>{e.stopPropagation();if(e.key==='Enter')e.target.blur()},onpointerdown:e=>e.stopPropagation()});
@@ -1423,19 +1454,20 @@ function renderHeads(){
       b('btnS','S',t.solo,()=>{t.solo=!t.solo;E.updateAll();renderHeads();renderInspector();if(TAB==='mixer')renderBottom()},'Solo'),
       t.type==='audio'&&!isInstru(t)&&b('btnR','R',t.arm,()=>toggleArm(t),'Armer pour enregistrer'),
       t.type==='audio'&&!isInstru(t)&&b('btnI','I',t.mon,()=>toggleMon(t),'Écouter le micro (casque obligatoire)'));
-    const d=h('div',{class:'head'+(t.id===SEL?' sel':''),onpointerdown:()=>selectTrack(t.id),oncontextmenu:e=>{e.preventDefault();trackMenu(e,t)}},
+    const d=h('div',{class:'head'+(t.id===SEL?' sel':'')+(inF?' infold':''),'data-t':t.id,style:inF?{'--fc':inF.color}:null,onpointerdown:()=>selectTrack(t.id),oncontextmenu:e=>{e.preventDefault();trackMenu(e,t)}},
       h('div',{class:'col',title:'Changer la couleur',style:{background:t.color,cursor:'pointer'},onpointerdown:e=>{e.stopPropagation();colorPicker(e,t)}}),h('div',{class:'ico'},tIco(t)),
       h('div',{class:'info'},name,btns,vol,h('div',{class:'colrow'},h('button',{class:'swatch',title:'Couleur de la piste',style:{background:t.color},onpointerdown:e=>e.stopPropagation(),onclick:e=>colorPicker(e,t)}),h('span',null,'Couleur'))));
     H.append(d);
   });
-  H.append(h('div',{style:{height:'40px',padding:'8px'}},h('button',{onclick:e=>addTrackMenu(e)},'+ Ajouter une piste')));
+  H.append(h('div',{style:{height:'40px',padding:'8px',display:'flex',gap:'6px'}},h('button',{onclick:e=>addTrackMenu(e)},'+ Ajouter une piste'),h('button',{title:'Regrouper plusieurs pistes sur une seule ligne',onclick:()=>folderDialog(findTrack(SEL))},'📁 Dossier')));
 }
-function selectTrack(id){if(SEL===id)return;SEL=id;document.querySelectorAll('.head').forEach((d,i)=>d.classList.toggle('sel',P.tracks[i]&&P.tracks[i].id===id));document.querySelectorAll('.lane').forEach((d,i)=>d.classList.toggle('sel',P.tracks[i]&&P.tracks[i].id===id));renderInspector()}
+function selectTrack(id){if(SEL===id)return;SEL=id;document.querySelectorAll('#heads .head[data-t]').forEach(d=>d.classList.toggle('sel',d.dataset.t===id));document.querySelectorAll('#lanes .lane[data-t]').forEach(d=>d.classList.toggle('sel',d.dataset.t===id));renderInspector()}
 function dupTrack(t){if(!t)return;snapshot();const c=deep(t);c.id=uid('t');c.name+=' copie';c.regions.forEach(r=>r.id=uid('r'));c.arm=false;c.mon=false;c.solo=false;P.tracks.splice(P.tracks.indexOf(t)+1,0,c);SEL=c.id;E.build(P);renderAll();toast('Piste dupliquée')}
 function delTrack(t){if(!t)return;snapshot();E.setMonitor(t,false);const i=P.tracks.indexOf(t);P.tracks.splice(i,1);SEL=(P.tracks[i]||P.tracks[i-1]||{}).id;SELR.clear();closeAllPlugins();E.build(P);renderAll();toast('Piste « '+t.name+' » supprimée — Ctrl+Z pour annuler')}
 function trackMenu(e,t){menu(e,['Piste : '+t.name,['Dupliquer la piste  (Maj+D)',()=>dupTrack(t)],
   ['Monter',()=>moveTrack(t,-1)],['Descendre',()=>moveTrack(t,1)],
   ['Changer la couleur…',()=>colorPicker(e,t)],'-',
+  ...folderMenuItems(t),'-',
   ['Supprimer la piste  (Suppr)',()=>delTrack(t)]])}
 const PALETTE=['#ff453a','#ff6b4a','#ff9f0a','#ffcc00','#e6c200','#a3d133','#30d158','#30c48d','#40c8e0','#64d2ff','#4a8cff','#0a84ff','#5e5ce6','#7d6bff','#bf5af2','#ff7ac6','#ff375f','#ac8e68','#8e8e93','#d1d1d6'];
 function colorPicker(e,t){closeMenu();const m=h('div',{class:'menu',id:'menu',style:{padding:'10px',minWidth:'0'}});
@@ -1455,10 +1487,10 @@ function addTrack(type){snapshot();const n=P.tracks.filter(t=>t.type===type).len
 // ---- couloirs + régions ----
 function renderLanes(){
   document.documentElement.style.setProperty('--th',TH+'px');
-  const L=$('#lanes'),W=totalBeats()*PPB;L.innerHTML='';L.style.width=W+'px';L.style.height=(P.tracks.length*TH+40)+'px';
+  const L=$('#lanes'),W=totalBeats()*PPB;L.innerHTML='';L.style.width=W+'px';L.style.height=(ROWS().length*TH+40)+'px';
   L.style.backgroundImage=`linear-gradient(to right,rgba(255,255,255,.10) 1px,transparent 1px),linear-gradient(to right,rgba(255,255,255,.035) 1px,transparent 1px)`;
   L.style.backgroundSize=`${PPB*P.sig}px 100%,${PPB}px 100%`;
-  P.tracks.forEach(t=>{const ln=h('div',{class:'lane'+(t.id===SEL?' sel':''),'data-t':t.id});for(const r of t.regions)ln.append(regionEl(t,r));L.append(ln)});
+  ROWS().forEach(row=>{if(!row.t){L.append(folderLane(row.f));return}const t=row.t;const ln=h('div',{class:'lane'+(t.id===SEL?' sel':''),'data-t':t.id});for(const r of t.regions)ln.append(regionEl(t,r));L.append(ln)});
   L.append(h('div',{id:'cycleShade'}),h('div',{id:'playhead'}));updateCycleShade();drawRuler();updatePlayhead(PH);paintRegions();
 }
 function updateCycleShade(){const c=$('#cycleShade');if(!c)return;c.style.display=P.cycle.on?'block':'none';c.style.left=P.cycle.start*PPB+'px';c.style.width=(P.cycle.end-P.cycle.start)*PPB+'px';c.style.height=$('#lanes').style.height}
@@ -1474,7 +1506,7 @@ const TILE=1024;let paintReq=0;
 function schedulePaint(){if(!paintReq)paintReq=requestAnimationFrame(()=>{paintReq=0;paintRegions()})}
 function paintRegions(){
   const W=$('#lanesWrap');if(!W)return;const dpr=Math.min(3,window.devicePixelRatio||1),x0=W.scrollLeft-400,x1=W.scrollLeft+W.clientWidth+400,y0=W.scrollTop-TH,y1=W.scrollTop+W.clientHeight+TH;
-  const map={};P.tracks.forEach((t,i)=>{for(const r of t.regions)map[r.id]=[t,r,i]});
+  const map={};ROWS().forEach((row,i)=>{if(row.t)for(const r of row.t.regions)map[r.id]=[row.t,r,i]});
   document.querySelectorAll('#lanes .reg[data-r]').forEach(el=>{const m=map[el.dataset.r];if(!m)return;const [t,r,ti]=m,tl=el.querySelector('.tiles');if(!tl)return;
     const left=r.start*PPB,w=Math.max(6,rLen(t,r)*PPB),vis=ti*TH<y1&&ti*TH+TH>y0;
     const a=Math.max(x0,left)-left,b=Math.min(x1,left+w)-left,key=PPB+'|'+TH+'|'+dpr+'|'+P.bpm;
@@ -1542,7 +1574,7 @@ function lanesPointer(){
     if(!drag||drag.mode==='none')return;
     if(drag.mode==='box'){const rect=L.getBoundingClientRect(),x1=e.clientX-rect.left,y1=e.clientY-rect.top;let bx=$('#marquee');if(!bx){bx=h('div',{id:'marquee'});L.append(bx)}
       const ax=Math.min(drag.x0,x1),ay=Math.min(drag.y0,y1),w=Math.abs(x1-drag.x0),hh=Math.abs(y1-drag.y0);Object.assign(bx.style,{left:ax+'px',top:ay+'px',width:w+'px',height:hh+'px'});
-      SELR=new Set(drag.base);P.tracks.forEach((t,i)=>{if(i*TH+TH<ay||i*TH>ay+hh)return;for(const r of t.regions){const rx=r.start*PPB,rw=rLen(t,r)*PPB;if(rx+rw>ax&&rx<ax+w)SELR.add(r.id)}});
+      SELR=new Set(drag.base);ROWS().forEach((row,i)=>{const t=row.t;if(!t||i*TH+TH<ay||i*TH>ay+hh)return;for(const r of t.regions){const rx=r.start*PPB,rw=rLen(t,r)*PPB;if(rx+rw>ax&&rx<ax+w)SELR.add(r.id)}});
       document.querySelectorAll('.reg').forEach(x=>x.classList.toggle('sel',SELR.has(x.dataset.r)));return}
     const dx=(e.clientX+$('#lanesWrap').scrollLeft-drag.x0)/PPB;
     if(!drag.moved){if(Math.abs(e.clientX-drag.cx0)<3&&Math.abs(e.clientY-drag.y0)<3)return;drag.moved=true;snapshot();
@@ -1551,7 +1583,7 @@ function lanesPointer(){
     const ex=new Set(drag.orig.map(o=>o.r.id));
     if(drag.mode==='move'){const raw=prim.o.start+dx,len=rLen(prim.t,prim.o),mg=magnet([raw,raw+len],ex,e);showGuide(mg);const ns=Math.max(0,mg?raw+mg.d:snapB(raw)),d=ns-prim.o.start;
       for(const o of drag.orig){o.r.start=Math.max(0,o.o.start+d);const el=document.querySelector(`.reg[data-r="${o.r.id}"]`);if(el)el.style.left=o.r.start*PPB+'px'}
-      if(drag.orig.length===1){const rect=L.getBoundingClientRect(),ti=Math.floor((e.clientY-rect.top)/TH),nt=P.tracks[ti];
+      if(drag.orig.length===1){const rect=L.getBoundingClientRect(),ti=Math.floor((e.clientY-rect.top)/TH),nt=rowTrack(ti);
         if(nt&&nt!==prim.t&&nt.type===prim.t.type){prim.t.regions.splice(prim.t.regions.indexOf(prim.r),1);nt.regions.push(prim.r);prim.t=nt;selectTrack(nt.id);renderLanes()}}}
     else{const o=prim,r=o.r,t=o.t,sp=spb();
       if(drag.mode==='r'){const rawE=o.o.start+rLen(t,o.o)+dx,mg=magnet([rawE],ex,e);showGuide(mg);const end=mg?rawE+mg.d:snapB(rawE);let nl=Math.max(.25,end-r.start);
@@ -1836,7 +1868,7 @@ async function exportMix(mode,fmt){fmt=fmt||'wav';
     where=await saveOut(blob,name+'.'+fmt)};
   try{if(mode==='stems'){const ts=P.tracks.filter(t=>t.regions.length);let i=0;
       // stem : on ne calcule que la piste visée (+ ses bus d'effets), pas tout le projet
-      for(const t of ts){const pr=deep(P);pr.tracks=pr.tracks.filter(x=>x.id===t.id);pr.tracks.forEach(x=>{x.solo=false;x.mute=false});await doOne(pr,base+' - '+t.name,++i,ts.length)}}
+      for(const t of ts){const pr=deep(P);pr.tracks=pr.tracks.filter(x=>x.id===t.id);pr.tracks.forEach(x=>{x.solo=false;x.mute=false});(pr.folders||[]).forEach(f=>f.mute=false);await doOne(pr,base+' - '+t.name,++i,ts.length)}}
     else await doOne(P,base+(mode==='cycle'?' (cycle)':''),1,1);
     toast('Export terminé ✔ en '+Math.round((performance.now()-t0)/1000)+' s ('+(where==='dossier'?'dossier d’enregistrement / Exports':'dossier Téléchargements')+')',6000)}
   catch(e){console.error(e);toast('Erreur d’export : '+e.message,6000)}
@@ -1917,11 +1949,11 @@ function bindUI(){
   let dc=0;document.addEventListener('dragenter',e=>{e.preventDefault();dc++;$('#drop').style.display='flex'});document.addEventListener('dragleave',()=>{if(--dc<=0){dc=0;$('#drop').style.display='none'}});
   document.addEventListener('dragover',e=>e.preventDefault());
   document.addEventListener('drop',async e=>{e.preventDefault();dc=0;$('#drop').style.display='none';const fs=[...e.dataTransfer.files],ents=dropEntries(e.dataTransfer);
-    const Lr=$('#lanes').getBoundingClientRect();let dBeat=null,dTr=null;if(e.clientX>Lr.left&&e.clientY>Lr.top){dBeat=snapB((e.clientX-Lr.left)/PPB,P.sig);const t=P.tracks[Math.floor((e.clientY-Lr.top)/TH)];dTr=t?t.id:null}
+    const Lr=$('#lanes').getBoundingClientRect();let dBeat=null,dTr=null;if(e.clientX>Lr.left&&e.clientY>Lr.top){dBeat=snapB((e.clientX-Lr.left)/PPB,P.sig);const t=rowTrack(Math.floor((e.clientY-Lr.top)/TH));dTr=t?t.id:null}
     const hasDir=ents.some(x=>x.isDirectory),special=fs.some(f=>MIDI_RE.test(f.name)||/\.(aif|aiff|aifc|caf|logicx)$/i.test(f.name)),nAudio=fs.filter(f=>AUDIO_RE.test(f.name)).length;
     if(hasDir||special||nAudio>1){const items=await walkEntries(ents);return importDropped(items,dBeat,dTr)}
     for(const f of fs){if(/\.studio$/i.test(f.name))return openProject(f);if(/\.js$/i.test(f.name)){try{const id=loadExternalPlugin(await f.text());P.ext[id]=EXT_SRC[id];toast('Plugin chargé : '+PLUGINS[id].name)}catch(err){alert(err.message)}return}}
-    const L=$('#lanes').getBoundingClientRect();let beat=PH,tid=SEL;if(e.clientX>L.left&&e.clientY>L.top){beat=snapB((e.clientX-L.left)/PPB,P.sig);const t=P.tracks[Math.floor((e.clientY-L.top)/TH)];tid=t?t.id:null}
+    const L=$('#lanes').getBoundingClientRect();let beat=PH,tid=SEL;if(e.clientX>L.left&&e.clientY>L.top){beat=snapB((e.clientX-L.left)/PPB,P.sig);const t=rowTrack(Math.floor((e.clientY-L.top)/TH));tid=t?t.id:null}
     importAudio(fs.filter(f=>/audio|\.(wav|mp3|ogg|m4a|flac|aac)$/i.test(f.type+f.name)),beat,tid)});
   addEventListener('resize',()=>{drawRuler();schedulePaint()});
 }
@@ -1992,7 +2024,7 @@ function onKey(e){
     if(SELR.size)deleteRegions();else delTrack(findTrack(SEL));return}
   if(k==='arrowleft'){e.preventDefault();setPH(Math.max(0,(Math.ceil(PH/P.sig)-1)*P.sig));return}
   if(k==='arrowright'){e.preventDefault();setPH((Math.floor(PH/P.sig)+1)*P.sig);return}
-  if(k==='arrowup'||k==='arrowdown'){e.preventDefault();const i=P.tracks.findIndex(t=>t.id===SEL)+(k==='arrowup'?-1:1);if(P.tracks[i])selectTrack(P.tracks[i].id);return}
+  if(k==='arrowup'||k==='arrowdown'){e.preventDefault();const V=ROWS().filter(r=>r.t).map(r=>r.t),i=V.findIndex(t=>t.id===SEL)+(k==='arrowup'?-1:1);if(V[i])selectTrack(V[i].id);return}
   if(k==='+'||k==='='){zoom(1.25);return}if(k==='-'){zoom(.8);return}
 }
 function onKeyUp(e){const k=e.key.toLowerCase();if(HELD[k]!==undefined){const t=findTrack(SEL);if(t)E.noteOff(t,HELD[k]);delete HELD[k]}}
@@ -2136,7 +2168,7 @@ function initApp(){
 }
 
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='3.9.1';
+const APP_VERSION='3.10.0';
 const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
@@ -2270,7 +2302,7 @@ function showChangelog(force){
   let seen='',old=null;try{seen=localStorage.getItem('studio_ver')||'';old=localStorage.getItem('studio_seen')}catch(e){}
   if(!force&&(seen===APP_VERSION||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v3.9.1</h4><ul><li><b>Sessions sur téléphone</b> : les sons de la session (prod, voix) sont maintenant lus par Studio lui-même, plus par le lecteur du téléphone. Corrige les pistes qui ne se chargeaient pas sur iPhone.</li><li>Les nouveaux sons envoyés en session sont encore plus compatibles avec les téléphones.</li></ul><h4>v3.9.0</h4><ul><li><b>🎧 Retour casque sans décalage</b> : quand tu actives le <b>I</b> d’une piste, ta voix revient dans le casque par un circuit rapide, séparé du reste. Les effets qui retardent (Pitch Pro, autotune, pitch shifter) sont coupés <b>dans le casque seulement</b> : ils restent sur ta piste et dans l’export. Tes prises et ta compensation de latence ne changent pas.</li><li>Réglage dans ⚙ Réglages → « Retour casque (I) » : « Sans décalage » ou « Avec tous les effets ». Le retard du retour est affiché.</li><li>💡 Pour zéro décalage : retour micro du casque (« sidetone » dans SteelSeries GG / Sonar) et I éteint dans Studio.</li></ul><h4>v3.8.2</h4><ul><li>Historique : les changements de marqueurs et de notes sont maintenant décrits correctement.</li></ul><h4>v3.8.1</h4><ul><li><b>↶ ↷ 🕘 Historique</b> (à côté de ☰ Fichier) : la liste de vos dernières actions en clair (« Mastering ajouté », « Voix 1 : volume »…). Vous voyez exactement ce qui sera annulé avant de confirmer, et vous pouvez tout remettre.</li><li><b>Retirer le mastering</b> en 1 clic (Historique ou ☰ Fichier), sans toucher à vos autres modifications : la Sortie stéréo revient comme avant.</li></ul><h4>v3.8 — Outils voix 🪄</h4><ul><li><b>🔀 Fondu enchaîné automatique</b> : quand vous reposez une phrase, les deux prises se fondent sans clic (réglable de 0 à 120 ms). Fondus à la main : tirez les ronds blancs en haut des régions.</li><li><b>⚖ Égaliser les prises</b> : même volume et même son (graves, médiums, aigus) pour toutes vos prises. Réglage « Son de cette prise » dans ✂ Région.</li><li><b>🎛 Égaliseur visuel</b> : tirez les points sur la courbe, avec le spectre de la voix en direct.</li><li><b>🧠 Analyser ma voix</b> : Studio écoute vos prises et règle EQ, compression, de-esser et noise gate, en expliquant ce qu’il a corrigé.</li><li><b>📏 Volume régulier</b> : remonte les mots faibles, baisse les cris.</li><li><b>🧹 Respirations &amp; bruit</b> : baisse les respirations et le souffle entre les phrases, sans toucher aux mots.</li><li><b>🎚 Mastering 1 clic</b> (Trap, Drill, Mélodique, Naturel) avec mesure du volume final.</li><li><b>Comparer A / B</b> (⭐ Mes réglages, ou Maj+B) : deux versions du son d’une voix, à écouter l’une après l’autre.</li></ul><h4>v3.7.7</h4><ul><li><b>⭐ Mes réglages</b> (inspecteur d’une voix) : 💾 enregistrez votre son (effets, réglages rapides, écho, réverb, volume) sous « Réglage voix 1 », puis appliquez-le à une piste, aux pistes choisies ou à <b>toutes les voix</b> d’un clic. Gardé pour tous vos projets.</li><li>Lien « Mettre à jour » quand vous retouchez une piste qui utilise un de vos réglages. Bouton 📋 pour copier le son d’une piste sur toutes les autres voix.</li></ul><h4>v3.7.6</h4><ul><li><b>Exports bien plus rapides</b> : les effets ne calculent plus le silence ni les effets coupés, et chaque piste ne travaille que là où elle a du son. Les stems ne recalculent plus tout le projet pour chaque piste.</li><li><b>Export MP3</b> (☰ Fichier → Exporter le morceau en MP3 / la zone de cycle en MP3), qualité 320 kb/s.</li><li><b>📁 Dossier d’enregistrement</b> (⚙ Réglages) : choisissez un dossier de votre PC ; chaque prise y est copiée en WAV (Projet / Prises) et les exports y vont (Projet / Exports). Bouton pour y copier tous les sons du projet.</li></ul><h4>v3.7.5</h4><ul><li><b>🎯 Test de latence</b> (⚙ Réglages → Compensation de latence → 🎯 Tester) : l’appli joue des clics, vous dites « TA » dessus (ou vous collez un écouteur contre le micro), elle mesure le vrai retard de votre matériel et propose le bon réglage. Rien ne change tant que vous ne cliquez pas « Appliquer », et seulement pour le projet ouvert.</li></ul><h4>v3.7.4</h4><ul><li><b>📐 Lignes de projection</b> (comme l’accroche aux objets d’AutoCAD) : quand vous glissez ou rognez une région, son début ou sa fin se colle au bord des régions des autres pistes (une coupe, une fin de piste…), aux marqueurs, à la tête de lecture et à la boucle. Une ligne jaune pointillée montre l’alignement, un losange le bord accroché. Maintenez <b>Maj</b> pour glisser sans accroche.</li></ul><h4>v3.7.3</h4><ul><li><b>Tête de lecture précise</b> : plus vous zoomez, plus elle se place finement (la grille s’affine avec le zoom, jusqu’à l’échantillon). Elle se colle toute seule au <b>début / à la fin des régions</b>, aux marqueurs et à la boucle quand vous passez tout près. <b>Alt + clic</b> = placement totalement libre.</li><li>Les régions aussi se déplacent plus finement quand on zoome.</li></ul><h4>v3.7.2</h4><ul><li><b>Le temps en minutes et secondes partout</b> : en haut, à 1 min 25 l’appli affiche <b>1m25</b> (ce compteur reste affiché, même quand le panneau des notes / marqueurs / chat est ouvert). Notes, marqueurs et menus disent aussi « à 1m25 ».</li><li>Paroles : le bouton <b>[ ] Temps</b> ajoute un repère comme <b>[1m25]</b> ; le prompteur suit ces repères.</li></ul><h4>v3.7.1</h4><ul><li><b>📝 Paroles à droite</b>, comme dans Logic (vous pouvez toujours les mettre à gauche avec ⇆ ou en glissant leur titre).</li></ul><h4>v3.7</h4><ul><li><b>📝 Paroles</b> (touche L ou bouton 📝) : les paroles du projet et celles de chaque piste, à gauche comme dans Logic. À plusieurs, chacun peut écrire en même temps sans écraser l’autre. <b>[5]</b> en début de ligne = mesure 5.</li><li><b>🎤 Prompteur</b> : pendant l’enregistrement, les paroles de la piste armée s’affichent en grand et suivent la lecture.</li><li><b>🎙 Prises multiples</b> : ré-enregistrer au même endroit garde les anciennes prises. Clic sur 🎙 dans la région pour choisir, ✂ pour couper et garder les meilleurs bouts de chaque prise, Alt+↑/↓ pour passer de l’une à l’autre.</li><li><b>Panneaux libres</b> : inspecteur, paroles, chat… se redimensionnent (tirer le bord), se ferment, se rangent à gauche/à droite (glisser leur titre, une zone bleue s’affiche) ou se détachent (⧉, ou glisser hors de la fenêtre). Les pistes et leurs noms ne bougent jamais.</li><li><b>🖥 Dispositions</b> 1 · Écriture, 2 · Enregistrement, 3 · Mix (touches 1, 2, 3), modifiables. <b>🎯 Mode focus</b> : F.</li><li><b>Raccourcis</b> : L paroles, T chat, N notes, F focus, I inspecteur, X mixeur.</li><li><b>📌 Notes</b> : sur une piste précise (clic droit sur la piste), toujours visibles jusqu’à ce que quelqu’un les supprime (dans la règle pour « tout le morceau », aperçu au survol), et la position suit la tête de lecture en direct.</li><li>Corrigé : le message envoyé restait dans le champ du chat ; le bouton 📌 était caché (les outils qui ne tiennent pas vont dans « ⋯ »).</li></ul><h4>v3.6</h4><ul><li><b>La timeline défile toute seule</b> quand vous glissez une région, la tête de lecture ou une sélection jusqu’au bord. Pendant la lecture, la vue suit en continu (si vous faites défiler à la main, elle vous laisse tranquille jusqu’à la prochaine lecture).</li><li><b>🎨 Roue de couleurs complète</b> (clic sur la couleur d’une piste) + 💧 pipette (couleurs du projet, ou n’importe où à l’écran sur Chrome/Edge) + couleurs récentes.</li><li><b>Préréglages « Style ZZ »</b> (inspecteur d’une piste voix) : mélodie autotune, drill/trap kickée, ad-libs/backs.</li><li><b>📌 Notes et 🏷 marqueurs</b> (Intro, Couplet, Refrain…) aussi quand vous travaillez seul : clic droit dans la règle ou bouton 📌. Les marqueurs se glissent, se renomment, changent de couleur.</li><li><b>🎤 Messages vocaux</b> dans le chat (2 min max) : écoutez-les, puis ➕ ajoutez-les au projet ou glissez-les sur une piste.</li><li><b>Panneau du chat</b> redimensionnable (tirez son bord), à gauche ou à droite (⇆), à côté de l’appli.</li><li><b>⧉ Fenêtres détachables</b> pour un 2ᵉ écran : le chat, le panneau du bas (mixeur, piano roll, batterie) et chaque fenêtre d’effet. Leur place est mémorisée.</li></ul><h4>v3.5</h4><ul><li><b>🔌 Bibliothèque de plugins</b> (touche <kbd>Y</kbd> ou bouton 🔌) : tous les effets de Studio, vos plugins .js et <b>les plugins AU / VST3 installés sur votre ordinateur</b> (Waves, FabFilter, Antares, Valhalla…). Un clic : le plugin s’ajoute sur la piste et sa fenêtre d’origine s’ouvre.</li><li>Nécessite <b>Studio Bridge</b>, un petit programme gratuit à lancer sur l’ordinateur (guide dans la Bibliothèque). Latence compensée, réglages des plugins mémorisés dans le projet, export en temps réel quand ces plugins sont utilisés.</li></ul><h4>v3.4</h4><ul><li><b>🍎 Import depuis Logic Pro</b> : glissez un projet <b>.logicx</b> dans Studio → tous ses sons, le tempo, la tonalité et la mesure sont récupérés, chaque son sur sa piste (prises replacées à leur position quand Logic l’a noté). Glissez aussi des <b>pistes exportées</b> (plusieurs fichiers d’un coup → une piste chacun, calées au début) ou un <b>fichier MIDI</b> (notes → pistes instrument, batterie → patterns).</li><li>Lecture des formats Apple <b>AIFF</b> et <b>CAF</b>. Guide dans ☰ Fichier → Importer depuis Logic Pro.</li></ul><h4>v3.3</h4><ul><li><b>Les prods passent enfin</b> : les sons sont compressés sans perte (FLAC, ~2× plus légers) et découpés en morceaux, donc même une longue prod arrive chez les autres. Une barre en bas à gauche montre l’envoi et la réception.</li><li><b>🎧 Écouter ensemble</b> : ▶ / ■ et la tête de lecture sont partagés, tout le monde entend le même passage au même moment. Bouton 🎧 pour écouter en solo.</li><li><b>💬 Chat</b> en direct (bouton 💬, pastille rouge = messages non lus).</li><li><b>📌 Commentaires sur la timeline</b> : clic droit dans la règle → « Commenter ici », ou onglet 📌 du panneau. Réponses, « résolu ».</li><li><b>🕘 Versions</b> : sauvegardez une version nommée (« avant le mix ») et revenez-y quand vous voulez.</li><li><b>👁 Lien écoute seule</b> : à donner à quelqu’un qui doit écouter, discuter et commenter sans rien modifier.</li><li><b>📋 Mes sessions</b> : toutes vos sessions, à rouvrir sans retrouver le lien (☰ Fichier → Session à plusieurs).</li><li><b>📀 Lien d’écoute MP3</b> (☰ Fichier) : le morceau en MP3 avec un lien à envoyer, qui s’écoute sur téléphone sans l’appli.</li></ul><h4>v3.2</h4><ul><li><b>👥 Session à plusieurs entre appareils</b> : ☰ Fichier → Session à plusieurs → Partager, puis envoyez le lien. Vos amis vous rejoignent depuis leur ordinateur, téléphone ou tablette, où qu’ils soient.</li><li>Le projet de la session est <b>sauvegardé en ligne</b> : rouvrez le même lien plus tard pour continuer, même si tout le monde était parti.</li><li>Les <b>sons enregistrés ou importés</b> sont envoyés automatiquement aux autres.</li><li>Pastille de connexion à côté des participants : 🟢 connecté, 🟠 connexion, 🔴 hors ligne (vos modifications partent au retour de la connexion).</li></ul><h4>v3.1</h4><ul><li><b>Réverb Pro « Ères »</b> (catégorie Espace) : réverb algorithmique vintage, 14 modes (plaque, hall, chambre, chorus, aléatoire, cathédrale, versions sales, gated…), couleurs Années 70 / 80 / Moderne, pré-délai, decay, taille, attaque, diffusion, modulation, EQ, decay par fréquence, 11 préréglages. C’est aussi la nouvelle réverb du Bus Réverb des nouveaux projets.</li><li><b>Pitch Pro</b> (catégorie Voix) : autotune avancé avec graphique de hauteur en direct, type de voix, tracking, éditeur de notes, vitesse de correction, Humanize, Flex-Tune, vibrato naturel, formants + gorge, transposition, désaccord, mode classique, préréglages. Latence compensée automatiquement.</li></ul><h4>v3.0</h4><ul><li><b>👥 Session à plusieurs</b> (☰ Fichier → Session à plusieurs) : plusieurs personnes sur le même projet, chacun voit en direct les modifications des autres et écoute sur son appareil. <i>Version d’essai : entre fenêtres d’un même navigateur ; la connexion entre appareils arrive dans une prochaine version.</i></li><li><b>🔒 Cadenas</b> : en session, cliquez le cadenas d’une piste (en haut à droite de son nom, ou dans le mixeur) pour que personne d’autre ne la modifie. Plusieurs cadenas possibles, aussi sur les bus, la sortie et le tempo/tonalité. Il se retire en recliquant ou tout seul après 2 min sans activité.</li><li>En session, <b>Ctrl+Z n’annule que vos propres actions</b>. Solo, armement R et retour micro restent personnels.</li></ul><h4>v2.4</h4><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
+  modal(h('div',{html:`<h2>Nouveautés de la v${APP_VERSION} 🎉</h2><h4>v3.10.0</h4><ul><li><b>📁 Dossiers de pistes</b> : range plusieurs pistes (par exemple les 3 lignes de ton couplet) dans un dossier. Il ne reste qu’<b>une ligne</b> à l’écran, avec un aperçu de toutes les prises ; clique sur <b>▸</b> pour ouvrir ou fermer.</li><li>Pour créer un dossier : bouton <b>📁 Dossier</b> sous les pistes, ou clic droit sur une piste → « Ranger dans un nouveau dossier ». Coche les pistes, donne un nom, c’est fait.</li><li>Le volume et le <b>M</b> du dossier agissent sur toutes ses pistes, le <b>S</b> les met toutes en solo. Les prises et les effets de chaque piste ne changent pas.</li><li>Clic droit sur le dossier : renommer, couleur, ajouter / retirer des pistes, défaire le dossier.</li></ul><h4>v3.9.1</h4><ul><li><b>Sessions sur téléphone</b> : les sons de la session (prod, voix) sont maintenant lus par Studio lui-même, plus par le lecteur du téléphone. Corrige les pistes qui ne se chargeaient pas sur iPhone.</li><li>Les nouveaux sons envoyés en session sont encore plus compatibles avec les téléphones.</li></ul><h4>v3.9.0</h4><ul><li><b>🎧 Retour casque sans décalage</b> : quand tu actives le <b>I</b> d’une piste, ta voix revient dans le casque par un circuit rapide, séparé du reste. Les effets qui retardent (Pitch Pro, autotune, pitch shifter) sont coupés <b>dans le casque seulement</b> : ils restent sur ta piste et dans l’export. Tes prises et ta compensation de latence ne changent pas.</li><li>Réglage dans ⚙ Réglages → « Retour casque (I) » : « Sans décalage » ou « Avec tous les effets ». Le retard du retour est affiché.</li><li>💡 Pour zéro décalage : retour micro du casque (« sidetone » dans SteelSeries GG / Sonar) et I éteint dans Studio.</li></ul><h4>v3.8.2</h4><ul><li>Historique : les changements de marqueurs et de notes sont maintenant décrits correctement.</li></ul><h4>v3.8.1</h4><ul><li><b>↶ ↷ 🕘 Historique</b> (à côté de ☰ Fichier) : la liste de vos dernières actions en clair (« Mastering ajouté », « Voix 1 : volume »…). Vous voyez exactement ce qui sera annulé avant de confirmer, et vous pouvez tout remettre.</li><li><b>Retirer le mastering</b> en 1 clic (Historique ou ☰ Fichier), sans toucher à vos autres modifications : la Sortie stéréo revient comme avant.</li></ul><h4>v3.8 — Outils voix 🪄</h4><ul><li><b>🔀 Fondu enchaîné automatique</b> : quand vous reposez une phrase, les deux prises se fondent sans clic (réglable de 0 à 120 ms). Fondus à la main : tirez les ronds blancs en haut des régions.</li><li><b>⚖ Égaliser les prises</b> : même volume et même son (graves, médiums, aigus) pour toutes vos prises. Réglage « Son de cette prise » dans ✂ Région.</li><li><b>🎛 Égaliseur visuel</b> : tirez les points sur la courbe, avec le spectre de la voix en direct.</li><li><b>🧠 Analyser ma voix</b> : Studio écoute vos prises et règle EQ, compression, de-esser et noise gate, en expliquant ce qu’il a corrigé.</li><li><b>📏 Volume régulier</b> : remonte les mots faibles, baisse les cris.</li><li><b>🧹 Respirations &amp; bruit</b> : baisse les respirations et le souffle entre les phrases, sans toucher aux mots.</li><li><b>🎚 Mastering 1 clic</b> (Trap, Drill, Mélodique, Naturel) avec mesure du volume final.</li><li><b>Comparer A / B</b> (⭐ Mes réglages, ou Maj+B) : deux versions du son d’une voix, à écouter l’une après l’autre.</li></ul><h4>v3.7.7</h4><ul><li><b>⭐ Mes réglages</b> (inspecteur d’une voix) : 💾 enregistrez votre son (effets, réglages rapides, écho, réverb, volume) sous « Réglage voix 1 », puis appliquez-le à une piste, aux pistes choisies ou à <b>toutes les voix</b> d’un clic. Gardé pour tous vos projets.</li><li>Lien « Mettre à jour » quand vous retouchez une piste qui utilise un de vos réglages. Bouton 📋 pour copier le son d’une piste sur toutes les autres voix.</li></ul><h4>v3.7.6</h4><ul><li><b>Exports bien plus rapides</b> : les effets ne calculent plus le silence ni les effets coupés, et chaque piste ne travaille que là où elle a du son. Les stems ne recalculent plus tout le projet pour chaque piste.</li><li><b>Export MP3</b> (☰ Fichier → Exporter le morceau en MP3 / la zone de cycle en MP3), qualité 320 kb/s.</li><li><b>📁 Dossier d’enregistrement</b> (⚙ Réglages) : choisissez un dossier de votre PC ; chaque prise y est copiée en WAV (Projet / Prises) et les exports y vont (Projet / Exports). Bouton pour y copier tous les sons du projet.</li></ul><h4>v3.7.5</h4><ul><li><b>🎯 Test de latence</b> (⚙ Réglages → Compensation de latence → 🎯 Tester) : l’appli joue des clics, vous dites « TA » dessus (ou vous collez un écouteur contre le micro), elle mesure le vrai retard de votre matériel et propose le bon réglage. Rien ne change tant que vous ne cliquez pas « Appliquer », et seulement pour le projet ouvert.</li></ul><h4>v3.7.4</h4><ul><li><b>📐 Lignes de projection</b> (comme l’accroche aux objets d’AutoCAD) : quand vous glissez ou rognez une région, son début ou sa fin se colle au bord des régions des autres pistes (une coupe, une fin de piste…), aux marqueurs, à la tête de lecture et à la boucle. Une ligne jaune pointillée montre l’alignement, un losange le bord accroché. Maintenez <b>Maj</b> pour glisser sans accroche.</li></ul><h4>v3.7.3</h4><ul><li><b>Tête de lecture précise</b> : plus vous zoomez, plus elle se place finement (la grille s’affine avec le zoom, jusqu’à l’échantillon). Elle se colle toute seule au <b>début / à la fin des régions</b>, aux marqueurs et à la boucle quand vous passez tout près. <b>Alt + clic</b> = placement totalement libre.</li><li>Les régions aussi se déplacent plus finement quand on zoome.</li></ul><h4>v3.7.2</h4><ul><li><b>Le temps en minutes et secondes partout</b> : en haut, à 1 min 25 l’appli affiche <b>1m25</b> (ce compteur reste affiché, même quand le panneau des notes / marqueurs / chat est ouvert). Notes, marqueurs et menus disent aussi « à 1m25 ».</li><li>Paroles : le bouton <b>[ ] Temps</b> ajoute un repère comme <b>[1m25]</b> ; le prompteur suit ces repères.</li></ul><h4>v3.7.1</h4><ul><li><b>📝 Paroles à droite</b>, comme dans Logic (vous pouvez toujours les mettre à gauche avec ⇆ ou en glissant leur titre).</li></ul><h4>v3.7</h4><ul><li><b>📝 Paroles</b> (touche L ou bouton 📝) : les paroles du projet et celles de chaque piste, à gauche comme dans Logic. À plusieurs, chacun peut écrire en même temps sans écraser l’autre. <b>[5]</b> en début de ligne = mesure 5.</li><li><b>🎤 Prompteur</b> : pendant l’enregistrement, les paroles de la piste armée s’affichent en grand et suivent la lecture.</li><li><b>🎙 Prises multiples</b> : ré-enregistrer au même endroit garde les anciennes prises. Clic sur 🎙 dans la région pour choisir, ✂ pour couper et garder les meilleurs bouts de chaque prise, Alt+↑/↓ pour passer de l’une à l’autre.</li><li><b>Panneaux libres</b> : inspecteur, paroles, chat… se redimensionnent (tirer le bord), se ferment, se rangent à gauche/à droite (glisser leur titre, une zone bleue s’affiche) ou se détachent (⧉, ou glisser hors de la fenêtre). Les pistes et leurs noms ne bougent jamais.</li><li><b>🖥 Dispositions</b> 1 · Écriture, 2 · Enregistrement, 3 · Mix (touches 1, 2, 3), modifiables. <b>🎯 Mode focus</b> : F.</li><li><b>Raccourcis</b> : L paroles, T chat, N notes, F focus, I inspecteur, X mixeur.</li><li><b>📌 Notes</b> : sur une piste précise (clic droit sur la piste), toujours visibles jusqu’à ce que quelqu’un les supprime (dans la règle pour « tout le morceau », aperçu au survol), et la position suit la tête de lecture en direct.</li><li>Corrigé : le message envoyé restait dans le champ du chat ; le bouton 📌 était caché (les outils qui ne tiennent pas vont dans « ⋯ »).</li></ul><h4>v3.6</h4><ul><li><b>La timeline défile toute seule</b> quand vous glissez une région, la tête de lecture ou une sélection jusqu’au bord. Pendant la lecture, la vue suit en continu (si vous faites défiler à la main, elle vous laisse tranquille jusqu’à la prochaine lecture).</li><li><b>🎨 Roue de couleurs complète</b> (clic sur la couleur d’une piste) + 💧 pipette (couleurs du projet, ou n’importe où à l’écran sur Chrome/Edge) + couleurs récentes.</li><li><b>Préréglages « Style ZZ »</b> (inspecteur d’une piste voix) : mélodie autotune, drill/trap kickée, ad-libs/backs.</li><li><b>📌 Notes et 🏷 marqueurs</b> (Intro, Couplet, Refrain…) aussi quand vous travaillez seul : clic droit dans la règle ou bouton 📌. Les marqueurs se glissent, se renomment, changent de couleur.</li><li><b>🎤 Messages vocaux</b> dans le chat (2 min max) : écoutez-les, puis ➕ ajoutez-les au projet ou glissez-les sur une piste.</li><li><b>Panneau du chat</b> redimensionnable (tirez son bord), à gauche ou à droite (⇆), à côté de l’appli.</li><li><b>⧉ Fenêtres détachables</b> pour un 2ᵉ écran : le chat, le panneau du bas (mixeur, piano roll, batterie) et chaque fenêtre d’effet. Leur place est mémorisée.</li></ul><h4>v3.5</h4><ul><li><b>🔌 Bibliothèque de plugins</b> (touche <kbd>Y</kbd> ou bouton 🔌) : tous les effets de Studio, vos plugins .js et <b>les plugins AU / VST3 installés sur votre ordinateur</b> (Waves, FabFilter, Antares, Valhalla…). Un clic : le plugin s’ajoute sur la piste et sa fenêtre d’origine s’ouvre.</li><li>Nécessite <b>Studio Bridge</b>, un petit programme gratuit à lancer sur l’ordinateur (guide dans la Bibliothèque). Latence compensée, réglages des plugins mémorisés dans le projet, export en temps réel quand ces plugins sont utilisés.</li></ul><h4>v3.4</h4><ul><li><b>🍎 Import depuis Logic Pro</b> : glissez un projet <b>.logicx</b> dans Studio → tous ses sons, le tempo, la tonalité et la mesure sont récupérés, chaque son sur sa piste (prises replacées à leur position quand Logic l’a noté). Glissez aussi des <b>pistes exportées</b> (plusieurs fichiers d’un coup → une piste chacun, calées au début) ou un <b>fichier MIDI</b> (notes → pistes instrument, batterie → patterns).</li><li>Lecture des formats Apple <b>AIFF</b> et <b>CAF</b>. Guide dans ☰ Fichier → Importer depuis Logic Pro.</li></ul><h4>v3.3</h4><ul><li><b>Les prods passent enfin</b> : les sons sont compressés sans perte (FLAC, ~2× plus légers) et découpés en morceaux, donc même une longue prod arrive chez les autres. Une barre en bas à gauche montre l’envoi et la réception.</li><li><b>🎧 Écouter ensemble</b> : ▶ / ■ et la tête de lecture sont partagés, tout le monde entend le même passage au même moment. Bouton 🎧 pour écouter en solo.</li><li><b>💬 Chat</b> en direct (bouton 💬, pastille rouge = messages non lus).</li><li><b>📌 Commentaires sur la timeline</b> : clic droit dans la règle → « Commenter ici », ou onglet 📌 du panneau. Réponses, « résolu ».</li><li><b>🕘 Versions</b> : sauvegardez une version nommée (« avant le mix ») et revenez-y quand vous voulez.</li><li><b>👁 Lien écoute seule</b> : à donner à quelqu’un qui doit écouter, discuter et commenter sans rien modifier.</li><li><b>📋 Mes sessions</b> : toutes vos sessions, à rouvrir sans retrouver le lien (☰ Fichier → Session à plusieurs).</li><li><b>📀 Lien d’écoute MP3</b> (☰ Fichier) : le morceau en MP3 avec un lien à envoyer, qui s’écoute sur téléphone sans l’appli.</li></ul><h4>v3.2</h4><ul><li><b>👥 Session à plusieurs entre appareils</b> : ☰ Fichier → Session à plusieurs → Partager, puis envoyez le lien. Vos amis vous rejoignent depuis leur ordinateur, téléphone ou tablette, où qu’ils soient.</li><li>Le projet de la session est <b>sauvegardé en ligne</b> : rouvrez le même lien plus tard pour continuer, même si tout le monde était parti.</li><li>Les <b>sons enregistrés ou importés</b> sont envoyés automatiquement aux autres.</li><li>Pastille de connexion à côté des participants : 🟢 connecté, 🟠 connexion, 🔴 hors ligne (vos modifications partent au retour de la connexion).</li></ul><h4>v3.1</h4><ul><li><b>Réverb Pro « Ères »</b> (catégorie Espace) : réverb algorithmique vintage, 14 modes (plaque, hall, chambre, chorus, aléatoire, cathédrale, versions sales, gated…), couleurs Années 70 / 80 / Moderne, pré-délai, decay, taille, attaque, diffusion, modulation, EQ, decay par fréquence, 11 préréglages. C’est aussi la nouvelle réverb du Bus Réverb des nouveaux projets.</li><li><b>Pitch Pro</b> (catégorie Voix) : autotune avancé avec graphique de hauteur en direct, type de voix, tracking, éditeur de notes, vitesse de correction, Humanize, Flex-Tune, vibrato naturel, formants + gorge, transposition, désaccord, mode classique, préréglages. Latence compensée automatiquement.</li></ul><h4>v3.0</h4><ul><li><b>👥 Session à plusieurs</b> (☰ Fichier → Session à plusieurs) : plusieurs personnes sur le même projet, chacun voit en direct les modifications des autres et écoute sur son appareil. <i>Version d’essai : entre fenêtres d’un même navigateur ; la connexion entre appareils arrive dans une prochaine version.</i></li><li><b>🔒 Cadenas</b> : en session, cliquez le cadenas d’une piste (en haut à droite de son nom, ou dans le mixeur) pour que personne d’autre ne la modifie. Plusieurs cadenas possibles, aussi sur les bus, la sortie et le tempo/tonalité. Il se retire en recliquant ou tout seul après 2 min sans activité.</li><li>En session, <b>Ctrl+Z n’annule que vos propres actions</b>. Solo, armement R et retour micro restent personnels.</li></ul><h4>v2.4</h4><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h4>v2.3</h4><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h4>v2.2</h4><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h4>v2.1</h4><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h4>v2.0</h4><ul>
 <li><b>Réglages rapides</b> pour chaque voix : Écho, Réverb, Autotune, Naturel↔Robot, Basses, Clarté, Brillance, Punch, Doublage, Chaleur… de simples curseurs dans l’inspecteur (ⓘ).</li>
 <li><b>20 préréglages voix</b> classés : Base, Autotune (mélodieux, aérien, robot…), Créatif (grave démon, aiguë, lo-fi, stade, écho slap, phaser…), Ad-libs &amp; backs.</li>
 <li><b>5 nouveaux effets</b> : Pitch Shifter, Lo-Fi/Bitcrusher, Robot, Phaser, Trémolo.</li>
@@ -3227,7 +3259,7 @@ function clearLk(){document.querySelectorAll('[data-lk]').forEach(el=>{el.classL
   el.querySelectorAll('[data-lkdis]').forEach(x=>{x.disabled=false;delete x.dataset.lkdis})});document.querySelectorAll('.lkb').forEach(b=>b.remove())}
 function decorateLocks(){
   if(!COLLAB.on||!P){clearLk();return}
-  document.querySelectorAll('#heads .head').forEach((d,i)=>{const t=P.tracks[i];if(!t)return;const o=d.querySelector(':scope>.lkb');if(o)o.remove();d.append(lockBtn(t.id));markLk(d,t.id)});
+  document.querySelectorAll('#heads .head[data-t]').forEach(d=>{const t=findTrack(d.dataset.t);if(!t)return;const o=d.querySelector(':scope>.lkb');if(o)o.remove();d.append(lockBtn(t.id));markLk(d,t.id)});
   document.querySelectorAll('#lanes .lane[data-t]').forEach(ln=>{const k=ln.dataset.t,L=lockedByOther(k);markLk(ln,k);ln.dataset.lkn=L?'🔒 '+L.n:''});
   document.querySelectorAll('.strip').forEach(s=>{const f=s.querySelector('input.fader[data-id]');if(!f)return;const k=f.dataset.id,o=s.querySelector(':scope>.lkb');if(o)o.remove();s.prepend(lockBtn(k,true));markLk(s,k)});
   const ins=$('#insp');if(SEL&&findTrack(SEL))markLk(ins,SEL);
@@ -3326,9 +3358,9 @@ function renderPins(){
   const list=cmtList();
   if(C2.knownC){for(const c of list)if(!C2.knownC.has(c.id)&&c.u!==ME.id&&COLLAB.on)toast('📌 '+c.n+' a commenté '+fmtBar(c.beat)+' : '+String(c.x).slice(0,60),3500)}
   C2.knownC=new Set(list.map(c=>c.id));
-  for(const c of list){const x=c.beat*PPB,ti=c.tid?P.tracks.findIndex(t=>t.id===c.tid):-1,pos=ti>=0?{top:ti*TH+'px',bottom:'auto',height:TH+'px'}:{};
+  for(const c of list){const x=c.beat*PPB,ti=c.tid?rowIndex(c.tid):-1,pos=ti>=0?{top:ti*TH+'px',bottom:'auto',height:TH+'px'}:{};
     L.append(h('div',{class:'cline'+(c.done?' done':''),style:Object.assign({left:x+'px','--cc':c.c},pos)}),
-      ti>=0&&h('div',{class:'cpin'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{left:x+'px',top:(ti*TH+2)+'px','--cc':c.c},title:c.n+' ('+fmtBar(c.beat)+', '+P.tracks[ti].name+') : '+c.x+(c.done?' ✔ résolue':''),
+      ti>=0&&h('div',{class:'cpin'+(c.done?' done':'')+(C2.hi===c.id?' hi':''),style:{left:x+'px',top:(ti*TH+2)+'px','--cc':c.c},title:c.n+' ('+fmtBar(c.beat)+', '+((P.tracks.find(t=>t.id===c.tid)||{}).name||'')+') : '+c.x+(c.done?' ✔ résolue':''),
         onpointerdown:e=>e.stopPropagation(),onclick:e=>{e.stopPropagation();C2.hi=c.id;openPanel('cmts')}},(c.done?'✔ ':'📌 ')+(c.n||'?').slice(0,1).toUpperCase()+((c.rep&&c.rep.length)?' '+(c.rep.length+1):'')))}
   try{drawRuler()}catch(e){}
   for(const m of (P.marks||[]))L.append(h('div',{class:'mline',style:{left:m.beat*PPB+'px','--mc':m.color}}))}
@@ -3364,7 +3396,7 @@ async function vocToTrack(v,beat,trackId,label){
 document.addEventListener('dragover',e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('text/studio-voc')&&e.target.closest&&e.target.closest('#lanes,#heads')){e.preventDefault();e.stopPropagation();e.dataTransfer.dropEffect='copy'}},true);
 document.addEventListener('drop',e=>{if(!e.dataTransfer||![...e.dataTransfer.types].includes('text/studio-voc'))return;e.preventDefault();e.stopPropagation();
   let d;try{d=JSON.parse(e.dataTransfer.getData('text/studio-voc'))}catch(err){return}const L=$('#lanes').getBoundingClientRect();
-  const beat=e.clientX>L.left?snapB((e.clientX-L.left)/PPB):PH,t=P.tracks[Math.floor((e.clientY-L.top)/TH)];vocToTrack(d.voc,beat,t&&t.id,d.n)},true);
+  const beat=e.clientX>L.left?snapB((e.clientX-L.left)/PPB):PH,t=rowTrack(Math.floor((e.clientY-L.top)/TH));vocToTrack(d.voc,beat,t&&t.id,d.n)},true);
 
 // ---------- 🕘 Versions de la session (table « versions », fonctions version_*) ----------
 async function versionsLoad(){if(!SUPA.url||COLLAB.viewer||!COLLAB.room)return;try{C2.vers=await rpc('version_list',{p_salle:COLLAB.room})}catch(e){C2.vers='err';console.warn(e)}if(C2.open&&C2.tab==='vers')drawPanel()}
@@ -4484,8 +4516,8 @@ function monRebuild(s,obj){const c=MON.ctx;try{s.inp.disconnect()}catch(e){}
 function monApply(obj,s,isTrack){const t=MON.ctx.currentTime;
   if(monSig(obj)!==s.sig)monRebuild(s,obj);
   else(obj.plugins||[]).forEach((pl,i)=>{const inst=s.plugins[i];if(inst)try{inst.set(pl.params)}catch(e){}});
-  s.fader.gain.setTargetAtTime(dbToG(obj.vol),t,.01);s.pan.pan.setTargetAtTime(obj.pan||0,t,.01);
-  let audible=!obj.mute;if(isTrack&&P.tracks.some(x=>x.solo))audible=audible&&obj.solo;
+  const F=isTrack?trkFold(P,obj):null;s.fader.gain.setTargetAtTime(dbToG(obj.vol+(F&&F.vol||0)),t,.01);s.pan.pan.setTargetAtTime(obj.pan||0,t,.01);
+  let audible=!obj.mute&&!(F&&F.mute);if(isTrack&&P.tracks.some(x=>x.solo))audible=audible&&obj.solo;
   s.mute.gain.setTargetAtTime(audible?1:0,t,.005);
   if(isTrack&&obj.sends)P.auxes.forEach((a,i)=>{const db=obj.sends[i]??-60;let g=s.sends[i];
     if(db<=-60&&!g)return;
@@ -4545,5 +4577,89 @@ function monRow(){const info=h('div',{class:'muted',style:'font-size:12px;line-h
 {const o=settingsModal;settingsModal=async function(){const r=await o.apply(this,arguments);const ms=document.querySelectorAll('.modal .box'),b=ms[ms.length-1];if(!b)return r;
   const rows=[...b.querySelectorAll('.kv2')],ref=rows.find(x=>/Mode audio/.test(x.textContent));const row=monRow();
   if(ref){const n=ref.nextElementSibling;(n&&!n.classList.contains('kv2')?n:ref).after(row)}else b.append(row);return r}}
+
+// ===== v3.10 — Dossiers de pistes (comme les « Track Stacks » de Logic) =====
+// Ranger plusieurs pistes (ex. les 3 lignes d'un couplet) dans un dossier : une seule ligne à l'écran,
+// ▸ pour ouvrir / fermer. Volume et Muet du dossier agissent sur toutes ses pistes, S met toutes ses pistes en solo.
+// Les prises, effets et réglages de chaque piste ne bougent pas.
+function setFoldOpen(f,open){if(open)FOLD_OPEN.add(f.id);else FOLD_OPEN.delete(f.id);saveFoldOpen();renderHeads();renderLanes();if(typeof decorateLocks==='function'&&COLLAB.on)try{decorateLocks()}catch(e){}}
+function folderHead(f){
+  const ms=foldMembers(f),open=FOLD_OPEN.has(f.id),allSolo=ms.length>0&&ms.every(t=>t.solo);
+  const b=(cls,lab,on,fn,tip)=>h('button',{class:cls+(on?' on':''),title:tip,onclick:e=>{e.stopPropagation();fn()}},lab);
+  const vol=h('input',{type:'range',min:-60,max:6,step:.5,value:f.vol||0,title:'Volume du dossier (toutes ses pistes)',
+    oninput:e=>{f.vol=+e.target.value;ms.forEach(t=>E.updateStrip(t))},onpointerdown:e=>{e.stopPropagation();snapshot()}});
+  const name=h('input',{class:'tname',value:f.name,onchange:e=>{snapshot();f.name=e.target.value||'Dossier';renderHeads()},
+    onkeydown:e=>{e.stopPropagation();if(e.key==='Enter')e.target.blur()},onpointerdown:e=>e.stopPropagation()});
+  const btns=h('div',{class:'msrow',style:{justifyContent:'flex-start'}},
+    b('btnM','M',f.mute,()=>{snapshot();f.mute=!f.mute;E.updateAll();renderHeads();if(TAB==='mixer')renderBottom()},'Muet (tout le dossier)'),
+    b('btnS','S',allSolo,()=>{ms.forEach(t=>t.solo=!allSolo);E.updateAll();renderHeads();if(TAB==='mixer')renderBottom()},'Solo (tout le dossier)'),
+    h('span',{class:'fcount'},ms.length+' piste'+(ms.length>1?'s':'')));
+  return h('div',{class:'head fhead'+(open?' open':''),'data-f':f.id,title:'Double-clic : ouvrir / fermer',
+      ondblclick:e=>{if(e.target.closest('input,button'))return;setFoldOpen(f,!open)},oncontextmenu:e=>{e.preventDefault();folderMenu(e,f)}},
+    h('div',{class:'col',style:{background:f.color}}),
+    h('button',{class:'ftog',title:open?'Fermer le dossier':'Ouvrir le dossier',onpointerdown:e=>e.stopPropagation(),onclick:e=>{e.stopPropagation();setFoldOpen(f,!open)}},(open?'▾':'▸')+' 📁'),
+    h('div',{class:'info'},name,btns,vol))}
+// Couloir du dossier : aperçu des prises de toutes ses pistes, en petites bandes
+function folderLane(f){const ms=foldMembers(f),n=Math.max(1,ms.length),bh=(TH-10)/n;
+  const ln=h('div',{class:'flane'+(FOLD_OPEN.has(f.id)?' open':''),'data-f':f.id,ondblclick:e=>{e.stopPropagation();setFoldOpen(f,!FOLD_OPEN.has(f.id))}});
+  ms.forEach((t,k)=>{for(const r of t.regions)ln.append(h('div',{class:'fsum',title:t.name+(r.name?' — '+r.name:''),
+    style:{left:r.start*PPB+'px',width:Math.max(3,rLen(t,r)*PPB)+'px',top:(5+k*bh)+'px',height:Math.max(2,bh-1.5)+'px',background:shade(t.color,.75),opacity:r.mute||t.mute?.3:.95}}))});
+  return ln}
+function guessFolderName(ts){const base=ts.map(t=>String(t.name).replace(/[\s#._-]*\d+$/,'').trim()).filter(Boolean);
+  return base.length&&base.every(x=>x===base[0])?base[0]:'Dossier '+((P.folders||[]).length+1)}
+function createFolder(ids,name){const ts=P.tracks.filter(t=>ids.includes(t.id));if(!ts.length)return;snapshot();
+  P.folders=P.folders||[];const f={id:uid('f'),name:name||guessFolderName(ts),color:ts[0].color,vol:0,mute:false};P.folders.push(f);
+  // les pistes du dossier se suivent, à la place de la première
+  const at=P.tracks.indexOf(ts[0]);const rest=P.tracks.filter(t=>!ts.includes(t));const pos=rest.indexOf(P.tracks.slice(at).find(t=>!ts.includes(t)));
+  rest.splice(pos<0?rest.length:pos,0,...ts);P.tracks.length=0;P.tracks.push(...rest);
+  for(const t of ts)t.fold=f.id;cleanFolders();FOLD_OPEN.delete(f.id);saveFoldOpen();E.updateAll();renderAll();
+  toast('📁 « '+f.name+' » : '+ts.length+' piste'+(ts.length>1?'s rangées':' rangée')+'. Clique sur ▸ pour les voir.',4000);return f}
+function addToFolder(t,f){snapshot();t.fold=f.id;const ms=P.tracks.filter(x=>x.fold===f.id&&x!==t);
+  if(ms.length){P.tracks.splice(P.tracks.indexOf(t),1);P.tracks.splice(P.tracks.indexOf(ms[ms.length-1])+1,0,t)}
+  cleanFolders();E.updateAll();renderAll();toast('📁 « '+t.name+' » rangée dans « '+f.name+' »')}
+function removeFromFolder(t){const f=FOLD(t.fold);snapshot();delete t.fold;
+  if(f){const ms=foldMembers(f);if(ms.length){P.tracks.splice(P.tracks.indexOf(t),1);P.tracks.splice(P.tracks.indexOf(ms[ms.length-1])+1,0,t)}}
+  cleanFolders();E.updateAll();renderAll();toast('📤 « '+t.name+' » sortie du dossier')}
+function ungroupFolder(f){snapshot();for(const t of foldMembers(f))delete t.fold;P.folders=P.folders.filter(x=>x!==f);FOLD_OPEN.delete(f.id);saveFoldOpen();
+  E.updateAll();renderAll();toast('📂 Dossier « '+f.name+' » défait : les pistes sont toujours là')}
+function deleteFolder(f){const ms=foldMembers(f);if(!confirm('Supprimer le dossier « '+f.name+' » ET ses '+ms.length+' piste(s) ?\n(Ctrl+Z pour annuler)'))return;snapshot();
+  for(const t of ms){try{E.setMonitor(t,false)}catch(e){}P.tracks.splice(P.tracks.indexOf(t),1)}P.folders=P.folders.filter(x=>x!==f);
+  if(!findTrack(SEL))SEL=(P.tracks[0]||{}).id;SELR.clear();E.build(P);renderAll();toast('Dossier « '+f.name+' » supprimé — Ctrl+Z pour annuler')}
+// dossiers vides ou cassés : retirés
+function cleanFolders(){if(!P.folders)return;P.folders=P.folders.filter(f=>P.tracks.some(t=>t.fold===f.id));for(const t of P.tracks)if(t.fold&&!FOLD(t.fold))delete t.fold}
+function folderMenuItems(t){const it=[],f=FOLD(t.fold);
+  if(f)it.push(['📤 Sortir du dossier « '+f.name+' »',()=>removeFromFolder(t)]);
+  else{it.push(['📁 Ranger dans un nouveau dossier…',()=>folderDialog(t)]);for(const g of P.folders||[])it.push(['📁 Mettre dans « '+g.name+' »',()=>addToFolder(t,g)])}
+  return it}
+function folderMenu(e,f){const open=FOLD_OPEN.has(f.id);menu(e,['Dossier : '+f.name,
+  [open?'▾ Fermer le dossier':'▸ Ouvrir le dossier',()=>setFoldOpen(f,!open)],
+  ['Renommer…',()=>{const v=prompt('Nom du dossier',f.name);if(v){snapshot();f.name=v;renderHeads()}}],
+  ['Changer la couleur…',()=>colorPicker(e,f)],
+  ['Ajouter / retirer des pistes…',()=>folderDialog(null,f)],'-',
+  ['📂 Défaire le dossier (garder les pistes)',()=>ungroupFolder(f)],
+  ['Supprimer le dossier et ses pistes',()=>deleteFolder(f)]])}
+// Fenêtre : cocher les pistes à ranger
+function folderDialog(seed,f){
+  const pre=new Set(f?foldMembers(f).map(t=>t.id):[]);
+  if(!f){if(seed)pre.add(seed.id);for(const id of SELR){const x=findRegion(id);if(x&&x[0])pre.add(x[0].id)}}
+  const boxes=P.tracks.map(t=>{const other=t.fold&&(!f||t.fold!==f.id)&&FOLD(t.fold);
+    const cb=h('input',{type:'checkbox',checked:pre.has(t.id)});cb.dataset.t=t.id;
+    return h('label',{class:'fpick'},cb,h('span',{class:'fdot',style:{background:t.color}}),h('span',null,tIco(t)+' '+t.name),other&&h('span',{class:'muted'},'  (dans « '+other.name+' »)'))});
+  const sel=()=>boxes.map(l=>l.querySelector('input')).filter(c=>c.checked).map(c=>c.dataset.t);
+  const name=h('input',{value:f?f.name:guessFolderName(P.tracks.filter(t=>pre.has(t.id))),style:{width:'100%'},onkeydown:e=>e.stopPropagation()});
+  const m=modal([h('h2',null,f?'📁 Pistes du dossier':'📁 Ranger dans un dossier'),
+    h('p',{class:'muted',style:{fontSize:'12px',marginTop:0}},'Coche les pistes à regrouper (par exemple les 3 lignes de ton couplet). Elles restent intactes : le dossier les range sur une seule ligne.'),
+    h('div',{class:'kv2'},'Nom du dossier',name),
+    h('div',{class:'flist'},boxes),
+    h('div',{style:{display:'flex',gap:'8px',justifyContent:'flex-end',marginTop:'10px'}},
+      h('button',{onclick:()=>m.remove()},'Annuler'),
+      h('button',{class:'primary',onclick:()=>{const ids=sel();if(!ids.length)return toast('Coche au moins une piste');m.remove();
+        if(!f)return createFolder(ids,name.value.trim());
+        snapshot();f.name=name.value.trim()||f.name;for(const t of P.tracks){if(ids.includes(t.id))t.fold=f.id;else if(t.fold===f.id)delete t.fold}
+        const ms=P.tracks.filter(t=>t.fold===f.id),at=P.tracks.indexOf(ms[0]),rest=P.tracks.filter(t=>t.fold!==f.id),nxt=P.tracks.slice(at).find(t=>t.fold!==f.id),pos=rest.indexOf(nxt);
+        rest.splice(pos<0?rest.length:pos,0,...ms);P.tracks.length=0;P.tracks.push(...rest);cleanFolders();E.updateAll();renderAll()}},f?'Valider':'Créer le dossier'))]);
+  m.classList.add('foldm')}
+// une piste armée ou écoutée doit être visible : son dossier s'ouvre
+{const o=toggleArm;toggleArm=function(t){const r=o.apply(this,arguments);const f=t&&FOLD(t.fold);if(t&&t.arm&&f&&!FOLD_OPEN.has(f.id))setFoldOpen(f,true);return r}}
 </script>
 </body></html>
