@@ -518,3 +518,7 @@ body.mob .msheet .mbox{max-width:620px;margin:0 auto}
 .svwarn{font-size:13px;color:#ffb340;margin-bottom:10px}.svok{font-size:13px;color:#30d158;margin-bottom:10px}
 .svbig{display:block;width:100%;padding:14px!important;border-radius:12px!important;border:0!important;background:#0a84ff!important;color:#fff!important;font-size:16px!important;font-weight:700;cursor:pointer;margin-bottom:8px}
 .svsec{display:block;width:100%;padding:11px!important;border-radius:12px!important;border:0!important;background:#2e2e33!important;color:#fff!important;font-size:14px!important;font-weight:600;cursor:pointer}
+
+/* Safari iPhone (pas installée) : Safari floute le haut de la page sous l’heure → on descend la barre du haut */
+body.insafari #mob{padding-top:calc(env(safe-area-inset-top) + 26px)}
+body.insafari #mob.land{padding-top:0}

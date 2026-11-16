@@ -523,6 +523,10 @@ body.mob .msheet .mbox{max-width:620px;margin:0 auto}
 .svwarn{font-size:13px;color:#ffb340;margin-bottom:10px}.svok{font-size:13px;color:#30d158;margin-bottom:10px}
 .svbig{display:block;width:100%;padding:14px!important;border-radius:12px!important;border:0!important;background:#0a84ff!important;color:#fff!important;font-size:16px!important;font-weight:700;cursor:pointer;margin-bottom:8px}
 .svsec{display:block;width:100%;padding:11px!important;border-radius:12px!important;border:0!important;background:#2e2e33!important;color:#fff!important;font-size:14px!important;font-weight:600;cursor:pointer}
+
+/* Safari iPhone (pas installée) : Safari floute le haut de la page sous l’heure → on descend la barre du haut */
+body.insafari #mob{padding-top:calc(env(safe-area-inset-top) + 26px)}
+body.insafari #mob.land{padding-top:0}
 </style></head><body>
 <div id="app">
  <div id="bar">
@@ -4965,7 +4969,7 @@ function mobFxGrid(t){const wrap=h('div',{class:'mfx'}),cats=[];for(const n in V
 function mobFxSheet(t){mSheet('✨ Effets — '+t.name,mobFxGrid(t),'mtrk')}
 
 // ---------- construction ----------
-function mobInit(){if(MOB)return;MOB=true;document.body.classList.add('mob');PPB=Math.min(PPB,18);
+function mobInit(){if(MOB)return;MOB=true;document.body.classList.add('mob');if(IOS&&!(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true))document.body.classList.add('insafari');PPB=Math.min(PPB,18);
   const el=h('div',{id:'mob'},
     h('div',{class:'mtop'},mB('mic','☰',()=>projectsModal(),'Mes projets'),h('div',{class:'mtitle',id:'mTitle',onclick:()=>{const v=prompt('Nom du projet',P.name);if(v){P.name=v;DIRTY=true;mobSched()}}}),
       mB('mic','↶',()=>undo(),'Annuler'),mB('mic','↷',()=>redo(),'Rétablir'),mB('mic','⋯',mobMenuSheet,'Menu')),

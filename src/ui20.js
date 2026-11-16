@@ -80,7 +80,7 @@ function mobFxGrid(t){const wrap=h('div',{class:'mfx'}),cats=[];for(const n in V
 function mobFxSheet(t){mSheet('✨ Effets — '+t.name,mobFxGrid(t),'mtrk')}
 
 // ---------- construction ----------
-function mobInit(){if(MOB)return;MOB=true;document.body.classList.add('mob');PPB=Math.min(PPB,18);
+function mobInit(){if(MOB)return;MOB=true;document.body.classList.add('mob');if(IOS&&!(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true))document.body.classList.add('insafari');PPB=Math.min(PPB,18);
   const el=h('div',{id:'mob'},
     h('div',{class:'mtop'},mB('mic','☰',()=>projectsModal(),'Mes projets'),h('div',{class:'mtitle',id:'mTitle',onclick:()=>{const v=prompt('Nom du projet',P.name);if(v){P.name=v;DIRTY=true;mobSched()}}}),
       mB('mic','↶',()=>undo(),'Annuler'),mB('mic','↷',()=>redo(),'Rétablir'),mB('mic','⋯',mobMenuSheet,'Menu')),
