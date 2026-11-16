@@ -395,6 +395,98 @@ body.detached.det-insp #insp{display:block;overflow:auto}
 details.cl{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:6px 0}
 details.cl summary{cursor:pointer;font-weight:600}
 details.cl h5{margin:10px 0 2px;color:var(--dim)}
+
+/* ===== v3.11 interface téléphone ===== */
+body.mob #app{display:none}
+#mob{position:fixed;inset:0;z-index:20;background:#111113;color:#f2f2f4;display:flex;flex-direction:column;font-size:14px;padding-top:env(safe-area-inset-top);-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#mob button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;touch-action:manipulation}
+.mtop{display:flex;align-items:center;gap:2px;padding:6px 8px;background:#19191c}
+.mtop .mic{width:42px;height:42px;border-radius:12px;font-size:20px}
+.mtop .mic:active{background:#2c2c31}
+.mtitle{flex:1;min-width:0;font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px}
+.minfo{display:flex;align-items:center;gap:8px;padding:6px 12px 8px;background:#19191c;border-bottom:1px solid #000}
+.mtime{font:700 22px/1 ui-monospace,Menlo,monospace;min-width:92px}
+.mtime.rec{color:#ff453a}
+.mmeter{flex:1;height:6px;border-radius:3px;background:#2a2a2e;overflow:hidden;min-width:20px}.mmeter i{display:block;height:100%;width:0;border-radius:3px}
+.mchip{background:#2a2a2f!important;border-radius:16px;padding:7px 12px;font-size:12px;font-weight:600;white-space:nowrap}
+.mzoom{display:flex;gap:4px}.mzoom button{width:32px;height:32px;border-radius:16px;background:#2a2a2f!important;font-size:18px}
+#mScroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-x pan-y}
+#mInner{position:relative;min-height:100%}
+.mrul{display:flex;position:sticky;top:0;z-index:6;height:26px;background:#19191c}
+.mcorner{position:sticky;left:0;z-index:7;width:108px;flex:none;background:#19191c;border-right:1px solid #000}
+.mrulb{position:relative;height:26px;touch-action:none;border-bottom:1px solid #000}
+.mrulb span{position:absolute;top:5px;font-size:11px;color:#9a9aa2;padding-left:4px;border-left:1px solid #3a3a40;height:21px}
+.mrow{display:flex;height:66px}
+.mhead{position:sticky;left:0;z-index:4;width:108px;flex:none;display:flex;align-items:center;gap:6px;padding:0 6px;background:#19191c;border-right:1px solid #000;border-bottom:1px solid #0a0a0b}
+.mhead.sel{background:#2a2a30}
+.mhead.inf{box-shadow:inset 3px 0 0 #666}
+.mico{position:relative;width:36px;height:36px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.marm{position:absolute;right:-3px;top:-3px;width:11px;height:11px;border-radius:50%;background:#ff3b30;border:2px solid #19191c}
+.mhn{min-width:0;display:flex;flex-direction:column;gap:3px}
+.mhn b{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:58px}
+.mhn small{font-size:10px;color:#9a9aa2;white-space:nowrap}
+.mms{display:flex;gap:3px}.mms button{width:19px;height:19px;border-radius:5px;background:#333338!important;font-size:10px;font-weight:700;color:#aaa!important;padding:0}
+.mms .m.on{background:#0a84ff!important;color:#fff!important}.mms .s.on{background:#ffd60a!important;color:#000!important}
+.mlane{position:relative;height:66px;flex:none;border-bottom:1px solid #0a0a0b;background:#151517}
+.mlane.sel{background:#1c1c20}
+.mfl{background:#1a1a1d}.mfsum{position:absolute;border-radius:2px}
+.mreg{position:absolute;top:4px;height:58px;border-radius:8px;overflow:hidden;box-sizing:border-box}
+.mreg.sel{outline:2.5px solid #fff;outline-offset:-2px;touch-action:none;z-index:2}
+.mreg .tiles{position:absolute;left:0;right:0;top:14px;bottom:0}.mreg .tiles canvas{position:absolute;top:0}
+.mrt{position:absolute;left:6px;top:1px;font-size:10px;font-weight:600;white-space:nowrap;color:rgba(255,255,255,.9);pointer-events:none}
+.mreg .mh{display:none;position:absolute;top:0;bottom:0;width:22px;touch-action:none}
+.mreg.sel .mh{display:block}.mreg .mh.l{left:0}.mreg .mh.r{right:0}
+.mreg.sel .mh::after{content:'';position:absolute;top:18px;bottom:18px;width:4px;border-radius:2px;background:#fff}
+.mreg .mh.l::after{left:5px}.mreg .mh.r::after{right:5px}
+.mlive{background:#a3201a!important}
+#mPH{position:absolute;left:0;top:0;width:2px;margin-left:-1px;background:#fff;z-index:5;pointer-events:none;box-shadow:0 0 6px rgba(255,255,255,.5)}
+.maddrow{height:auto}.maddb{background:#2a2a2f!important;border-radius:22px;padding:12px 18px;font-weight:600;white-space:nowrap}
+.mtools{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#19191c;border-top:1px solid #000;overflow-x:auto;min-height:40px}
+.mtl{background:#2a2a2f!important;border-radius:18px;padding:9px 13px;font-size:13px;font-weight:600;white-space:nowrap;flex:none;display:flex;align-items:center;gap:6px}
+.mtl.on{background:#0a84ff!important}.mtl.danger{color:#ff6961!important}
+.mtl.mcur i{width:12px;height:12px;border-radius:4px;display:block}.mtl.mcur span{max-width:90px;overflow:hidden;text-overflow:ellipsis}
+.mtrans{display:flex;align-items:center;justify-content:space-around;padding:8px 10px calc(10px + env(safe-area-inset-bottom));background:#19191c}
+.mt{width:52px;height:52px;border-radius:26px;font-size:22px}.mt:active{background:#2c2c31!important}
+.mt.on{color:#0a84ff!important}
+.madd{background:#2a2a2f!important}
+.mrec{width:68px;height:68px;border-radius:34px;border:4px solid #fff!important;display:flex;align-items:center;justify-content:center;padding:0}
+.mrec i{display:block;width:50px;height:50px;border-radius:25px;background:#ff3b30;transition:all .15s}
+.mrec.on i{width:26px;height:26px;border-radius:6px}
+.mcount{display:none;position:absolute;inset:0;z-index:30;align-items:center;justify-content:center;font:800 140px/1 system-ui;color:#fff;background:rgba(0,0,0,.45);pointer-events:none}
+.msheet{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;color:#f2f2f4;font-size:14px}
+.mbox{width:100%;max-height:86vh;display:flex;flex-direction:column;background:#1e1e22;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom);animation:mup .18s ease-out}
+@keyframes mup{from{transform:translateY(40px);opacity:.4}}
+.mgrip{width:38px;height:4px;border-radius:2px;background:#555;margin:8px auto 2px}
+.mshd{display:flex;align-items:center;padding:6px 16px 10px}.mshd b{flex:1;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mshd .mx{width:34px;height:34px;border-radius:17px;background:#2e2e33;border:0;color:#ccc;font-size:14px}
+.mbody{overflow:auto;padding:0 16px 18px}
+.msheet button{font:inherit;color:inherit;cursor:pointer}
+.mrowb{display:flex;align-items:center;gap:14px;width:100%;padding:13px 4px;background:none;border:0;border-bottom:1px solid #2c2c31;text-align:left}
+.mrowb .mi{font-size:22px;width:30px;text-align:center}.mrowb .ml{display:flex;flex-direction:column}.mrowb b{font-weight:600;font-size:15px}.mrowb small{color:#9a9aa2;font-size:12px}
+.mtiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mtile{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:14px;border-radius:14px;background:#2a2a2f;border:0;text-align:left}
+.mtile span{font-size:28px}.mtile b{font-size:15px}.mtile small{color:#9a9aa2;font-size:12px}
+.mtile:first-child{grid-column:1/3;background:#3a1512}
+.mname{width:100%;box-sizing:border-box;background:#2a2a2f;border:0;border-radius:10px;padding:11px 12px;color:#fff;font-size:16px;margin-bottom:10px}
+.mtogs{display:flex;gap:8px;flex-wrap:wrap}
+.mtog{flex:1;background:#2a2a2f;border:0;border-radius:12px;padding:12px 10px;font-weight:600;white-space:nowrap}
+.mtog.on{background:#0a84ff}.mtog.ts.on{background:#ffd60a;color:#000}.mtog.danger{color:#ff6961}
+.mkv{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #2c2c31}
+.mkv input[type=range]{flex:1;max-width:60%;height:28px}.mkv small{color:#9a9aa2}
+.mkv select{background:#2a2a2f;color:#fff;border:0;border-radius:8px;padding:8px;font-size:15px}
+.mbpmrow{display:flex;align-items:center;justify-content:center;gap:26px;padding:8px 0 14px}
+.mbpmrow button{width:56px;height:56px;border-radius:28px;background:#2a2a2f;border:0;font-size:26px}
+.mbpmrow div{display:flex;flex-direction:column;align-items:center}.mbpm{font-size:40px}.mbpmrow small{color:#9a9aa2}
+.mfxh{font-weight:700;font-size:15px;margin:16px 0 8px}
+.mfxt{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px}
+.mfxt button{flex:none;background:#2a2a2f;border:0;border-radius:16px;padding:8px 14px;font-weight:600;font-size:13px}.mfxt button.on{background:#fff;color:#000}
+.mfxg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mfxc{display:flex;align-items:center;gap:8px;background:#2a2a2f;border:2px solid transparent;border-radius:12px;padding:12px 10px;text-align:left;font-weight:600;font-size:13px;min-height:52px}
+.mfxc span{font-size:20px}.mfxc.on{border-color:#ff3b30;background:#3a1512}
+body.mob .modal{align-items:flex-end}
+body.mob .modal .box{width:100%;max-width:none;box-sizing:border-box;border-radius:18px 18px 0 0;max-height:88vh;padding-bottom:calc(18px + env(safe-area-inset-bottom));font-size:15px}
+body.mob .modal button{min-height:38px;padding:8px 12px}
+body.mob #toast{bottom:auto;top:calc(110px + env(safe-area-inset-top));z-index:300}
 </style></head><body>
 <div id="app">
  <div id="bar">
@@ -2188,7 +2280,7 @@ function initApp(){
 }
 
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='3.10.5';
+const APP_VERSION='3.11.0';
 const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
@@ -2323,12 +2415,18 @@ function showChangelog(force){
   const mm=v=>String(v).split('.').slice(0,2).join('.');
   if(!force&&(mm(seen)===mm(APP_VERSION)||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés 🎉</h2><p class="muted" style="margin-top:-6px">Tu es sur la v${APP_VERSION}.</p><h4>v3.10 — Dossiers de pistes et iPhone</h4><ul>
+  modal(h('div',{html:`<h2>Nouveautés 🎉</h2><p class="muted" style="margin-top:-6px">Tu es sur la v${APP_VERSION}.</p><h4>v3.11 — Nouvelle interface téléphone 📱</h4><ul>
+<li><b>Tout est refait pour le téléphone</b>, dans l’esprit de BandLab : tes pistes en grosses lignes, et en bas le <b>gros bouton rouge</b> pour t’enregistrer, ▶ pour écouter, ＋ pour ajouter une piste.</li>
+<li><b>S’enregistrer</b> : touche ta piste voix, puis le bouton rouge. Le décompte s’affiche en grand, ta prise se dessine en direct.</li>
+<li><b>✨ Effets de voix</b> en grosses cartes (autotune, voix rap, créatif…), <b>🎧 Retour</b> pour t’entendre, volume et M / S dans la fiche de la piste (touche l’icône de la piste).</li>
+<li><b>Modifier une prise</b> : touche-la, puis glisse-la, tire ses bords pour la raccourcir, ou utilise ✂ Couper, ⧉ Dupliquer, 🗑 Supprimer. Pince avec deux doigts pour zoomer.</li>
+<li>Menu <b>⋯</b> : projets, session à plusieurs, export MP3, réglages… et <b>🖥 Version ordinateur</b> si tu veux retrouver l’ancien affichage.</li>
+</ul><h4 style="margin-top:18px">Versions précédentes</h4><details class="cl"><summary>v3.10 — Dossiers de pistes, micro sur iPhone</summary><ul>
 <li><b>📁 Dossiers de pistes</b> : range plusieurs pistes (par exemple les 3 lignes de ton couplet) sur <b>une seule ligne</b>, avec un aperçu des prises. <b>▸</b> pour ouvrir, <b>▾</b> pour fermer. Bouton <b>📁 Dossier</b> sous les pistes, ou clic droit sur une piste. Le volume, le <b>M</b> et le <b>S</b> du dossier agissent sur toutes ses pistes ; clic droit sur le dossier pour le renommer, changer sa couleur, ajouter / retirer des pistes ou le défaire.</li>
 <li><b>⌨️ Ctrl+D</b> duplique la piste. Pour dupliquer des régions : <b>Ctrl+Maj+D</b>.</li>
 <li><b>📱 Enregistrer sur iPhone</b> : le micro marche (Studio passe l’iPhone en mode « lecture + enregistrement »). Un micro choisi sur le PC est remplacé par celui du téléphone, et si quelque chose bloque, Studio explique quoi régler.</li>
 <li><b>🩺 Test du micro</b> (⚙ Réglages, en haut) : vérifie le micro étape par étape et donne un rapport à copier pour le dépannage.</li>
-</ul><h4 style="margin-top:18px">Versions précédentes</h4><details class="cl"><summary>v3.9 — Retour casque sans décalage, sessions sur téléphone</summary><ul><li><b>Sessions sur téléphone</b> : les sons de la session (prod, voix) sont maintenant lus par Studio lui-même, plus par le lecteur du téléphone. Corrige les pistes qui ne se chargeaient pas sur iPhone.</li><li>Les nouveaux sons envoyés en session sont encore plus compatibles avec les téléphones.</li><li><b>🎧 Retour casque sans décalage</b> : quand tu actives le <b>I</b> d’une piste, ta voix revient dans le casque par un circuit rapide, séparé du reste. Les effets qui retardent (Pitch Pro, autotune, pitch shifter) sont coupés <b>dans le casque seulement</b> : ils restent sur ta piste et dans l’export. Tes prises et ta compensation de latence ne changent pas.</li><li>Réglage dans ⚙ Réglages → « Retour casque (I) » : « Sans décalage » ou « Avec tous les effets ». Le retard du retour est affiché.</li><li>💡 Pour zéro décalage : retour micro du casque (« sidetone » dans SteelSeries GG / Sonar) et I éteint dans Studio.</li></ul></details><details class="cl"><summary>v3.8 — Historique lisible, outils voix</summary><ul><li>Historique : les changements de marqueurs et de notes sont maintenant décrits correctement.</li><li><b>↶ ↷ 🕘 Historique</b> (à côté de ☰ Fichier) : la liste de vos dernières actions en clair (« Mastering ajouté », « Voix 1 : volume »…). Vous voyez exactement ce qui sera annulé avant de confirmer, et vous pouvez tout remettre.</li><li><b>Retirer le mastering</b> en 1 clic (Historique ou ☰ Fichier), sans toucher à vos autres modifications : la Sortie stéréo revient comme avant.</li><li><b>🔀 Fondu enchaîné automatique</b> : quand vous reposez une phrase, les deux prises se fondent sans clic (réglable de 0 à 120 ms). Fondus à la main : tirez les ronds blancs en haut des régions.</li><li><b>⚖ Égaliser les prises</b> : même volume et même son (graves, médiums, aigus) pour toutes vos prises. Réglage « Son de cette prise » dans ✂ Région.</li><li><b>🎛 Égaliseur visuel</b> : tirez les points sur la courbe, avec le spectre de la voix en direct.</li><li><b>🧠 Analyser ma voix</b> : Studio écoute vos prises et règle EQ, compression, de-esser et noise gate, en expliquant ce qu’il a corrigé.</li><li><b>📏 Volume régulier</b> : remonte les mots faibles, baisse les cris.</li><li><b>🧹 Respirations &amp; bruit</b> : baisse les respirations et le souffle entre les phrases, sans toucher aux mots.</li><li><b>🎚 Mastering 1 clic</b> (Trap, Drill, Mélodique, Naturel) avec mesure du volume final.</li><li><b>Comparer A / B</b> (⭐ Mes réglages, ou Maj+B) : deux versions du son d’une voix, à écouter l’une après l’autre.</li></ul></details><details class="cl"><summary>v3.7 — Paroles, mes réglages, test de latence, exports rapides</summary><ul><li><b>⭐ Mes réglages</b> (inspecteur d’une voix) : 💾 enregistrez votre son (effets, réglages rapides, écho, réverb, volume) sous « Réglage voix 1 », puis appliquez-le à une piste, aux pistes choisies ou à <b>toutes les voix</b> d’un clic. Gardé pour tous vos projets.</li><li>Lien « Mettre à jour » quand vous retouchez une piste qui utilise un de vos réglages. Bouton 📋 pour copier le son d’une piste sur toutes les autres voix.</li><li><b>Exports bien plus rapides</b> : les effets ne calculent plus le silence ni les effets coupés, et chaque piste ne travaille que là où elle a du son. Les stems ne recalculent plus tout le projet pour chaque piste.</li><li><b>Export MP3</b> (☰ Fichier → Exporter le morceau en MP3 / la zone de cycle en MP3), qualité 320 kb/s.</li><li><b>📁 Dossier d’enregistrement</b> (⚙ Réglages) : choisissez un dossier de votre PC ; chaque prise y est copiée en WAV (Projet / Prises) et les exports y vont (Projet / Exports). Bouton pour y copier tous les sons du projet.</li><li><b>🎯 Test de latence</b> (⚙ Réglages → Compensation de latence → 🎯 Tester) : l’appli joue des clics, vous dites « TA » dessus (ou vous collez un écouteur contre le micro), elle mesure le vrai retard de votre matériel et propose le bon réglage. Rien ne change tant que vous ne cliquez pas « Appliquer », et seulement pour le projet ouvert.</li><li><b>📐 Lignes de projection</b> (comme l’accroche aux objets d’AutoCAD) : quand vous glissez ou rognez une région, son début ou sa fin se colle au bord des régions des autres pistes (une coupe, une fin de piste…), aux marqueurs, à la tête de lecture et à la boucle. Une ligne jaune pointillée montre l’alignement, un losange le bord accroché. Maintenez <b>Maj</b> pour glisser sans accroche.</li><li><b>Tête de lecture précise</b> : plus vous zoomez, plus elle se place finement (la grille s’affine avec le zoom, jusqu’à l’échantillon). Elle se colle toute seule au <b>début / à la fin des régions</b>, aux marqueurs et à la boucle quand vous passez tout près. <b>Alt + clic</b> = placement totalement libre.</li><li>Les régions aussi se déplacent plus finement quand on zoome.</li><li><b>Le temps en minutes et secondes partout</b> : en haut, à 1 min 25 l’appli affiche <b>1m25</b> (ce compteur reste affiché, même quand le panneau des notes / marqueurs / chat est ouvert). Notes, marqueurs et menus disent aussi « à 1m25 ».</li><li>Paroles : le bouton <b>[ ] Temps</b> ajoute un repère comme <b>[1m25]</b> ; le prompteur suit ces repères.</li><li><b>📝 Paroles à droite</b>, comme dans Logic (vous pouvez toujours les mettre à gauche avec ⇆ ou en glissant leur titre).</li><li><b>📝 Paroles</b> (touche L ou bouton 📝) : les paroles du projet et celles de chaque piste, à gauche comme dans Logic. À plusieurs, chacun peut écrire en même temps sans écraser l’autre. <b>[5]</b> en début de ligne = mesure 5.</li><li><b>🎤 Prompteur</b> : pendant l’enregistrement, les paroles de la piste armée s’affichent en grand et suivent la lecture.</li><li><b>🎙 Prises multiples</b> : ré-enregistrer au même endroit garde les anciennes prises. Clic sur 🎙 dans la région pour choisir, ✂ pour couper et garder les meilleurs bouts de chaque prise, Alt+↑/↓ pour passer de l’une à l’autre.</li><li><b>Panneaux libres</b> : inspecteur, paroles, chat… se redimensionnent (tirer le bord), se ferment, se rangent à gauche/à droite (glisser leur titre, une zone bleue s’affiche) ou se détachent (⧉, ou glisser hors de la fenêtre). Les pistes et leurs noms ne bougent jamais.</li><li><b>🖥 Dispositions</b> 1 · Écriture, 2 · Enregistrement, 3 · Mix (touches 1, 2, 3), modifiables. <b>🎯 Mode focus</b> : F.</li><li><b>Raccourcis</b> : L paroles, T chat, N notes, F focus, I inspecteur, X mixeur.</li><li><b>📌 Notes</b> : sur une piste précise (clic droit sur la piste), toujours visibles jusqu’à ce que quelqu’un les supprime (dans la règle pour « tout le morceau », aperçu au survol), et la position suit la tête de lecture en direct.</li><li>Corrigé : le message envoyé restait dans le champ du chat ; le bouton 📌 était caché (les outils qui ne tiennent pas vont dans « ⋯ »).</li></ul></details><details class="cl"><summary>v3.0 → v3.6 — Sessions à plusieurs, import Logic, plugins</summary><h5>v3.6</h5><ul><li><b>La timeline défile toute seule</b> quand vous glissez une région, la tête de lecture ou une sélection jusqu’au bord. Pendant la lecture, la vue suit en continu (si vous faites défiler à la main, elle vous laisse tranquille jusqu’à la prochaine lecture).</li><li><b>🎨 Roue de couleurs complète</b> (clic sur la couleur d’une piste) + 💧 pipette (couleurs du projet, ou n’importe où à l’écran sur Chrome/Edge) + couleurs récentes.</li><li><b>Préréglages « Style ZZ »</b> (inspecteur d’une piste voix) : mélodie autotune, drill/trap kickée, ad-libs/backs.</li><li><b>📌 Notes et 🏷 marqueurs</b> (Intro, Couplet, Refrain…) aussi quand vous travaillez seul : clic droit dans la règle ou bouton 📌. Les marqueurs se glissent, se renomment, changent de couleur.</li><li><b>🎤 Messages vocaux</b> dans le chat (2 min max) : écoutez-les, puis ➕ ajoutez-les au projet ou glissez-les sur une piste.</li><li><b>Panneau du chat</b> redimensionnable (tirez son bord), à gauche ou à droite (⇆), à côté de l’appli.</li><li><b>⧉ Fenêtres détachables</b> pour un 2ᵉ écran : le chat, le panneau du bas (mixeur, piano roll, batterie) et chaque fenêtre d’effet. Leur place est mémorisée.</li></ul><h5>v3.5</h5><ul><li><b>🔌 Bibliothèque de plugins</b> (touche <kbd>Y</kbd> ou bouton 🔌) : tous les effets de Studio, vos plugins .js et <b>les plugins AU / VST3 installés sur votre ordinateur</b> (Waves, FabFilter, Antares, Valhalla…). Un clic : le plugin s’ajoute sur la piste et sa fenêtre d’origine s’ouvre.</li><li>Nécessite <b>Studio Bridge</b>, un petit programme gratuit à lancer sur l’ordinateur (guide dans la Bibliothèque). Latence compensée, réglages des plugins mémorisés dans le projet, export en temps réel quand ces plugins sont utilisés.</li></ul><h5>v3.4</h5><ul><li><b>🍎 Import depuis Logic Pro</b> : glissez un projet <b>.logicx</b> dans Studio → tous ses sons, le tempo, la tonalité et la mesure sont récupérés, chaque son sur sa piste (prises replacées à leur position quand Logic l’a noté). Glissez aussi des <b>pistes exportées</b> (plusieurs fichiers d’un coup → une piste chacun, calées au début) ou un <b>fichier MIDI</b> (notes → pistes instrument, batterie → patterns).</li><li>Lecture des formats Apple <b>AIFF</b> et <b>CAF</b>. Guide dans ☰ Fichier → Importer depuis Logic Pro.</li></ul><h5>v3.3</h5><ul><li><b>Les prods passent enfin</b> : les sons sont compressés sans perte (FLAC, ~2× plus légers) et découpés en morceaux, donc même une longue prod arrive chez les autres. Une barre en bas à gauche montre l’envoi et la réception.</li><li><b>🎧 Écouter ensemble</b> : ▶ / ■ et la tête de lecture sont partagés, tout le monde entend le même passage au même moment. Bouton 🎧 pour écouter en solo.</li><li><b>💬 Chat</b> en direct (bouton 💬, pastille rouge = messages non lus).</li><li><b>📌 Commentaires sur la timeline</b> : clic droit dans la règle → « Commenter ici », ou onglet 📌 du panneau. Réponses, « résolu ».</li><li><b>🕘 Versions</b> : sauvegardez une version nommée (« avant le mix ») et revenez-y quand vous voulez.</li><li><b>👁 Lien écoute seule</b> : à donner à quelqu’un qui doit écouter, discuter et commenter sans rien modifier.</li><li><b>📋 Mes sessions</b> : toutes vos sessions, à rouvrir sans retrouver le lien (☰ Fichier → Session à plusieurs).</li><li><b>📀 Lien d’écoute MP3</b> (☰ Fichier) : le morceau en MP3 avec un lien à envoyer, qui s’écoute sur téléphone sans l’appli.</li></ul><h5>v3.2</h5><ul><li><b>👥 Session à plusieurs entre appareils</b> : ☰ Fichier → Session à plusieurs → Partager, puis envoyez le lien. Vos amis vous rejoignent depuis leur ordinateur, téléphone ou tablette, où qu’ils soient.</li><li>Le projet de la session est <b>sauvegardé en ligne</b> : rouvrez le même lien plus tard pour continuer, même si tout le monde était parti.</li><li>Les <b>sons enregistrés ou importés</b> sont envoyés automatiquement aux autres.</li><li>Pastille de connexion à côté des participants : 🟢 connecté, 🟠 connexion, 🔴 hors ligne (vos modifications partent au retour de la connexion).</li></ul><h5>v3.1</h5><ul><li><b>Réverb Pro « Ères »</b> (catégorie Espace) : réverb algorithmique vintage, 14 modes (plaque, hall, chambre, chorus, aléatoire, cathédrale, versions sales, gated…), couleurs Années 70 / 80 / Moderne, pré-délai, decay, taille, attaque, diffusion, modulation, EQ, decay par fréquence, 11 préréglages. C’est aussi la nouvelle réverb du Bus Réverb des nouveaux projets.</li><li><b>Pitch Pro</b> (catégorie Voix) : autotune avancé avec graphique de hauteur en direct, type de voix, tracking, éditeur de notes, vitesse de correction, Humanize, Flex-Tune, vibrato naturel, formants + gorge, transposition, désaccord, mode classique, préréglages. Latence compensée automatiquement.</li></ul><h5>v3.0</h5><ul><li><b>👥 Session à plusieurs</b> (☰ Fichier → Session à plusieurs) : plusieurs personnes sur le même projet, chacun voit en direct les modifications des autres et écoute sur son appareil. <i>Version d’essai : entre fenêtres d’un même navigateur ; la connexion entre appareils arrive dans une prochaine version.</i></li><li><b>🔒 Cadenas</b> : en session, cliquez le cadenas d’une piste (en haut à droite de son nom, ou dans le mixeur) pour que personne d’autre ne la modifie. Plusieurs cadenas possibles, aussi sur les bus, la sortie et le tempo/tonalité. Il se retire en recliquant ou tout seul après 2 min sans activité.</li><li>En session, <b>Ctrl+Z n’annule que vos propres actions</b>. Solo, armement R et retour micro restent personnels.</li></ul></details><details class="cl"><summary>v2 — Réglages rapides, préréglages voix, atelier instru</summary><h5>v2.4</h5><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h5>v2.3</h5><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h5>v2.2</h5><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h5>v2.1</h5><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h5>v2.0</h5><ul><li><b>Réglages rapides</b> pour chaque voix : Écho, Réverb, Autotune, Naturel↔Robot, Basses, Clarté, Brillance, Punch, Doublage, Chaleur… de simples curseurs dans l’inspecteur (ⓘ).</li><li><b>20 préréglages voix</b> classés : Base, Autotune (mélodieux, aérien, robot…), Créatif (grave démon, aiguë, lo-fi, stade, écho slap, phaser…), Ad-libs &amp; backs.</li><li><b>5 nouveaux effets</b> : Pitch Shifter, Lo-Fi/Bitcrusher, Robot, Phaser, Trémolo.</li><li><b>Atelier instru</b> (bouton 🎵 Instru) : détection du BPM et de la tonalité, réglage du projet en 1 clic, changement de tempo sans changer la hauteur, transposition, suppression de la voix (karaoké), fondus, coupe du silence.</li><li><b>Mises à jour automatiques</b> : actualisez la page pour avoir la dernière version.</li></ul></details>`}));
+</ul></details><details class="cl"><summary>v3.9 — Retour casque sans décalage, sessions sur téléphone</summary><ul><li><b>Sessions sur téléphone</b> : les sons de la session (prod, voix) sont maintenant lus par Studio lui-même, plus par le lecteur du téléphone. Corrige les pistes qui ne se chargeaient pas sur iPhone.</li><li>Les nouveaux sons envoyés en session sont encore plus compatibles avec les téléphones.</li><li><b>🎧 Retour casque sans décalage</b> : quand tu actives le <b>I</b> d’une piste, ta voix revient dans le casque par un circuit rapide, séparé du reste. Les effets qui retardent (Pitch Pro, autotune, pitch shifter) sont coupés <b>dans le casque seulement</b> : ils restent sur ta piste et dans l’export. Tes prises et ta compensation de latence ne changent pas.</li><li>Réglage dans ⚙ Réglages → « Retour casque (I) » : « Sans décalage » ou « Avec tous les effets ». Le retard du retour est affiché.</li><li>💡 Pour zéro décalage : retour micro du casque (« sidetone » dans SteelSeries GG / Sonar) et I éteint dans Studio.</li></ul></details><details class="cl"><summary>v3.8 — Historique lisible, outils voix</summary><ul><li>Historique : les changements de marqueurs et de notes sont maintenant décrits correctement.</li><li><b>↶ ↷ 🕘 Historique</b> (à côté de ☰ Fichier) : la liste de vos dernières actions en clair (« Mastering ajouté », « Voix 1 : volume »…). Vous voyez exactement ce qui sera annulé avant de confirmer, et vous pouvez tout remettre.</li><li><b>Retirer le mastering</b> en 1 clic (Historique ou ☰ Fichier), sans toucher à vos autres modifications : la Sortie stéréo revient comme avant.</li><li><b>🔀 Fondu enchaîné automatique</b> : quand vous reposez une phrase, les deux prises se fondent sans clic (réglable de 0 à 120 ms). Fondus à la main : tirez les ronds blancs en haut des régions.</li><li><b>⚖ Égaliser les prises</b> : même volume et même son (graves, médiums, aigus) pour toutes vos prises. Réglage « Son de cette prise » dans ✂ Région.</li><li><b>🎛 Égaliseur visuel</b> : tirez les points sur la courbe, avec le spectre de la voix en direct.</li><li><b>🧠 Analyser ma voix</b> : Studio écoute vos prises et règle EQ, compression, de-esser et noise gate, en expliquant ce qu’il a corrigé.</li><li><b>📏 Volume régulier</b> : remonte les mots faibles, baisse les cris.</li><li><b>🧹 Respirations &amp; bruit</b> : baisse les respirations et le souffle entre les phrases, sans toucher aux mots.</li><li><b>🎚 Mastering 1 clic</b> (Trap, Drill, Mélodique, Naturel) avec mesure du volume final.</li><li><b>Comparer A / B</b> (⭐ Mes réglages, ou Maj+B) : deux versions du son d’une voix, à écouter l’une après l’autre.</li></ul></details><details class="cl"><summary>v3.7 — Paroles, mes réglages, test de latence, exports rapides</summary><ul><li><b>⭐ Mes réglages</b> (inspecteur d’une voix) : 💾 enregistrez votre son (effets, réglages rapides, écho, réverb, volume) sous « Réglage voix 1 », puis appliquez-le à une piste, aux pistes choisies ou à <b>toutes les voix</b> d’un clic. Gardé pour tous vos projets.</li><li>Lien « Mettre à jour » quand vous retouchez une piste qui utilise un de vos réglages. Bouton 📋 pour copier le son d’une piste sur toutes les autres voix.</li><li><b>Exports bien plus rapides</b> : les effets ne calculent plus le silence ni les effets coupés, et chaque piste ne travaille que là où elle a du son. Les stems ne recalculent plus tout le projet pour chaque piste.</li><li><b>Export MP3</b> (☰ Fichier → Exporter le morceau en MP3 / la zone de cycle en MP3), qualité 320 kb/s.</li><li><b>📁 Dossier d’enregistrement</b> (⚙ Réglages) : choisissez un dossier de votre PC ; chaque prise y est copiée en WAV (Projet / Prises) et les exports y vont (Projet / Exports). Bouton pour y copier tous les sons du projet.</li><li><b>🎯 Test de latence</b> (⚙ Réglages → Compensation de latence → 🎯 Tester) : l’appli joue des clics, vous dites « TA » dessus (ou vous collez un écouteur contre le micro), elle mesure le vrai retard de votre matériel et propose le bon réglage. Rien ne change tant que vous ne cliquez pas « Appliquer », et seulement pour le projet ouvert.</li><li><b>📐 Lignes de projection</b> (comme l’accroche aux objets d’AutoCAD) : quand vous glissez ou rognez une région, son début ou sa fin se colle au bord des régions des autres pistes (une coupe, une fin de piste…), aux marqueurs, à la tête de lecture et à la boucle. Une ligne jaune pointillée montre l’alignement, un losange le bord accroché. Maintenez <b>Maj</b> pour glisser sans accroche.</li><li><b>Tête de lecture précise</b> : plus vous zoomez, plus elle se place finement (la grille s’affine avec le zoom, jusqu’à l’échantillon). Elle se colle toute seule au <b>début / à la fin des régions</b>, aux marqueurs et à la boucle quand vous passez tout près. <b>Alt + clic</b> = placement totalement libre.</li><li>Les régions aussi se déplacent plus finement quand on zoome.</li><li><b>Le temps en minutes et secondes partout</b> : en haut, à 1 min 25 l’appli affiche <b>1m25</b> (ce compteur reste affiché, même quand le panneau des notes / marqueurs / chat est ouvert). Notes, marqueurs et menus disent aussi « à 1m25 ».</li><li>Paroles : le bouton <b>[ ] Temps</b> ajoute un repère comme <b>[1m25]</b> ; le prompteur suit ces repères.</li><li><b>📝 Paroles à droite</b>, comme dans Logic (vous pouvez toujours les mettre à gauche avec ⇆ ou en glissant leur titre).</li><li><b>📝 Paroles</b> (touche L ou bouton 📝) : les paroles du projet et celles de chaque piste, à gauche comme dans Logic. À plusieurs, chacun peut écrire en même temps sans écraser l’autre. <b>[5]</b> en début de ligne = mesure 5.</li><li><b>🎤 Prompteur</b> : pendant l’enregistrement, les paroles de la piste armée s’affichent en grand et suivent la lecture.</li><li><b>🎙 Prises multiples</b> : ré-enregistrer au même endroit garde les anciennes prises. Clic sur 🎙 dans la région pour choisir, ✂ pour couper et garder les meilleurs bouts de chaque prise, Alt+↑/↓ pour passer de l’une à l’autre.</li><li><b>Panneaux libres</b> : inspecteur, paroles, chat… se redimensionnent (tirer le bord), se ferment, se rangent à gauche/à droite (glisser leur titre, une zone bleue s’affiche) ou se détachent (⧉, ou glisser hors de la fenêtre). Les pistes et leurs noms ne bougent jamais.</li><li><b>🖥 Dispositions</b> 1 · Écriture, 2 · Enregistrement, 3 · Mix (touches 1, 2, 3), modifiables. <b>🎯 Mode focus</b> : F.</li><li><b>Raccourcis</b> : L paroles, T chat, N notes, F focus, I inspecteur, X mixeur.</li><li><b>📌 Notes</b> : sur une piste précise (clic droit sur la piste), toujours visibles jusqu’à ce que quelqu’un les supprime (dans la règle pour « tout le morceau », aperçu au survol), et la position suit la tête de lecture en direct.</li><li>Corrigé : le message envoyé restait dans le champ du chat ; le bouton 📌 était caché (les outils qui ne tiennent pas vont dans « ⋯ »).</li></ul></details><details class="cl"><summary>v3.0 → v3.6 — Sessions à plusieurs, import Logic, plugins</summary><h5>v3.6</h5><ul><li><b>La timeline défile toute seule</b> quand vous glissez une région, la tête de lecture ou une sélection jusqu’au bord. Pendant la lecture, la vue suit en continu (si vous faites défiler à la main, elle vous laisse tranquille jusqu’à la prochaine lecture).</li><li><b>🎨 Roue de couleurs complète</b> (clic sur la couleur d’une piste) + 💧 pipette (couleurs du projet, ou n’importe où à l’écran sur Chrome/Edge) + couleurs récentes.</li><li><b>Préréglages « Style ZZ »</b> (inspecteur d’une piste voix) : mélodie autotune, drill/trap kickée, ad-libs/backs.</li><li><b>📌 Notes et 🏷 marqueurs</b> (Intro, Couplet, Refrain…) aussi quand vous travaillez seul : clic droit dans la règle ou bouton 📌. Les marqueurs se glissent, se renomment, changent de couleur.</li><li><b>🎤 Messages vocaux</b> dans le chat (2 min max) : écoutez-les, puis ➕ ajoutez-les au projet ou glissez-les sur une piste.</li><li><b>Panneau du chat</b> redimensionnable (tirez son bord), à gauche ou à droite (⇆), à côté de l’appli.</li><li><b>⧉ Fenêtres détachables</b> pour un 2ᵉ écran : le chat, le panneau du bas (mixeur, piano roll, batterie) et chaque fenêtre d’effet. Leur place est mémorisée.</li></ul><h5>v3.5</h5><ul><li><b>🔌 Bibliothèque de plugins</b> (touche <kbd>Y</kbd> ou bouton 🔌) : tous les effets de Studio, vos plugins .js et <b>les plugins AU / VST3 installés sur votre ordinateur</b> (Waves, FabFilter, Antares, Valhalla…). Un clic : le plugin s’ajoute sur la piste et sa fenêtre d’origine s’ouvre.</li><li>Nécessite <b>Studio Bridge</b>, un petit programme gratuit à lancer sur l’ordinateur (guide dans la Bibliothèque). Latence compensée, réglages des plugins mémorisés dans le projet, export en temps réel quand ces plugins sont utilisés.</li></ul><h5>v3.4</h5><ul><li><b>🍎 Import depuis Logic Pro</b> : glissez un projet <b>.logicx</b> dans Studio → tous ses sons, le tempo, la tonalité et la mesure sont récupérés, chaque son sur sa piste (prises replacées à leur position quand Logic l’a noté). Glissez aussi des <b>pistes exportées</b> (plusieurs fichiers d’un coup → une piste chacun, calées au début) ou un <b>fichier MIDI</b> (notes → pistes instrument, batterie → patterns).</li><li>Lecture des formats Apple <b>AIFF</b> et <b>CAF</b>. Guide dans ☰ Fichier → Importer depuis Logic Pro.</li></ul><h5>v3.3</h5><ul><li><b>Les prods passent enfin</b> : les sons sont compressés sans perte (FLAC, ~2× plus légers) et découpés en morceaux, donc même une longue prod arrive chez les autres. Une barre en bas à gauche montre l’envoi et la réception.</li><li><b>🎧 Écouter ensemble</b> : ▶ / ■ et la tête de lecture sont partagés, tout le monde entend le même passage au même moment. Bouton 🎧 pour écouter en solo.</li><li><b>💬 Chat</b> en direct (bouton 💬, pastille rouge = messages non lus).</li><li><b>📌 Commentaires sur la timeline</b> : clic droit dans la règle → « Commenter ici », ou onglet 📌 du panneau. Réponses, « résolu ».</li><li><b>🕘 Versions</b> : sauvegardez une version nommée (« avant le mix ») et revenez-y quand vous voulez.</li><li><b>👁 Lien écoute seule</b> : à donner à quelqu’un qui doit écouter, discuter et commenter sans rien modifier.</li><li><b>📋 Mes sessions</b> : toutes vos sessions, à rouvrir sans retrouver le lien (☰ Fichier → Session à plusieurs).</li><li><b>📀 Lien d’écoute MP3</b> (☰ Fichier) : le morceau en MP3 avec un lien à envoyer, qui s’écoute sur téléphone sans l’appli.</li></ul><h5>v3.2</h5><ul><li><b>👥 Session à plusieurs entre appareils</b> : ☰ Fichier → Session à plusieurs → Partager, puis envoyez le lien. Vos amis vous rejoignent depuis leur ordinateur, téléphone ou tablette, où qu’ils soient.</li><li>Le projet de la session est <b>sauvegardé en ligne</b> : rouvrez le même lien plus tard pour continuer, même si tout le monde était parti.</li><li>Les <b>sons enregistrés ou importés</b> sont envoyés automatiquement aux autres.</li><li>Pastille de connexion à côté des participants : 🟢 connecté, 🟠 connexion, 🔴 hors ligne (vos modifications partent au retour de la connexion).</li></ul><h5>v3.1</h5><ul><li><b>Réverb Pro « Ères »</b> (catégorie Espace) : réverb algorithmique vintage, 14 modes (plaque, hall, chambre, chorus, aléatoire, cathédrale, versions sales, gated…), couleurs Années 70 / 80 / Moderne, pré-délai, decay, taille, attaque, diffusion, modulation, EQ, decay par fréquence, 11 préréglages. C’est aussi la nouvelle réverb du Bus Réverb des nouveaux projets.</li><li><b>Pitch Pro</b> (catégorie Voix) : autotune avancé avec graphique de hauteur en direct, type de voix, tracking, éditeur de notes, vitesse de correction, Humanize, Flex-Tune, vibrato naturel, formants + gorge, transposition, désaccord, mode classique, préréglages. Latence compensée automatiquement.</li></ul><h5>v3.0</h5><ul><li><b>👥 Session à plusieurs</b> (☰ Fichier → Session à plusieurs) : plusieurs personnes sur le même projet, chacun voit en direct les modifications des autres et écoute sur son appareil. <i>Version d’essai : entre fenêtres d’un même navigateur ; la connexion entre appareils arrive dans une prochaine version.</i></li><li><b>🔒 Cadenas</b> : en session, cliquez le cadenas d’une piste (en haut à droite de son nom, ou dans le mixeur) pour que personne d’autre ne la modifie. Plusieurs cadenas possibles, aussi sur les bus, la sortie et le tempo/tonalité. Il se retire en recliquant ou tout seul après 2 min sans activité.</li><li>En session, <b>Ctrl+Z n’annule que vos propres actions</b>. Solo, armement R et retour micro restent personnels.</li></ul></details><details class="cl"><summary>v2 — Réglages rapides, préréglages voix, atelier instru</summary><h5>v2.4</h5><ul><li><b>Tête de lecture déplaçable pendant la lecture</b> : glissez-la dans la règle ou directement sa ligne blanche dans les pistes, la lecture suit en direct et repart où vous lâchez.</li></ul><h5>v2.3</h5><ul><li><b>Barre du haut plus compacte</b> : ☰ Fichier à gauche (projets, instru, export…), mixeur/piano/batterie à droite, flèche de sauvegarde verte (sauvegardé) ou orange (pas encore).</li><li><b>Mixeur affiché à l’ouverture</b>, comme sur Logic.</li><li><b>Sections repliables</b> dans l’inspecteur (petite flèche ▾).</li><li><b>Chaque chose à sa place</b> : une instru importée va sur sa propre piste 🎵 Instru, jamais sur une piste voix, et on ne peut pas enregistrer dessus par erreur.</li><li><b>Couleurs des pistes</b> : pastille sous le volume (ou clic sur la barre de couleur) → palette de 20 couleurs + couleur perso.</li><li><b>Zoom ultra net</b> : formes d’onde et notes dessinées en haute définition (écrans Retina), zoom jusqu’à l’échantillon près.</li></ul><h5>v2.2</h5><ul><li><b>Navigation façon Logic</b> : <kbd>Suppr</kbd> supprime la piste (si aucune région sélectionnée), <kbd>Maj+D</kbd> duplique la piste, <kbd>Ctrl+T</kbd> ou ✂ coupe à la tête de lecture, copier/couper/coller, régions muettes, sélection rectangle, décalage <kbd>Alt+←/→</kbd>…</li><li><b>Zoom</b> horizontal et hauteur des pistes (boutons ↔ ↕, <kbd>Ctrl+flèches</kbd>), <kbd>Z</kbd> = tout le projet d’un coup.</li><li><b>Plus d’effets imposés</b> : les nouvelles pistes et le projet démo démarrent sans effets ni écho/réverb. Ajoutez-les quand vous voulez.</li><li>Nouvelle icône du mixeur 🙂 · liste complète dans ☰ Fichier → Raccourcis clavier.</li></ul><h5>v2.1</h5><ul><li><b>Fini le grésillement des instrus</b> : nouveau limiteur propre sur la sortie, et une instru importée va toujours sur sa propre piste, sans effets de voix.</li><li><b>Mode audio</b> dans ⚙ Réglages : choisissez « Stable » si le son coupe sur un appareil peu puissant.</li><li>Explications Écho / Réverb dans les réglages rapides.</li></ul><h5>v2.0</h5><ul><li><b>Réglages rapides</b> pour chaque voix : Écho, Réverb, Autotune, Naturel↔Robot, Basses, Clarté, Brillance, Punch, Doublage, Chaleur… de simples curseurs dans l’inspecteur (ⓘ).</li><li><b>20 préréglages voix</b> classés : Base, Autotune (mélodieux, aérien, robot…), Créatif (grave démon, aiguë, lo-fi, stade, écho slap, phaser…), Ad-libs &amp; backs.</li><li><b>5 nouveaux effets</b> : Pitch Shifter, Lo-Fi/Bitcrusher, Robot, Phaser, Trémolo.</li><li><b>Atelier instru</b> (bouton 🎵 Instru) : détection du BPM et de la tonalité, réglage du projet en 1 clic, changement de tempo sans changer la hauteur, transposition, suppression de la voix (karaoké), fondus, coupe du silence.</li><li><b>Mises à jour automatiques</b> : actualisez la page pour avoir la dernière version.</li></ul></details>`}));
 }
 // ===== v2.2 : navigation façon Logic =====
 let CLIP=[];
@@ -4748,5 +4846,221 @@ async function micTest(){
   if(E.micStream){E.mic=null;E.micDev=undefined}}
 {const o=settingsModal;settingsModal=async function(){const r=await o.apply(this,arguments);const ms=document.querySelectorAll('.modal .box'),b=ms[ms.length-1];
   if(b)b.prepend(h('div',{style:{display:'flex',justifyContent:'flex-end'}},h('button',{onclick:()=>{b.closest('.modal').remove();micTest()}},'🩺 Test du micro')));return r}}
+
+// ===== v3.11 — Interface téléphone (inspirée de BandLab) =====
+// Sur un téléphone, l'interface « ordinateur » (#app) est cachée et remplacée par #mob :
+// barre du haut (projets, titre, annuler, menu), pistes en grosses lignes (icône colorée à gauche, sons à droite),
+// barre d'outils contextuelle, et en bas : ⏮ ▶ ● (gros bouton rouge) ♩ ＋. Les réglages s'ouvrent en feuilles qui montent du bas.
+// Même projet (P), même moteur (E), mêmes sessions : seul l'affichage change. localStorage.studio_mob : '1' forcé, '0' version ordinateur.
+let MOB=false;const MHW=108,MTH=66,MRH=26;let mobSel=null,mobReq=0,mobLastRec=0;
+function mobWanted(){let f=null;try{f=localStorage.getItem('studio_mob')}catch(e){}if(f==='0')return false;if(f==='1')return true;
+  return innerWidth<=540||(IS_TOUCH&&Math.min(screen.width,screen.height)<=540)}
+function mobSet(on){try{localStorage.setItem('studio_mob',on?'1':'0')}catch(e){}location.reload()}
+const mfmt=b=>{const s=Math.max(0,b)*spb(),m=Math.floor(s/60);return m+':'+String(Math.floor(s%60)).padStart(2,'0')+'.'+Math.floor(s*10%10)};
+const mB=(cls,lab,fn,tip)=>h('button',{class:cls,title:tip||'',onclick:e=>{e.stopPropagation();fn(e)}},lab);
+
+// ---------- feuilles (montent du bas) ----------
+function mSheet(title,content,cls){document.querySelectorAll('.msheet').forEach(x=>x.remove());
+  const s=h('div',{class:'msheet '+(cls||''),onpointerdown:e=>{if(e.target===s)s.remove()}},
+    h('div',{class:'mbox'},h('div',{class:'mgrip'}),h('div',{class:'mshd'},h('b',null,title),h('button',{class:'mx',onclick:()=>s.remove()},'✕')),h('div',{class:'mbody'},content)));
+  document.body.append(s);return s}
+const mRow=(ico,lab,fn,sub)=>h('button',{class:'mrowb',onclick:()=>{document.querySelectorAll('.msheet').forEach(x=>x.remove());fn()}},h('span',{class:'mi'},ico),h('span',{class:'ml'},h('b',null,lab),sub&&h('small',null,sub)));
+
+function mobAddSheet(){mSheet('Ajouter une piste',h('div',{class:'mtiles'},
+  mTile('🎤','Voix','Enregistre-toi au micro',()=>{addTrack('audio');mobSched()}),
+  mTile('🎵','Instru','Importe ta prod (MP3, WAV)',()=>importInstruDialog()),
+  mTile('📂','Importer un son','Un fichier audio',()=>$('#fileAudio').click()),
+  mTile('🥁','Batterie','Rythme tout prêt',()=>{addTrack('drums');mobSched()}),
+  mTile('🎹','Instrument','Synthé, basse 808…',()=>{addTrack('synth');mobSched()})))}
+function mTile(ico,lab,sub,fn){return h('button',{class:'mtile',onclick:()=>{document.querySelectorAll('.msheet').forEach(x=>x.remove());fn()}},h('span',null,ico),h('b',null,lab),h('small',null,sub))}
+
+function mobMenuSheet(){mSheet(P.name||'Projet',h('div',null,
+  mRow('📂','Mes projets',projectsModal),
+  mRow('✨','Nouveau projet',()=>switchProject(()=>newProject(false)),'Projet vide'),
+  mRow('👥','Session à plusieurs',collabModal,'Travailler à plusieurs sur ce projet'),
+  mRow('📀','Lien d’écoute',bounceModal,'Envoyer le morceau en MP3 par un lien'),
+  mRow('⬇️','Exporter en MP3',()=>exportMix('all','mp3')),
+  mRow('⬇️','Exporter en WAV',()=>exportMix('all')),
+  mRow('💾','Enregistrer le projet dans Fichiers',saveProject,'Fichier .studio, pour un autre appareil'),
+  mRow('📥','Ouvrir un projet .studio',()=>$('#fileProj').click()),
+  mRow('⚙️','Réglages',settingsModal),
+  mRow('🩺','Test du micro',micTest),
+  mRow('🖥','Version ordinateur',()=>{if(confirm('Passer à l’affichage ordinateur (toutes les fonctions, plus petit) ?\nPour revenir : ⚙ Réglages → 📱 Version téléphone.'))mobSet(false)},'Toutes les fonctions avancées')))}
+
+function mobTempoSheet(){
+  const set=v=>{const i=$('#bpm');i.value=clamp(Math.round(v),40,250);i.dispatchEvent(new Event('change'));num.textContent=P.bpm;mobSched()};
+  const num=h('b',{class:'mbpm'},P.bpm);
+  const key=h('select',{onchange:e=>{$('#keySel').selectedIndex=e.target.selectedIndex;$('#keySel').dispatchEvent(new Event('change'));mobSched()}},NOTE_NAMES.map((n,i)=>h('option',{selected:i===P.key},n)));
+  const sc=h('select',{onchange:e=>{$('#scaleSel').selectedIndex=e.target.selectedIndex;$('#scaleSel').dispatchEvent(new Event('change'));mobSched()}},Object.keys(SCALES).map((n,i)=>h('option',{selected:i===P.scaleIdx},n)));
+  const tog=(lab,get,fn)=>{const b=h('button',{class:'mtog'+(get()?' on':''),onclick:()=>{fn();b.classList.toggle('on',!!get());mobSched()}},lab);return b};
+  mSheet('Tempo et tonalité',h('div',null,
+    h('div',{class:'mbpmrow'},h('button',{onclick:()=>set(P.bpm-1)},'−'),h('div',null,num,h('small',null,'BPM')),h('button',{onclick:()=>set(P.bpm+1)},'+')),
+    h('div',{class:'mkv'},'Tonalité',h('span',null,key,' ',sc)),
+    h('div',{class:'mkv'},'Métronome',tog('♩ Clic',()=>P.settings.metro,()=>$('#bMetro').click())),
+    h('div',{class:'mkv'},'Décompte avant d’enregistrer',tog('1 mesure',()=>P.settings.countIn,()=>$('#bCount').click()))))}
+
+function mobTrackSheet(t){if(!t)return;const voice=t.type==='audio'&&!isInstru(t);
+  const upd=()=>{E.updateStrip(t);mobSched()};
+  const tog=(lab,get,fn,cls)=>{const b=h('button',{class:'mtog '+(cls||'')+(get()?' on':''),onclick:async()=>{await fn();b.classList.toggle('on',!!get());mobSched()}},lab);return b};
+  const vl=h('small',null,(t.vol>0?'+':'')+(+t.vol).toFixed(1)+' dB');
+  const body=h('div',null,
+    h('input',{class:'mname',value:t.name,onchange:e=>{snapshot();t.name=e.target.value||t.name;mobSched()},onkeydown:e=>{e.stopPropagation();if(e.key==='Enter')e.target.blur()}}),
+    h('div',{class:'mtogs'},
+      tog('M  Muet',()=>t.mute,()=>{snapshot();t.mute=!t.mute;E.updateAll()},'tm'),
+      tog('S  Solo',()=>t.solo,()=>{t.solo=!t.solo;E.updateAll()},'ts'),
+      voice&&tog('🎧 M’entendre',()=>t.mon,()=>toggleMon(t))),
+    h('div',{class:'mkv'},h('span',null,'Volume ',vl),h('input',{type:'range',min:-60,max:6,step:.5,value:t.vol,onpointerdown:()=>snapshot(),oninput:e=>{t.vol=+e.target.value;vl.textContent=(t.vol>0?'+':'')+t.vol.toFixed(1)+' dB';E.updateStrip(t)}})),
+    h('div',{class:'mkv'},'Gauche / Droite',h('input',{type:'range',min:-1,max:1,step:.05,value:t.pan||0,onpointerdown:()=>snapshot(),oninput:e=>{t.pan=+e.target.value;E.updateStrip(t)},ondblclick:e=>{t.pan=0;e.target.value=0;upd()}})),
+    voice&&mobFxGrid(t),
+    !voice&&t.type!=='audio'&&h('p',{class:'muted',style:{fontSize:'12px'}},'Pour modifier les notes de cette piste, passe par la version ordinateur (menu ⋯).'),
+    h('div',{class:'mtogs',style:{marginTop:'14px'}},
+      h('button',{class:'mtog',onclick:()=>{document.querySelectorAll('.msheet').forEach(x=>x.remove());dupTrack(t)}},'⧉ Dupliquer'),
+      h('button',{class:'mtog',onclick:()=>{document.querySelectorAll('.msheet').forEach(x=>x.remove());folderDialog(t)}},'📁 Dossier'),
+      h('button',{class:'mtog danger',onclick:()=>{if(!confirm('Supprimer la piste « '+t.name+' » ?'))return;document.querySelectorAll('.msheet').forEach(x=>x.remove());delTrack(t);toast('Piste supprimée — ↶ pour annuler')}},'🗑 Supprimer')));
+  mSheet(tIco(t)+' '+t.name,body,'mtrk')}
+// effets voix : grosses cartes, par catégorie
+function mobFxGrid(t){const wrap=h('div',{class:'mfx'}),cats=[];for(const n in VOCAL_PRESETS){const c=VOCAL_PRESETS[n].cat;if(!cats.includes(c))cats.push(c)}
+  let cur=(VOCAL_PRESETS[t.preset]||{}).cat||cats[0];const tabs=h('div',{class:'mfxt'}),grid=h('div',{class:'mfxg'});
+  const draw=()=>{tabs.innerHTML='';grid.innerHTML='';
+    for(const c of cats)tabs.append(h('button',{class:c===cur?'on':'',onclick:()=>{cur=c;draw()}},c));
+    for(const n in VOCAL_PRESETS)if(VOCAL_PRESETS[n].cat===cur)grid.append(h('button',{class:'mfxc'+(t.preset===n?' on':''),onclick:()=>{applyVocalPreset(t,n);draw()}},h('span',null,/aucun/i.test(n)?'🚫':/autotune/i.test(n+cur)?'🎛':/Créatif/i.test(cur)?'✨':/lib|back/i.test(cur)?'🗣':'🎙'),n))};
+  draw();wrap.append(h('div',{class:'mfxh'},'✨ Effets de voix'),tabs,grid);return wrap}
+function mobFxSheet(t){mSheet('✨ Effets — '+t.name,mobFxGrid(t),'mtrk')}
+
+// ---------- construction ----------
+function mobInit(){if(MOB)return;MOB=true;document.body.classList.add('mob');PPB=Math.min(PPB,18);
+  const el=h('div',{id:'mob'},
+    h('div',{class:'mtop'},mB('mic','☰',()=>projectsModal(),'Mes projets'),h('div',{class:'mtitle',id:'mTitle',onclick:()=>{const v=prompt('Nom du projet',P.name);if(v){P.name=v;DIRTY=true;mobSched()}}}),
+      mB('mic','↶',()=>undo(),'Annuler'),mB('mic','↷',()=>redo(),'Rétablir'),mB('mic','⋯',mobMenuSheet,'Menu')),
+    h('div',{class:'minfo'},h('div',{id:'mTime',class:'mtime'},'0:00.0'),h('div',{id:'mMeter',class:'mmeter'},h('i')),
+      h('button',{id:'mTempo',class:'mchip',onclick:mobTempoSheet}),
+      h('span',{class:'mzoom'},mB('','−',()=>mobZoom(1/1.4)),mB('','+',()=>mobZoom(1.4)))),
+    h('div',{id:'mScroll'},h('div',{id:'mInner'})),
+    h('div',{id:'mTools',class:'mtools'}),
+    h('div',{class:'mtrans'},
+      mB('mt','⏮',()=>{setPH(0);$('#mScroll').scrollLeft=0},'Début'),
+      h('button',{id:'mPlay',class:'mt',onclick:()=>{audioUnlock();play()}},'▶'),
+      h('button',{id:'mRec',class:'mrec',title:'Enregistrer',onclick:mobRecord},h('i')),
+      h('button',{id:'mMetro',class:'mt',onclick:()=>{$('#bMetro').click();mobSched()}},'♩'),
+      mB('mt madd','＋',mobAddSheet,'Ajouter une piste')),
+    h('div',{id:'mCount',class:'mcount'}));
+  document.body.append(el);
+  const S=$('#mScroll');S.addEventListener('scroll',()=>schedMobPaint(),{passive:true});
+  // pincer pour zoomer
+  let pz=null;const dist=e=>Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  S.addEventListener('touchstart',e=>{if(e.touches.length===2)pz={d:dist(e),ppb:PPB}},{passive:true});
+  S.addEventListener('touchmove',e=>{if(e.touches.length!==2||!pz)return;e.preventDefault();const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;mobSetPPB(pz.ppb*dist(e)/pz.d,cx)},{passive:false});
+  S.addEventListener('touchend',e=>{if(e.touches.length<2)pz=null},{passive:true});
+  mobBindLanes();mobRender();requestAnimationFrame(mobTick);
+  addEventListener('resize',()=>mobSched());}
+function mobSetPPB(v,cx){const S=$('#mScroll'),r=S.getBoundingClientRect(),x=(cx==null?r.left+MHW+(r.width-MHW)/2:cx)-r.left-MHW,beat=(S.scrollLeft+x)/PPB;
+  PPB=clamp(v,3,160);mobRender();S.scrollLeft=Math.max(0,beat*PPB-x)}
+function mobZoom(f){mobSetPPB(PPB*f)}
+function mobSched(){if(!MOB||mobReq)return;mobReq=requestAnimationFrame(()=>{mobReq=0;mobRender()})}
+function mobLen(){let end=0;for(const t of P.tracks)for(const r of t.regions)end=Math.max(end,r.start+rLen(t,r));return Math.max(end+P.sig*8,P.sig*16,PH+P.sig*4)}
+
+function mobRender(){if(!MOB||!P)return;
+  $('#mTitle').textContent=(typeof COLLAB!=='undefined'&&COLLAB.on?'👥 ':'')+(P.name||'Projet');
+  $('#mTempo').textContent=P.bpm+' BPM · '+NOTE_NAMES[P.key]+' '+(Object.keys(SCALES)[P.scaleIdx]||'').slice(0,3).toLowerCase();
+  $('#mMetro').classList.toggle('on',!!P.settings.metro);
+  const I=$('#mInner'),W=mobLen()*PPB;I.innerHTML='';I.style.width=(MHW+W)+'px';
+  // règle
+  const rul=h('div',{class:'mrul',id:'mRul'},h('div',{class:'mcorner'}),h('div',{class:'mrulb',style:{width:W+'px'}}));
+  const rb=rul.lastChild,barPx=P.sig*PPB,step=barPx>=44?1:barPx>=22?2:barPx>=11?4:barPx>=5.5?8:16;
+  for(let b=0;b*P.sig<mobLen();b+=step)rb.append(h('span',{style:{left:b*barPx+'px'}},b+1));
+  I.append(rul);
+  for(const row of ROWS()){
+    if(!row.t){const f=row.f,open=FOLD_OPEN.has(f.id),ms=foldMembers(f),bh=(MTH-12)/Math.max(1,ms.length);
+      const ln=h('div',{class:'mlane mfl',style:{width:W+'px'}});
+      ms.forEach((t,k)=>{for(const r of t.regions)ln.append(h('div',{class:'mfsum',style:{left:r.start*PPB+'px',width:Math.max(3,rLen(t,r)*PPB)+'px',top:(6+k*bh)+'px',height:Math.max(2,bh-2)+'px',background:shade(t.color,.8)}}))});
+      I.append(h('div',{class:'mrow'},h('div',{class:'mhead mfh',onclick:()=>setFoldOpen(f,!open)},h('div',{class:'mico',style:{background:f.color}},'📁'),h('div',{class:'mhn'},h('b',null,f.name),h('small',null,(open?'▾ ':'▸ ')+ms.length+' piste'+(ms.length>1?'s':'')))),ln));continue}
+    const t=row.t,ln=h('div',{class:'mlane'+(t.id===SEL?' sel':''),'data-t':t.id,style:{width:W+'px'}});
+    for(const r of t.regions)ln.append(h('div',{class:'mreg'+(SELR.has(r.id)?' sel':''),'data-r':r.id,style:{left:r.start*PPB+'px',width:Math.max(8,rLen(t,r)*PPB)+'px',background:shade(t.color,.62),opacity:r.mute||t.mute?.4:1}},
+      h('div',{class:'tiles'}),h('div',{class:'mrt'},(r.mute?'🔇 ':'')+(r.name||'')),h('div',{class:'mh l'}),h('div',{class:'mh r'})));
+    I.append(h('div',{class:'mrow'},h('div',{class:'mhead'+(t.id===SEL?' sel':'')+(row.f?' inf':''),'data-t':t.id,onclick:()=>{if(SEL===t.id&&!SELR.size)mobTrackSheet(t);else{SEL=t.id;SELR.clear();mobSched()}}},
+        h('div',{class:'mico',style:{background:t.color}},tIco(t),t.arm&&h('i',{class:'marm'})),
+        h('div',{class:'mhn'},h('b',null,t.name),h('span',{class:'mms'},
+          h('button',{class:'m'+(t.mute?' on':''),onclick:e=>{e.stopPropagation();snapshot();t.mute=!t.mute;E.updateAll();mobSched()}},'M'),
+          h('button',{class:'s'+(t.solo?' on':''),onclick:e=>{e.stopPropagation();t.solo=!t.solo;E.updateAll();mobSched()}},'S')))),ln))}
+  I.append(h('div',{class:'mrow maddrow'},h('div',{class:'mhead',style:{background:'transparent',borderColor:'transparent'}}),h('div',{style:{position:'sticky',left:MHW+'px',padding:'12px 10px'}},h('button',{class:'maddb',onclick:mobAddSheet},'＋  Ajouter une piste'))));
+  I.append(h('div',{id:'mPH'}));mobLastRec=0;mobTools();schedMobPaint();mobTick(true)}
+
+// ---------- barre d'outils contextuelle ----------
+function mobTools(){const T=$('#mTools');if(!T)return;T.innerHTML='';
+  if(SELR.size){const items=[...SELR].map(findRegion).filter(Boolean);if(!items.length){SELR.clear();return mobTools()}
+    const muted=items.every(([t,r])=>r.mute);
+    T.append(mB('mtl','✂ Couper',()=>{splitAtPH();mobSched()},'Couper à la barre de lecture'),
+      mB('mtl','⧉ Dupliquer',()=>{dupRegions();mobSched()}),
+      mB('mtl',muted?'🔊 Réactiver':'🔇 Muet',()=>{snapshot();items.forEach(([t,r])=>r.mute=!muted);renderLanes()}),
+      mB('mtl danger','🗑 Supprimer',()=>{deleteRegions();toast('Supprimé — ↶ pour annuler')}),
+      mB('mtl','✕',()=>{SELR.clear();mobSched()}));return}
+  const t=findTrack(SEL);if(!t){T.append(h('span',{class:'muted'},'Touche ＋ pour ajouter une piste'));return}
+  const voice=t.type==='audio'&&!isInstru(t);
+  T.append(h('button',{class:'mtl mcur',onclick:()=>mobTrackSheet(t)},h('i',{style:{background:t.color}}),h('span',null,t.name)),
+    voice&&mB('mtl','✨ Effets',()=>mobFxSheet(t)),
+    voice&&h('button',{class:'mtl'+(t.mon?' on':''),onclick:async()=>{audioUnlock();await toggleMon(t);mobSched()}},'🎧 Retour'),
+    mB('mtl','🎚 Réglages',()=>mobTrackSheet(t)))}
+
+// ---------- gestes sur les pistes ----------
+function mobBindLanes(){const I=$('#mInner'),S=$('#mScroll');let d=null;
+  const beatAt=x=>Math.max(0,(x-S.getBoundingClientRect().left+S.scrollLeft-MHW)/PPB),snap=b=>Math.round(b*4)/4;
+  // règle : toucher / glisser = déplacer la barre de lecture
+  I.addEventListener('pointerdown',e=>{const rb=e.target.closest('.mrulb');if(rb){e.preventDefault();d={mode:'ph'};try{rb.setPointerCapture(e.pointerId)}catch(x){}setPH(snap(beatAt(e.clientX)));return}
+    const rg=e.target.closest('.mreg.sel');if(!rg)return;const fr=findRegion(rg.dataset.r);if(!fr)return;const [t,r]=fr;
+    const hd=e.target.closest('.mh');d={mode:hd?(hd.classList.contains('l')?'l':'r'):'mv',t,r,el:rg,x0:e.clientX,s0:r.start,o0:r.offset||0,d0:r.dur,l0:r.len,moved:false};
+    try{rg.setPointerCapture(e.pointerId)}catch(x){}e.preventDefault()});
+  I.addEventListener('pointermove',e=>{if(!d)return;if(d.mode==='ph'){setPH(snap(beatAt(e.clientX)));return}
+    const db=(e.clientX-d.x0)/PPB;if(!d.moved){if(Math.abs(e.clientX-d.x0)<5)return;d.moved=true;snapshot()}
+    const {t,r}=d,audio=t.type==='audio';
+    if(d.mode==='mv')r.start=Math.max(0,snap(d.s0+db));
+    else if(d.mode==='r'){if(audio){const max=(BUFS[r.buf]?BUFS[r.buf].duration:1e9)-(r.offset||0);r.dur=clamp(d.d0+db*spb(),.05,max)}else r.len=Math.max(.25,snap(d.l0+db))}
+    else if(audio){const ns=clamp(snap(d.s0+db),Math.max(0,d.s0-d.o0/spb()),d.s0+d.d0/spb()-.1),k=(ns-d.s0)*spb();r.start=ns;r.offset=d.o0+k;r.dur=d.d0-k}
+    d.el.style.left=r.start*PPB+'px';d.el.style.width=Math.max(8,rLen(t,r)*PPB)+'px'});
+  const up=()=>{if(d&&d.moved){renderLanes();if(E.playing){const p=E.pos();E.stop();E.play(p)}}d=null};
+  I.addEventListener('pointerup',up);I.addEventListener('pointercancel',up);
+  I.addEventListener('click',e=>{if(e.target.closest('.mhead,.mrul,button'))return;const rg=e.target.closest('.mreg');
+    if(rg){const fr=findRegion(rg.dataset.r);if(!fr)return;if(SELR.has(rg.dataset.r)&&SELR.size===1)return;SELR=new Set([rg.dataset.r]);SEL=fr[0].id;mobSched();return}
+    const ln=e.target.closest('.mlane');if(!ln)return;if(SELR.size){SELR.clear();mobSched();return}
+    if(ln.dataset.t&&SEL!==ln.dataset.t){SEL=ln.dataset.t;mobSched()}setPH(snap(beatAt(e.clientX)))})}
+
+// ---------- dessin des sons (tuiles visibles) ----------
+let mobPaintReq=0;function schedMobPaint(){if(!mobPaintReq)mobPaintReq=requestAnimationFrame(()=>{mobPaintReq=0;mobPaint()})}
+function mobPaint(){const S=$('#mScroll');if(!S||!MOB)return;const dpr=Math.min(2,devicePixelRatio||1),x0=S.scrollLeft-300,x1=S.scrollLeft+S.clientWidth+300,ch=MTH-8-14,key=PPB+'|'+dpr+'|'+P.bpm;
+  S.querySelectorAll('.mreg[data-r]').forEach(el=>{const fr=findRegion(el.dataset.r);if(!fr)return;const [t,r]=fr,tl=el.firstChild,left=r.start*PPB,w=Math.max(8,rLen(t,r)*PPB);
+    if(tl.dataset.key!==key){tl.innerHTML='';tl.dataset.key=key}
+    const a=Math.max(x0,left)-left,b=Math.min(x1,left+w)-left,want=new Set();if(b>a)for(let i=Math.floor(a/TILE);i<=Math.floor((b-1)/TILE);i++)want.add(i);
+    for(const c of [...tl.children])if(!want.has(+c.dataset.i))c.remove();const have=new Set([...tl.children].map(c=>+c.dataset.i));
+    for(const i of want){if(have.has(i))continue;const cw=Math.min(TILE,w-i*TILE);if(cw<=0)continue;
+      const cv=h('canvas',{'data-i':i,width:Math.ceil(cw*dpr),height:Math.ceil(ch*dpr),style:{left:i*TILE+'px',width:cw+'px',height:ch+'px'}});tl.append(cv);
+      const th=TH;try{TH=ch+20;drawTile(cv.getContext('2d'),t,r,i*TILE,cw,ch,dpr)}catch(e){}finally{TH=th}}})}
+
+// ---------- enregistrement ----------
+async function mobRecord(){audioUnlock();
+  if(!REC){let seen=null;try{seen=localStorage.getItem('studio_mob_tip')}catch(e){}
+    if(!seen){try{localStorage.setItem('studio_mob_tip','1')}catch(e){}toast('🎧 Mets des écouteurs : sinon le micro enregistre aussi l’instru.',4500)}
+    const t=findTrack(SEL);if(t&&t.type==='audio'&&!isInstru(t)){P.tracks.forEach(x=>x.arm=false);t.arm=true}}
+  await toggleRecord();mobSched()}
+
+// ---------- boucle d'affichage ----------
+function mobTick(once){if(!MOB)return;const S=$('#mScroll'),pos=E.playing?E.pos():PH,ph=$('#mPH');
+  if(ph){ph.style.transform='translateX('+(MHW+Math.max(0,pos)*PPB)+'px)';ph.style.height=$('#mInner').scrollHeight+'px'}
+  const tm=$('#mTime');if(tm){tm.textContent=mfmt(pos);tm.classList.toggle('rec',!!REC)}
+  $('#mPlay').textContent=E.playing&&!REC?'⏸':'▶';$('#mRec').classList.toggle('on',!!REC);
+  const pk=E.inPeak||0,db=pk>0?20*Math.log10(pk):-80,mm=$('#mMeter');mm.style.visibility=E.mic?'visible':'hidden';mm.firstChild.style.width=clamp((db+60)/60*100,0,100)+'%';mm.firstChild.style.background=db>-3?'#ff3b30':db>-12?'#ffd60a':'#30d158';
+  const mc=$('#mCount');if(REC&&E.playing&&pos<REC.start){mc.textContent=Math.max(1,Math.ceil(REC.start-pos));mc.style.display='flex'}else mc.style.display='none';
+  if(E.playing&&S){const x=MHW+pos*PPB-S.scrollLeft,w=S.clientWidth;if(x>w*.8||x<MHW)S.scrollLeft=Math.max(0,MHW+pos*PPB-MHW-(w-MHW)*.25)}
+  if(REC&&E.recording&&pos>=REC.start){for(const tid of REC.tracks){const ln=S.querySelector('.mlane[data-t="'+tid+'"]');if(!ln)continue;let dv=ln.querySelector('.mlive');
+      if(!dv){dv=h('div',{class:'mreg mlive',style:{left:REC.start*PPB+'px'}},h('div',{class:'mrt'},'● Enregistrement…'));ln.append(dv)}dv.style.width=Math.max(4,(pos-REC.start)*PPB)+'px'}}
+  else if(S)S.querySelectorAll('.mlive').forEach(x=>x.remove());
+  if(once!==true)requestAnimationFrame(mobTick)}
+
+// ---------- branchements ----------
+{const o=renderHeads;renderHeads=function(){const r=o.apply(this,arguments);mobSched();return r}}
+{const o=renderLanes;renderLanes=function(){const r=o.apply(this,arguments);mobSched();return r}}
+{const o=renderBar;renderBar=function(){const r=o.apply(this,arguments);mobSched();return r}}
+{const o=settingsModal;settingsModal=async function(){const r=await o.apply(this,arguments);const ms=document.querySelectorAll('.modal .box'),b=ms[ms.length-1];
+  if(b&&(MOB||IS_TOUCH||isSmall()))b.prepend(h('div',{style:{display:'flex',justifyContent:'flex-end',marginBottom:'6px'}},h('button',{onclick:()=>mobSet(!MOB)},MOB?'🖥 Version ordinateur':'📱 Version téléphone')));return r}}
+if(mobWanted()){const go=()=>{if(typeof P==='undefined'||!P||!E||!document.querySelector('#bRec'))return setTimeout(go,50);mobInit()};if(document.readyState==='complete')setTimeout(go,0);else addEventListener('load',()=>setTimeout(go,0))}
+{const o=toast;toast=function(m,ms){if(MOB||mobWanted()){if(/tournez l.appareil/i.test(m))return;m=String(m).replace(/Ctrl\+Z pour l.annuler\.?/,'↶ pour annuler.').replace(/Ctrl\+Z/g,'↶')}return o.call(this,m,ms)}}
 </script>
 </body></html>
