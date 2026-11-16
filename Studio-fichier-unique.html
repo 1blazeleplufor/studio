@@ -416,7 +416,7 @@ body.mob #app{display:none}
 .mcorner{position:sticky;left:0;z-index:7;width:108px;flex:none;background:#19191c;border-right:1px solid #000}
 .mrulb{position:relative;height:26px;touch-action:none;border-bottom:1px solid #000}
 .mrulb span{position:absolute;top:5px;font-size:11px;color:#9a9aa2;padding-left:4px;border-left:1px solid #3a3a40;height:21px}
-.mrow{display:flex;height:66px}
+.mrow{display:flex;height:var(--mth,66px)}
 .mhead{position:sticky;left:0;z-index:4;width:108px;flex:none;display:flex;align-items:center;gap:6px;padding:0 6px;background:#19191c;border-right:1px solid #000;border-bottom:1px solid #0a0a0b}
 .mhead.sel{background:#2a2a30}
 .mhead.inf{box-shadow:inset 3px 0 0 #666}
@@ -427,10 +427,10 @@ body.mob #app{display:none}
 .mhn small{font-size:10px;color:#9a9aa2;white-space:nowrap}
 .mms{display:flex;gap:3px}.mms button{width:19px;height:19px;border-radius:5px;background:#333338!important;font-size:10px;font-weight:700;color:#aaa!important;padding:0}
 .mms .m.on{background:#0a84ff!important;color:#fff!important}.mms .s.on{background:#ffd60a!important;color:#000!important}
-.mlane{position:relative;height:66px;flex:none;border-bottom:1px solid #0a0a0b;background:#151517}
+.mlane{position:relative;height:var(--mth,66px);flex:none;border-bottom:1px solid #0a0a0b;background:#151517}
 .mlane.sel{background:#1c1c20}
 .mfl{background:#1a1a1d}.mfsum{position:absolute;border-radius:2px}
-.mreg{position:absolute;top:4px;height:58px;border-radius:8px;overflow:hidden;box-sizing:border-box}
+.mreg{position:absolute;top:4px;height:calc(var(--mth,66px) - 8px);border-radius:8px;overflow:hidden;box-sizing:border-box}
 .mreg.sel{outline:2.5px solid #fff;outline-offset:-2px;touch-action:none;z-index:2}
 .mreg .tiles{position:absolute;left:0;right:0;top:14px;bottom:0}.mreg .tiles canvas{position:absolute;top:0}
 .mrt{position:absolute;left:6px;top:1px;font-size:10px;font-weight:600;white-space:nowrap;color:rgba(255,255,255,.9);pointer-events:none}
@@ -487,6 +487,27 @@ body.mob .modal{align-items:flex-end}
 body.mob .modal .box{width:100%;max-width:none;box-sizing:border-box;border-radius:18px 18px 0 0;max-height:88vh;padding-bottom:calc(18px + env(safe-area-inset-bottom));font-size:15px}
 body.mob .modal button{min-height:38px;padding:8px 12px}
 body.mob #toast{bottom:auto;top:calc(110px + env(safe-area-inset-top));z-index:300}
+
+.mstep{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #2c2c31}
+.mstep .mnum{flex:none;width:28px;height:28px;border-radius:14px;background:#0a84ff;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
+.mstep b{font-weight:500;font-size:15px;line-height:1.4;display:block}.mstep small{display:block;color:#9a9aa2;font-size:12px;margin-top:3px}
+.mk{display:inline-block;background:#333338;border-radius:6px;padding:1px 7px;font-weight:700;white-space:nowrap}
+
+/* téléphone à l’horizontale : transport en colonne à droite, en-tête sur une seule ligne */
+#mob.land{display:grid;grid-template-columns:auto 1fr 76px;grid-template-rows:auto 1fr auto;padding-left:env(safe-area-inset-left);padding-top:0}
+#mob.land .mtop{grid-row:1;grid-column:1;padding:4px 6px;max-width:44vw}
+#mob.land .mtop .mic{width:38px;height:38px;font-size:18px}
+#mob.land .mtitle{font-size:15px}
+#mob.land .minfo{grid-row:1;grid-column:2;padding:4px 10px;border-bottom:0;min-width:0}
+#mob.land .mtime{font-size:18px;min-width:76px}
+#mob.land #mScroll{grid-row:2;grid-column:1/3;border-top:1px solid #000}
+#mob.land .mtools{grid-row:3;grid-column:1/3;padding:5px 8px;min-height:0;padding-bottom:calc(5px + env(safe-area-inset-bottom))}
+#mob.land .mtl{padding:7px 12px;font-size:12px}
+#mob.land .mtrans{grid-row:1/4;grid-column:3;flex-direction:column;justify-content:space-evenly;padding:6px 4px;padding-right:env(safe-area-inset-right);border-left:1px solid #000}
+#mob.land .mt{width:44px;height:44px;font-size:19px}
+#mob.land .mrec{width:58px;height:58px}#mob.land .mrec i{width:42px;height:42px;border-radius:21px}#mob.land .mrec.on i{width:22px;height:22px;border-radius:5px}
+#mob.land .mcount{font-size:100px}
+body.mob .msheet .mbox{max-width:620px;margin:0 auto}
 </style></head><body>
 <div id="app">
  <div id="bar">
@@ -4852,7 +4873,8 @@ async function micTest(){
 // barre du haut (projets, titre, annuler, menu), pistes en grosses lignes (icône colorée à gauche, sons à droite),
 // barre d'outils contextuelle, et en bas : ⏮ ▶ ● (gros bouton rouge) ♩ ＋. Les réglages s'ouvrent en feuilles qui montent du bas.
 // Même projet (P), même moteur (E), mêmes sessions : seul l'affichage change. localStorage.studio_mob : '1' forcé, '0' version ordinateur.
-let MOB=false;const MHW=108,MTH=66,MRH=26;let mobSel=null,mobReq=0,mobLastRec=0;
+let MOB=false,MTH=66;const MHW=108,MRH=26;let mobSel=null,mobReq=0,mobLastRec=0;
+function mobLand(){return innerWidth>innerHeight&&innerHeight<=520}
 function mobWanted(){let f=null;try{f=localStorage.getItem('studio_mob')}catch(e){}if(f==='0')return false;if(f==='1')return true;
   return innerWidth<=540||(IS_TOUCH&&Math.min(screen.width,screen.height)<=540)}
 function mobSet(on){try{localStorage.setItem('studio_mob',on?'1':'0')}catch(e){}location.reload()}
@@ -4959,7 +4981,7 @@ function mobZoom(f){mobSetPPB(PPB*f)}
 function mobSched(){if(!MOB||mobReq)return;mobReq=requestAnimationFrame(()=>{mobReq=0;mobRender()})}
 function mobLen(){let end=0;for(const t of P.tracks)for(const r of t.regions)end=Math.max(end,r.start+rLen(t,r));return Math.max(end+P.sig*8,P.sig*16,PH+P.sig*4)}
 
-function mobRender(){if(!MOB||!P)return;
+function mobRender(){if(!MOB||!P)return;MTH=mobLand()?54:66;$('#mob').style.setProperty('--mth',MTH+'px');$('#mob').classList.toggle('land',mobLand());
   $('#mTitle').textContent=(typeof COLLAB!=='undefined'&&COLLAB.on?'👥 ':'')+(P.name||'Projet');
   $('#mTempo').textContent=P.bpm+' BPM · '+NOTE_NAMES[P.key]+' '+(Object.keys(SCALES)[P.scaleIdx]||'').slice(0,3).toLowerCase();
   $('#mMetro').classList.toggle('on',!!P.settings.metro);
@@ -5025,7 +5047,7 @@ function mobBindLanes(){const I=$('#mInner'),S=$('#mScroll');let d=null;
 
 // ---------- dessin des sons (tuiles visibles) ----------
 let mobPaintReq=0;function schedMobPaint(){if(!mobPaintReq)mobPaintReq=requestAnimationFrame(()=>{mobPaintReq=0;mobPaint()})}
-function mobPaint(){const S=$('#mScroll');if(!S||!MOB)return;const dpr=Math.min(2,devicePixelRatio||1),x0=S.scrollLeft-300,x1=S.scrollLeft+S.clientWidth+300,ch=MTH-8-14,key=PPB+'|'+dpr+'|'+P.bpm;
+function mobPaint(){const S=$('#mScroll');if(!S||!MOB)return;const dpr=Math.min(2,devicePixelRatio||1),x0=S.scrollLeft-300,x1=S.scrollLeft+S.clientWidth+300,ch=MTH-8-14,key=PPB+'|'+dpr+'|'+P.bpm+'|'+MTH;
   S.querySelectorAll('.mreg[data-r]').forEach(el=>{const fr=findRegion(el.dataset.r);if(!fr)return;const [t,r]=fr,tl=el.firstChild,left=r.start*PPB,w=Math.max(8,rLen(t,r)*PPB);
     if(tl.dataset.key!==key){tl.innerHTML='';tl.dataset.key=key}
     const a=Math.max(x0,left)-left,b=Math.min(x1,left+w)-left,want=new Set();if(b>a)for(let i=Math.floor(a/TILE);i<=Math.floor((b-1)/TILE);i++)want.add(i);
@@ -5062,5 +5084,27 @@ function mobTick(once){if(!MOB)return;const S=$('#mScroll'),pos=E.playing?E.pos(
   if(b&&(MOB||IS_TOUCH||isSmall()))b.prepend(h('div',{style:{display:'flex',justifyContent:'flex-end',marginBottom:'6px'}},h('button',{onclick:()=>mobSet(!MOB)},MOB?'🖥 Version ordinateur':'📱 Version téléphone')));return r}}
 if(mobWanted()){const go=()=>{if(typeof P==='undefined'||!P||!E||!document.querySelector('#bRec'))return setTimeout(go,50);mobInit()};if(document.readyState==='complete')setTimeout(go,0);else addEventListener('load',()=>setTimeout(go,0))}
 {const o=toast;toast=function(m,ms){if(MOB||mobWanted()){if(/tournez l.appareil/i.test(m))return;m=String(m).replace(/Ctrl\+Z pour l.annuler\.?/,'↶ pour annuler.').replace(/Ctrl\+Z/g,'↶')}return o.call(this,m,ms)}}
+// ---------- petit tuto « mettre Studio sur l’écran d’accueil » (iPhone, dans Safari) ----------
+function mobInstalled(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}
+function mobInstallTuto(force){
+  if(!force){let f=null;try{f=localStorage.getItem('studio_a2hs')}catch(e){}if(f||mobInstalled()||!IOS||location.protocol==='file:')return}
+  const off=()=>{try{localStorage.setItem('studio_a2hs','1')}catch(e){}};
+  const ios=IOS,and=/Android/.test(navigator.userAgent);
+  const st=(n,txt,sub)=>h('div',{class:'mstep'},h('span',{class:'mnum'},n),h('div',null,h('b',{html:txt}),sub&&h('small',{html:sub})));
+  const s=mSheet('📲 Sur l’écran d’accueil',h('div',null,
+    h('p',{class:'muted',style:{marginTop:0,fontSize:'13px'}},'Studio s’ouvre alors comme une vraie appli : plein écran, plus rapide, et tes projets restent bien rangés.'),
+    ios?h('div',null,
+      st(1,'Touche le bouton <span class="mk">≡</span> ou <span class="mk">•••</span> dans la barre d’adresse en bas','(sur les anciens iPhone : le bouton Partager <span class="mk">⬆︎</span>)'),
+      st(2,'Touche <span class="mk">⬆︎ Partager</span>'),
+      st(3,'Fais défiler vers le bas et touche <span class="mk">⊞ Sur l’écran d’accueil</span>','Si tu ne le vois pas : « En voir plus »'),
+      st(4,'Touche <span class="mk">Ajouter</span> en haut à droite','Ensuite, ouvre Studio depuis son icône 🎵 sur l’écran d’accueil'))
+    :and?h('div',null,st(1,'Touche le menu <span class="mk">⋮</span> de Chrome'),st(2,'Touche <span class="mk">Installer l’application</span>','ou « Ajouter à l’écran d’accueil »'))
+    :h('p',null,'Ouvre Studio dans Safari (iPhone) ou Chrome (Android) pour l’installer.'),
+    h('div',{class:'mtogs',style:{marginTop:'16px'}},
+      h('button',{class:'mtog on',onclick:()=>s.remove()},'OK, compris'))));
+  s.querySelector('.mx').addEventListener('click',off);s.addEventListener('pointerdown',e=>{if(e.target===s)off()});off()}
+{const o=mobMenuSheet;mobMenuSheet=function(){const r=o.apply(this,arguments);const b=document.querySelector('.msheet .mbody>div');
+  if(b&&!mobInstalled())b.prepend(mRow('📲','Mettre sur l’écran d’accueil',()=>mobInstallTuto(true),'Pour l’ouvrir comme une vraie appli'));return r}}
+{const o=mobInit;mobInit=function(){const r=o.apply(this,arguments);setTimeout(()=>{if(!document.querySelector('.modal,.msheet'))mobInstallTuto()},1500);return r}}
 </script>
 </body></html>

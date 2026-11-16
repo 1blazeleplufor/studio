@@ -3,7 +3,8 @@
 // barre du haut (projets, titre, annuler, menu), pistes en grosses lignes (icône colorée à gauche, sons à droite),
 // barre d'outils contextuelle, et en bas : ⏮ ▶ ● (gros bouton rouge) ♩ ＋. Les réglages s'ouvrent en feuilles qui montent du bas.
 // Même projet (P), même moteur (E), mêmes sessions : seul l'affichage change. localStorage.studio_mob : '1' forcé, '0' version ordinateur.
-let MOB=false;const MHW=108,MTH=66,MRH=26;let mobSel=null,mobReq=0,mobLastRec=0;
+let MOB=false,MTH=66;const MHW=108,MRH=26;let mobSel=null,mobReq=0,mobLastRec=0;
+function mobLand(){return innerWidth>innerHeight&&innerHeight<=520}
 function mobWanted(){let f=null;try{f=localStorage.getItem('studio_mob')}catch(e){}if(f==='0')return false;if(f==='1')return true;
   return innerWidth<=540||(IS_TOUCH&&Math.min(screen.width,screen.height)<=540)}
 function mobSet(on){try{localStorage.setItem('studio_mob',on?'1':'0')}catch(e){}location.reload()}
@@ -110,7 +111,7 @@ function mobZoom(f){mobSetPPB(PPB*f)}
 function mobSched(){if(!MOB||mobReq)return;mobReq=requestAnimationFrame(()=>{mobReq=0;mobRender()})}
 function mobLen(){let end=0;for(const t of P.tracks)for(const r of t.regions)end=Math.max(end,r.start+rLen(t,r));return Math.max(end+P.sig*8,P.sig*16,PH+P.sig*4)}
 
-function mobRender(){if(!MOB||!P)return;
+function mobRender(){if(!MOB||!P)return;MTH=mobLand()?54:66;$('#mob').style.setProperty('--mth',MTH+'px');$('#mob').classList.toggle('land',mobLand());
   $('#mTitle').textContent=(typeof COLLAB!=='undefined'&&COLLAB.on?'👥 ':'')+(P.name||'Projet');
   $('#mTempo').textContent=P.bpm+' BPM · '+NOTE_NAMES[P.key]+' '+(Object.keys(SCALES)[P.scaleIdx]||'').slice(0,3).toLowerCase();
   $('#mMetro').classList.toggle('on',!!P.settings.metro);
@@ -176,7 +177,7 @@ function mobBindLanes(){const I=$('#mInner'),S=$('#mScroll');let d=null;
 
 // ---------- dessin des sons (tuiles visibles) ----------
 let mobPaintReq=0;function schedMobPaint(){if(!mobPaintReq)mobPaintReq=requestAnimationFrame(()=>{mobPaintReq=0;mobPaint()})}
-function mobPaint(){const S=$('#mScroll');if(!S||!MOB)return;const dpr=Math.min(2,devicePixelRatio||1),x0=S.scrollLeft-300,x1=S.scrollLeft+S.clientWidth+300,ch=MTH-8-14,key=PPB+'|'+dpr+'|'+P.bpm;
+function mobPaint(){const S=$('#mScroll');if(!S||!MOB)return;const dpr=Math.min(2,devicePixelRatio||1),x0=S.scrollLeft-300,x1=S.scrollLeft+S.clientWidth+300,ch=MTH-8-14,key=PPB+'|'+dpr+'|'+P.bpm+'|'+MTH;
   S.querySelectorAll('.mreg[data-r]').forEach(el=>{const fr=findRegion(el.dataset.r);if(!fr)return;const [t,r]=fr,tl=el.firstChild,left=r.start*PPB,w=Math.max(8,rLen(t,r)*PPB);
     if(tl.dataset.key!==key){tl.innerHTML='';tl.dataset.key=key}
     const a=Math.max(x0,left)-left,b=Math.min(x1,left+w)-left,want=new Set();if(b>a)for(let i=Math.floor(a/TILE);i<=Math.floor((b-1)/TILE);i++)want.add(i);
@@ -213,3 +214,25 @@ function mobTick(once){if(!MOB)return;const S=$('#mScroll'),pos=E.playing?E.pos(
   if(b&&(MOB||IS_TOUCH||isSmall()))b.prepend(h('div',{style:{display:'flex',justifyContent:'flex-end',marginBottom:'6px'}},h('button',{onclick:()=>mobSet(!MOB)},MOB?'🖥 Version ordinateur':'📱 Version téléphone')));return r}}
 if(mobWanted()){const go=()=>{if(typeof P==='undefined'||!P||!E||!document.querySelector('#bRec'))return setTimeout(go,50);mobInit()};if(document.readyState==='complete')setTimeout(go,0);else addEventListener('load',()=>setTimeout(go,0))}
 {const o=toast;toast=function(m,ms){if(MOB||mobWanted()){if(/tournez l.appareil/i.test(m))return;m=String(m).replace(/Ctrl\+Z pour l.annuler\.?/,'↶ pour annuler.').replace(/Ctrl\+Z/g,'↶')}return o.call(this,m,ms)}}
+// ---------- petit tuto « mettre Studio sur l’écran d’accueil » (iPhone, dans Safari) ----------
+function mobInstalled(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}
+function mobInstallTuto(force){
+  if(!force){let f=null;try{f=localStorage.getItem('studio_a2hs')}catch(e){}if(f||mobInstalled()||!IOS||location.protocol==='file:')return}
+  const off=()=>{try{localStorage.setItem('studio_a2hs','1')}catch(e){}};
+  const ios=IOS,and=/Android/.test(navigator.userAgent);
+  const st=(n,txt,sub)=>h('div',{class:'mstep'},h('span',{class:'mnum'},n),h('div',null,h('b',{html:txt}),sub&&h('small',{html:sub})));
+  const s=mSheet('📲 Sur l’écran d’accueil',h('div',null,
+    h('p',{class:'muted',style:{marginTop:0,fontSize:'13px'}},'Studio s’ouvre alors comme une vraie appli : plein écran, plus rapide, et tes projets restent bien rangés.'),
+    ios?h('div',null,
+      st(1,'Touche le bouton <span class="mk">≡</span> ou <span class="mk">•••</span> dans la barre d’adresse en bas','(sur les anciens iPhone : le bouton Partager <span class="mk">⬆︎</span>)'),
+      st(2,'Touche <span class="mk">⬆︎ Partager</span>'),
+      st(3,'Fais défiler vers le bas et touche <span class="mk">⊞ Sur l’écran d’accueil</span>','Si tu ne le vois pas : « En voir plus »'),
+      st(4,'Touche <span class="mk">Ajouter</span> en haut à droite','Ensuite, ouvre Studio depuis son icône 🎵 sur l’écran d’accueil'))
+    :and?h('div',null,st(1,'Touche le menu <span class="mk">⋮</span> de Chrome'),st(2,'Touche <span class="mk">Installer l’application</span>','ou « Ajouter à l’écran d’accueil »'))
+    :h('p',null,'Ouvre Studio dans Safari (iPhone) ou Chrome (Android) pour l’installer.'),
+    h('div',{class:'mtogs',style:{marginTop:'16px'}},
+      h('button',{class:'mtog on',onclick:()=>s.remove()},'OK, compris'))));
+  s.querySelector('.mx').addEventListener('click',off);s.addEventListener('pointerdown',e=>{if(e.target===s)off()});off()}
+{const o=mobMenuSheet;mobMenuSheet=function(){const r=o.apply(this,arguments);const b=document.querySelector('.msheet .mbody>div');
+  if(b&&!mobInstalled())b.prepend(mRow('📲','Mettre sur l’écran d’accueil',()=>mobInstallTuto(true),'Pour l’ouvrir comme une vraie appli'));return r}}
+{const o=mobInit;mobInit=function(){const r=o.apply(this,arguments);setTimeout(()=>{if(!document.querySelector('.modal,.msheet'))mobInstallTuto()},1500);return r}}
