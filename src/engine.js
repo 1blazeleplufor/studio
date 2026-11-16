@@ -32,7 +32,7 @@ class Engine{
   // ---- graphe ----
   makeStrip(obj,isMaster){
     const c=this.ctx,s={id:obj.id,input:c.createGain(),fader:c.createGain(),pan:c.createStereoPanner(),mute:c.createGain(),an:c.createAnalyser(),plugins:[],sig:'',sends:[],st:{},playIn:c.createGain()};
-    s.an.fftSize=1024;s.playIn.connect(s.input);
+    s.an.fftSize=1024;s.playIn.connect(s.input);s.post=c.createGain();s.post.connect(s.mute);
     s.fader.connect(s.pan);s.pan.connect(s.mute);s.mute.connect(s.an);
     if(isMaster){s.an.connect(c.destination)}else{s.mute.connect(this.strips.master.input)}
     this.strips[obj.id]=s;return s;
@@ -55,20 +55,20 @@ class Engine{
   build(project){
     this.project=project;
     if(!this.strips.master){this.makeStrip({id:'master'},true)}
-    const all=[...project.auxes,...project.tracks];const ids=new Set(['master',...all.map(o=>o.id)]);
-    for(const id in this.strips)if(!ids.has(id)){const s=this.strips[id];try{s.mute.disconnect();s.playIn.disconnect()}catch(e){}for(const p of s.plugins)if(p&&p.dispose)p.dispose();delete this.strips[id]}
+    const all=[...project.auxes,...project.tracks];const ids=new Set(['master',...all.map(o=>o.id)]);for(const t of project.tracks)for(const r of t.regions)if(r.own||r.plugins&&r.plugins.length)ids.add(r.id);
+    for(const id in this.strips)if(!ids.has(id)){const s=this.strips[id];try{if(s.isR)s.att.disconnect();else s.mute.disconnect();s.playIn.disconnect()}catch(e){}for(const p of s.plugins)if(p&&p.dispose)p.dispose();delete this.strips[id]}
     for(const a of project.auxes)if(!this.strips[a.id])this.makeStrip(a);
     for(const t of project.tracks)if(!this.strips[t.id])this.makeStrip(t);
     this.updateAll();
   }
   updateAll(){const p=this.project;this.updateStrip(p.master,this.strips.master);for(const o of [...p.auxes,...p.tracks])this.updateStrip(o)}
   updateStrip(obj,s){
-    s=s||this.strips[obj.id];if(!s)return;const p=this.project;
+    s=s||this.strips[obj.id];if(!s)return;if(s.isR)return this.updateRFx(obj,s);const p=this.project;
     const sig=(obj.plugins||[]).map(q=>q.type+(q.byp?'b':'')).join(',');
     if(sig!==s.sig||!s.built){this.rebuildChain(s,obj);s.built=1}
     else (obj.plugins||[]).forEach((pl,i)=>{const inst=s.plugins[i];if(inst)try{inst.set(pl.params)}catch(e){}});
     const F=p.tracks.includes(obj)?trkFold(p,obj):null;
-    const t=this.ctx.currentTime;s.fader.gain.setTargetAtTime(dbToG(obj.vol+(F&&F.vol||0)),t,.01);s.pan.pan.setTargetAtTime(obj.pan||0,t,.01);
+    const t=this.ctx.currentTime;s.fader.gain.setTargetAtTime(dbToG(obj.vol+(F&&F.vol||0)),t,.01);if(s.post)s.post.gain.setTargetAtTime(dbToG(obj.vol+(F&&F.vol||0)),t,.01);s.pan.pan.setTargetAtTime(obj.pan||0,t,.01);
     const anySolo=p.tracks.some(x=>x.solo);let audible=!obj.mute&&!(F&&F.mute);
     if(anySolo&&p.tracks.includes(obj))audible=audible&&obj.solo;
     s.mute.gain.setTargetAtTime(audible?1:0,t,.005);
@@ -78,6 +78,20 @@ class Engine{
         g.gain.setTargetAtTime(dbToG(obj.sends[i]??-60),t,.01)});
     }
   }
+  // ---- effets d'un bloc (v3.13) : source -> effets du bloc -> piste ----
+  // r.own (bloc venu d'une autre piste par Ctrl+J) : effets du bloc -> panoramique du bloc -> volume -> APRÈS les effets/le pan de la piste (s.post)
+  // sinon : effets du bloc -> entrée de la piste (avant ses effets), au même nombre de canaux que le son (pas de saut de volume)
+  rfx(tr,r){const ts=this.strips[tr.id];if(!ts||((!r.plugins||!r.plugins.length)&&!r.own))return null;const c=this.ctx;let s=this.strips[r.id];
+    if(!s||!s.isR){s=this.strips[r.id]={isR:true,id:r.id,input:c.createGain(),fader:c.createGain(),pn:c.createStereoPanner(),att:c.createGain(),playIn:c.createGain(),plugins:[],sig:'',st:{}};s.playIn.connect(s.input)}
+    this.updateRFx(r,s);const own=!!r.own,b=tr.type==='audio'&&BUFS[r.buf],to=own?ts.post:ts.playIn;
+    s.att.gain.value=r.fxVol?dbToG(r.fxVol):1;s.pn.pan.value=own?(r.ownPan||0):0;
+    if(s._to!==to||s._own!==own){try{s.fader.disconnect()}catch(e){}try{s.pn.disconnect()}catch(e){}try{s.att.disconnect()}catch(e){}
+      if(own){s.att.channelCountMode='max';s.fader.connect(s.pn);s.pn.connect(s.att)}
+      else{if(b){s.att.channelCount=b.numberOfChannels;s.att.channelCountMode='explicit';s.att.channelInterpretation='speakers'}s.fader.connect(s.att)}
+      s.att.connect(to);s._to=to;s._own=own}
+    return s}
+  updateRFx(r,s){const sig=(r.plugins||[]).map(q=>q.type+(q.byp?'b':'')).join(',');
+    if(sig!==s.sig||!s.built){this.rebuildChain(s,r);s.built=1}else (r.plugins||[]).forEach((pl,i)=>{const inst=s.plugins[i];if(inst)try{inst.set(pl.params)}catch(e){}})}
   // ---- lecture ----
   spb(){return 60/this.project.bpm}
   scheduleWindow(a,b,t0,fresh,stopCtx,metro){
@@ -90,12 +104,13 @@ class Engine{
           const buf=BUFS[r.buf];if(!buf)continue;const X=xf&&xf[r.id],rs=r.start,re=rs+(r.dur+(X&&X.ext||0))/spb;let st=null,off=r.offset;
           if(rs>=a&&rs<b)st=T(rs);else if(fresh&&rs<a&&re>a){st=T(a);off=r.offset+(a-rs)*spb}
           if(st===null)continue;
-          let end=T(re);if(fresh&&rs<a)end=st+(re-a)*spb;end=Math.min(end,stopC);if(st<minT){off+=minT-st;st=minT}if(end<=st+.002)continue;
+          const RX=this.rfx(tr,r),rl=RX&&RX.latency||0;st-=rl;
+          let end=T(re)-rl;if(fresh&&rs<a)end=st+(re-a)*spb;end=Math.min(end,stopC-rl);if(st<minT){off+=minT-st;st=minT}if(end<=st+.002)continue;
           if(off<0){st-=off;off=0;if(end<=st+.002)continue} // prise qui commence plus tard dans la région (silence au début)
           const src=c.createBufferSource(),g=c.createGain();src.buffer=buf;let nd=src;
           if(r.tone)for(const [ty,f,k] of TONE_BANDS){const v=r.tone[k];if(!v)continue;const bq=c.createBiquadFilter();bq.type=ty;bq.frequency.value=f;if(ty==='peaking')bq.Q.value=.9;bq.gain.value=v;nd.connect(bq);nd=bq}
-          nd.connect(g);g.connect(dest);
-          const G=r.gain!=null?dbToG(r.gain):1,fromStart=off<=r.offset+1e-4,toEnd=end>=T(re)-1e-4,span=end-st;
+          nd.connect(g);g.connect(RX?RX.input:dest);
+          const G=(r.gain!=null?dbToG(r.gain):1)*(!RX&&r.fxVol?dbToG(r.fxVol):1),fromStart=off<=r.offset+1e-4,toEnd=end>=T(re)-rl-1e-4,span=end-st;
           const fi=Math.min(fromStart?Math.max(.005,r.fi||0,X&&X.in||0):.005,span/2),fo=Math.min(toEnd?Math.max(.005,r.fo||0,X&&(X.ext||X.out)||0):.005,span/2);
           g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(G,st+fi);g.gain.setValueAtTime(G,end-fo);g.gain.linearRampToValueAtTime(0,end);
           src.start(st,Math.max(0,off),end-st+.01);this.sources.push(src);
@@ -103,14 +118,14 @@ class Engine{
           const re=r.start+r.len;
           for(const n of r.notes){const ab=r.start+n.s;if(n.s>=r.len||ab<a||ab>=b)continue;
             const st=Math.max(minT,T(ab));let e=T(Math.min(ab+n.l,re));e=Math.min(e,stopC);if(e<=st)continue;
-            const v=synthVoice(c,dest,st,n.p,n.v??.8,tr.instr,s.st);v.release(e);s.st.lastEnd=e;}
+            const RX=this.rfx(tr,r);const v=synthVoice(c,RX?RX.input:dest,st,n.p,n.v??.8,tr.instr,s.st);v.release(e);s.st.lastEnd=e;}
         }else if(tr.type==='drums'){
           const pat=r.pat,N=pat.steps,re=r.start+r.len,lo=Math.max(a,r.start),hi=Math.min(b,re);if(lo>=hi)continue;
-          let k=Math.ceil((lo-r.start)/.25-1e-9);
+          const RXd=this.rfx(tr,r),dIn=RXd?RXd.input:dest;let k=Math.ceil((lo-r.start)/.25-1e-9);
           for(;;k++){const pos=r.start+k*.25;if(pos>=hi)break;if(pos<lo)continue;const si=k%N;
             const sw=(k%2===1)?(tr.instr.swing||0)*.25*spb:0;
             for(const [row] of DRUM_ROWS){const cell=pat.rows[row]&&pat.rows[row][si];if(!cell)continue;
-              const rr=cell.r||1;for(let j=0;j<rr;j++){const tt=Math.max(minT,T(pos)+sw+j*.25*spb/rr);if(tt>=stopC)break;drumHit(c,dest,row,tt,(cell.v||.8)*(j?.75:1),tr.instr,s.st)}}
+              const rr=cell.r||1;for(let j=0;j<rr;j++){const tt=Math.max(minT,T(pos)+sw+j*.25*spb/rr);if(tt>=stopC)break;drumHit(c,dIn,row,tt,(cell.v||.8)*(j?.75:1),tr.instr,s.st)}}
           }
         }
       }
@@ -199,8 +214,8 @@ async function renderMix(project,from,to){
     // 2) chaque piste n'est branchée que pendant ses passages (+ la queue de ses effets) : le reste du temps, ses effets ne calculent rien
     const q=t=>Math.max(0,Math.round(t*sr/128)*128/sr),ev=new Map(),add=(t,f)=>{t=q(t);if(t<=0||t>=dur-.01)return;(ev.get(t)||ev.set(t,[]).get(t)).push(f)};
     if(RENDER_SPANS)for(const t of project.tracks){const s=e.strips[t.id];if(!s)continue;
-             if((t.plugins||[]).some(p=>!p.byp&&(p.type==='chorus'||p.type==='filter')))continue; // effet à LFO : on garde la piste branchée pour un rendu identique
-      const tail=4+(t.plugins||[]).reduce((m,p)=>p.byp?m:Math.max(m,p.type==='verbpro'?Math.min(70,(p.params.decay||3)*1.5+(p.params.pre||0)/1000):p.type==='reverb'||p.type==='delay'?10:0),0);
+             const PL=[...(t.plugins||[]),...t.regions.flatMap(r=>r.mute?[]:(r.plugins||[]))];if(PL.some(p=>!p.byp&&(p.type==='chorus'||p.type==='filter')))continue; // effet à LFO : on garde la piste branchée pour un rendu identique
+      const tail=4+PL.reduce((m,p)=>p.byp?m:Math.max(m,p.type==='verbpro'?Math.min(70,(p.params.decay||3)*1.5+(p.params.pre||0)/1000):p.type==='reverb'||p.type==='delay'?10:0),0);
       const sp=t.regions.filter(r=>!r.mute).map(r=>[(r.start-from)*spb-.15,(r.start+rLen(t,r)-from)*spb+tail]).filter(x=>x[1]>0&&x[0]<dur).sort((a,b)=>a[0]-b[0]);
       const m=[];for(const x of sp){const l=m[m.length-1];if(l&&x[0]<=l[1]+.5)l[1]=Math.max(l[1],x[1]);else m.push(x.slice())}
       let on=true;const set=v=>()=>{if(v===on)return;on=v;try{v?s.fader.connect(s.pan):s.fader.disconnect(s.pan)}catch(err){}};

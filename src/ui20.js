@@ -134,7 +134,7 @@ function mobRender(){if(!MOB||!P)return;MTH=mobLand()?54:66;$('#mob').style.setP
       I.append(h('div',{class:'mrow'},h('div',{class:'mhead mfh',onclick:()=>setFoldOpen(f,!open)},h('div',{class:'mico',style:{background:f.color}},'📁'),h('div',{class:'mhn'},h('b',null,f.name),h('small',null,(open?'▾ ':'▸ ')+ms.length+' piste'+(ms.length>1?'s':'')))),ln));continue}
     const t=row.t,ln=h('div',{class:'mlane'+(t.id===SEL?' sel':''),'data-t':t.id,style:{width:W+'px'}});
     for(const r of t.regions)ln.append(h('div',{class:'mreg'+(SELR.has(r.id)?' sel':''),'data-r':r.id,style:{left:MPAD+r.start*PPB+'px',width:Math.max(8,rLen(t,r)*PPB)+'px',background:shade(t.color,.62),opacity:r.mute||t.mute?.4:1}},
-      h('div',{class:'tiles'}),h('div',{class:'mrt'},(r.mute?'🔇 ':'')+(r.name||'')),h('div',{class:'mh l'}),h('div',{class:'mh r'})));
+      h('div',{class:'tiles'}),h('div',{class:'mrt'},(r.mute?'🔇 ':'')+(r.plugins&&r.plugins.length?'✨ ':'')+(r.name||'')),h('div',{class:'mh l'}),h('div',{class:'mh r'})));
     I.append(h('div',{class:'mrow'},h('div',{class:'mhead'+(t.id===SEL?' sel':'')+(row.f?' inf':''),'data-t':t.id,onclick:()=>{if(SEL===t.id&&!SELR.size)mobTrackSheet(t);else{SEL=t.id;SELR.clear();mobSched()}}},
         h('div',{class:'mico',style:{background:t.color}},tIco(t),t.arm&&h('i',{class:'marm'})),
         h('div',{class:'mhn'},h('b',null,t.name),h('span',{class:'mms'},

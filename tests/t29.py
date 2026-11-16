@@ -5,7 +5,7 @@ async def main():
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream','--autoplay-policy=no-user-gesture-required'])
     c=await b.new_context(viewport={'width':390,'height':780},device_scale_factor=2,has_touch=True,is_mobile=True,permissions=['microphone'],user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1')
-    await c.add_init_script("localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.12.0');localStorage.setItem('studio_mob_tip','1');localStorage.setItem('studio_a2hs','1')")
+    await c.add_init_script("localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.13.0');localStorage.setItem('studio_mob_tip','1');localStorage.setItem('studio_a2hs','1')")
     A=await c.new_page();errs=[];A.on('pageerror',lambda e: errs.append(str(e)));A.on('console',lambda m: m.type=='error' and errs.append(m.text))
     await A.goto('http://localhost:8765/');await A.wait_for_timeout(2000);E=A.evaluate
     print('MOB',await E("MOB"),'lignes',await E("document.querySelectorAll('#mob .mrow').length"),'régions',await E("document.querySelectorAll('#mob .mreg').length"),'tuiles',await E("document.querySelectorAll('#mob .mreg canvas').length"),'app caché',await E("getComputedStyle(document.querySelector('#app')).display"))

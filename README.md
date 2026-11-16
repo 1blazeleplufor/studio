@@ -8,6 +8,7 @@ Fonctionne hors ligne et s'installe comme une appli (iPhone, iPad, Android, Mac,
 **Plugins AU/VST3 de l'ordinateur** : voir [bridge/LISEZ-MOI.md](bridge/LISEZ-MOI.md).
 
 ## Versions
+- **v3.13.0** : effets sur un seul bloc, Ctrl+J pour fusionner des pistes / des blocs.
 - **v3.12.0** : importer des pistes d’un autre projet (son, effets, réglages, dossier).
 - **v3.11.0** : nouvelle interface téléphone (façon BandLab).
 - **v3.10.1** : enregistrement sur iPhone plus fiable (déblocage audio, micro par défaut, messages d’aide).

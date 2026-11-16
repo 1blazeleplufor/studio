@@ -29,7 +29,7 @@ function describeChange(A,B){if(!A||!B)return['Modification'];const out=[],add=s
     if(J(a.instr)!==J(b.instr))add(n+' : son de l’instrument');if(J(a.lyrics)!==J(b.lyrics))add(n+' : paroles');if(a.color!==b.color)add(n+' : couleur');
     if(J(a.regions)!==J(b.regions)){const ra=new Map(a.regions.map(r=>[r.id,r])),rb=new Map(b.regions.map(r=>[r.id,r]));const nAdd=[...rb.keys()].filter(k=>!ra.has(k)).length,nDel=[...ra.keys()].filter(k=>!rb.has(k)).length;
       const what=new Set();for(const [k,r] of rb){const q=ra.get(k);if(!q)continue;if(q.start!==r.start)what.add('déplacée');if(q.dur!==r.dur||q.len!==r.len||q.offset!==r.offset)what.add('coupée / redimensionnée');if(q.buf!==r.buf)what.add('son traité');
-        if(q.gain!==r.gain||J(q.tone)!==J(r.tone))what.add('volume / son de prise');if(q.fi!==r.fi||q.fo!==r.fo)what.add('fondu');if(q.mute!==r.mute)what.add(r.mute?'rendue muette':'réactivée');if(q.name!==r.name)what.add('renommée');
+        if(q.gain!==r.gain||J(q.tone)!==J(r.tone))what.add('volume / son de prise');if(q.fi!==r.fi||q.fo!==r.fo)what.add('fondu');if(q.mute!==r.mute)what.add(r.mute?'rendue muette':'réactivée');if(q.name!==r.name)what.add('renommée');if(J(q.plugins)!==J(r.plugins))what.add('effets du bloc');
         if(J(q.notes)!==J(r.notes))what.add('notes');if(J(q.pat)!==J(r.pat))what.add('rythme')}
       if(nAdd&&nDel&&!what.size)add(n+' : '+(b.type==='audio'?'prise refaite / découpée':'régions modifiées'));
       else{if(nAdd)add(n+' : '+(nAdd>1?nAdd+' régions ajoutées':b.type==='audio'?'prise ajoutée':'région ajoutée'));if(nDel)add(n+' : '+(nDel>1?nDel+' régions supprimées':'région supprimée'))}

@@ -545,3 +545,16 @@ body.insafari #mob.land{padding-top:0}
 .imptr .imfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
 .imptr .imgo{font-weight:700;background:var(--acc);color:#fff}
 .imptr .imgo:disabled{opacity:.5}
+/* v3.13 effets par bloc */
+.rfx{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.rfx .rfxh{font-weight:600}
+.rfxd{color:var(--dim);font-size:10px;line-height:1.35}
+.rfx .rfxs{display:flex;flex-direction:column;gap:3px}
+.rfx .slot{height:22px}
+.rfx select{width:100%}
+.rfxb{display:flex;flex-wrap:wrap;gap:4px}
+.rfxb button{font-size:11px}
+.rfxbadge{margin-right:3px}
+.mfx .rfxd{font-size:12px;margin:2px 0 8px}
+.mfx .rfxb{margin-top:10px}.mfx .rfxb button{flex:1;padding:10px;font-size:13px}
+.rfxown{background:#203347;border:1px solid #2f5a95;border-radius:6px;padding:6px;font-size:11px;display:flex;flex-direction:column;gap:5px}

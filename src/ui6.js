@@ -1,5 +1,5 @@
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='3.12.0';
+const APP_VERSION='3.13.0';
 const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
@@ -134,10 +134,14 @@ function showChangelog(force){
   const mm=v=>String(v).split('.').slice(0,2).join('.');
   if(!force&&(mm(seen)===mm(APP_VERSION)||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés 🎉</h2><p class="muted" style="margin-top:-6px">Tu es sur la v${APP_VERSION}.</p><h4>v3.12 — Importer des pistes d’un autre projet 📥</h4><ul>
+  modal(h('div',{html:`<h2>Nouveautés 🎉</h2><p class="muted" style="margin-top:-6px">Tu es sur la v${APP_VERSION}.</p><h4>v3.13 — Effets sur un seul bloc ✨</h4><ul>
+<li><b>Des effets différents sur une même piste</b> : coupe ta prod ou ta voix (✂), sélectionne un bloc, puis <b>✨ Effets de ce bloc</b> (dans l’inspecteur à gauche, au clic droit, ou le bouton ✨ Effets sur téléphone). Ces effets ne touchent que ce bloc, en plus de ceux de la piste.</li>
+<li>Préréglages tout prêts, <b>⇣ Effets de la piste</b> pour repartir de ceux de la piste, et <b>📋 Copier / 📥 Coller</b> pour mettre les mêmes effets sur d’autres blocs. Un ✨ s’affiche sur les blocs qui ont des effets.</li>
+<li><b>🔗 Ctrl+J pour fusionner</b> : sélectionne des blocs sur plusieurs pistes (ou un dossier) et fais Ctrl+J : tout passe sur une seule piste, chaque bloc garde le son de sa piste d’origine (ses effets et son volume le suivent). Plusieurs blocs d’une même piste : Ctrl+J les colle en un seul bloc.</li>
+</ul><h4 style="margin-top:18px">Versions précédentes</h4><details class="cl"><summary>v3.12 — Importer des pistes d’un autre projet 📥</summary><ul>
 <li><b>Copie des pistes d’un projet à l’autre</b> : Fichier → <b>📥 Importer des pistes d’un autre projet</b> (sur téléphone : ⋯ ou ＋). Choisis un de tes projets ou un fichier .studio, coche les pistes : elles arrivent avec leur son, leurs effets, leur volume et leur dossier.</li>
 <li>Tu peux les poser à la même place que dans l’autre projet, ou à partir de la tête de lecture. Si les deux projets n’ont pas le même tempo, Studio te prévient.</li>
-</ul><h4 style="margin-top:18px">Versions précédentes</h4><details class="cl"><summary>v3.11 — Nouvelle interface téléphone 📱</summary><ul>
+</ul></details><details class="cl"><summary>v3.11 — Nouvelle interface téléphone 📱</summary><ul>
 <li><b>Tout est refait pour le téléphone</b>, dans l’esprit de BandLab : tes pistes en grosses lignes, et en bas le <b>gros bouton rouge</b> pour t’enregistrer, ▶ pour écouter, ＋ pour ajouter une piste.</li>
 <li><b>S’enregistrer</b> : touche ta piste voix, puis le bouton rouge. Le décompte s’affiche en grand, ta prise se dessine en direct.</li>
 <li><b>✨ Effets de voix</b> en grosses cartes (autotune, voix rap, créatif…), <b>🎧 Retour</b> pour t’entendre, volume et M / S dans la fiche de la piste (touche l’icône de la piste).</li>
@@ -168,5 +172,5 @@ function shortcutsModal(){modal(h('div',{html:`<h2>⌨ Raccourcis clavier</h2><p
 <h4>Lecture</h4><p><kbd>Espace</kbd> lecture/stop · <kbd>R</kbd> enregistrer · <kbd>C</kbd> cycle · <kbd>U</kbd> cycle sur la sélection · <kbd>K</kbd> métronome · <kbd>Entrée</kbd>/<kbd>Début</kbd> retour au début · <kbd>Fin</kbd> fin du projet · <kbd>←</kbd><kbd>→</kbd> ou <kbd>,</kbd><kbd>.</kbd> mesure précédente/suivante</p>
 <h4>Zoom</h4><p><kbd>Ctrl+→</kbd>/<kbd>Ctrl+←</kbd> zoom horizontal · <kbd>Ctrl+↑</kbd>/<kbd>Ctrl+↓</kbd> hauteur des pistes · <kbd>Z</kbd> tout voir (ou zoom sur la sélection) · <kbd>Ctrl+molette</kbd> zoom · <kbd>Alt+molette</kbd> hauteur des pistes</p>
 <h4>Pistes</h4><p><kbd>↑</kbd><kbd>↓</kbd> piste précédente/suivante · <kbd>Suppr</kbd> supprimer la piste (si aucune région sélectionnée) · <kbd>Ctrl+Suppr</kbd> supprimer la piste · <kbd>Ctrl+D</kbd> dupliquer la piste · <kbd>M</kbd> muet · <kbd>S</kbd> solo · <kbd>Ctrl+Alt+A</kbd> nouvelle piste voix · <kbd>Ctrl+Alt+S</kbd> nouvel instrument · <kbd>Ctrl+Alt+D</kbd> nouvelle batterie</p>
-<h4>Régions</h4><p><kbd>Ctrl+T</kbd> couper à la tête de lecture (✂) · <kbd>Ctrl+C</kbd> copier · <kbd>Ctrl+X</kbd> couper · <kbd>Ctrl+V</kbd> coller à la tête de lecture · <kbd>Ctrl+Maj+D</kbd> dupliquer · <kbd>Ctrl+M</kbd> rendre muette · <kbd>Suppr</kbd> effacer · <kbd>Alt+←</kbd>/<kbd>Alt+→</kbd> décaler d’un pas de grille · <kbd>Ctrl+A</kbd> tout sélectionner · <kbd>Alt+glisser</kbd> copier · glisser dans le vide = sélection rectangle · <kbd>Maj+clic</kbd> ajouter à la sélection</p>
+<h4>Régions</h4><p><kbd>Ctrl+T</kbd> couper à la tête de lecture (✂) · <kbd>Ctrl+J</kbd> fusionner (blocs de plusieurs pistes → une piste ; blocs d’une piste → un seul bloc) · <kbd>Ctrl+C</kbd> copier · <kbd>Ctrl+X</kbd> couper · <kbd>Ctrl+V</kbd> coller à la tête de lecture · <kbd>Ctrl+Maj+D</kbd> dupliquer · <kbd>Ctrl+M</kbd> rendre muette · <kbd>Suppr</kbd> effacer · <kbd>Alt+←</kbd>/<kbd>Alt+→</kbd> décaler d’un pas de grille · <kbd>Ctrl+A</kbd> tout sélectionner · <kbd>Alt+glisser</kbd> copier · glisser dans le vide = sélection rectangle · <kbd>Maj+clic</kbd> ajouter à la sélection</p>
 <h4>Fenêtres</h4><p><kbd>X</kbd> mixeur · <kbd>Y</kbd> bibliothèque de plugins · <kbd>E</kbd> éditeur · <kbd>P</kbd> piano roll · <kbd>I</kbd> inspecteur · <kbd>Ctrl+K</kbd> clavier musical · <kbd>Ctrl+Z</kbd> annuler · <kbd>Ctrl+Maj+Z</kbd> rétablir · <kbd>Ctrl+S</kbd> sauvegarder</p>`}))}
