@@ -37,6 +37,10 @@ async def main():
     await E("SELR.clear();mobTrackSheet(findTrack(SEL))");await A.wait_for_timeout(300);await A.screenshot(path='/home/claude/test/m6.png');await E("document.querySelectorAll('.msheet').forEach(x=>x.remove())")
     await A.tap('.mtop .mic:last-child');await A.wait_for_timeout(300);await A.screenshot(path='/home/claude/test/m7.png');await E("document.querySelectorAll('.msheet').forEach(x=>x.remove())")
     await A.tap('#mTempo');await A.wait_for_timeout(200);await E("document.querySelectorAll('.mbpmrow button')[1].click()");print('bpm',await E("P.bpm"));await E("document.querySelectorAll('.msheet').forEach(x=>x.remove())")
+    # défiler = déplacer la tête de lecture (barre fixe façon BandLab)
+    await E("E.playing&&E.stop();document.querySelector('#mScroll').scrollLeft=PPB*6");await A.wait_for_timeout(300)
+    print('défiler 6 temps → PH',round(await E("PH"),2),'| barre fixe x',await E("Math.round(document.querySelector('#mPH').getBoundingClientRect().left)"))
+    await E("setPH(2)");await A.wait_for_timeout(300);print('setPH(2) → défilement',round(await E("document.querySelector('#mScroll').scrollLeft/PPB"),2))
     await E("mobZoom(2)");await A.wait_for_timeout(300);print('zoom PPB',await E("PPB"))
     # glisser une prise sélectionnée + rogner
     r=await E("""(()=>{const t=P.tracks.find(t=>t.type==='audio'&&t.regions.length),r=t.regions[0];SELR=new Set([r.id]);SEL=t.id;mobRender();

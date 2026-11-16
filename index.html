@@ -410,7 +410,7 @@ body.mob #app{display:none}
 .mmeter{flex:1;height:6px;border-radius:3px;background:#2a2a2e;overflow:hidden;min-width:20px}.mmeter i{display:block;height:100%;width:0;border-radius:3px}
 .mchip{background:#2a2a2f!important;border-radius:16px;padding:7px 12px;font-size:12px;font-weight:600;white-space:nowrap}
 .mzoom{display:flex;gap:4px}.mzoom button{width:32px;height:32px;border-radius:16px;background:#2a2a2f!important;font-size:18px}
-#mScroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-x pan-y}
+#mScroll{position:absolute;inset:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-x pan-y}
 #mInner{position:relative;min-height:100%}
 .mrul{display:flex;position:sticky;top:0;z-index:6;height:26px;background:#19191c}
 .mcorner{position:sticky;left:0;z-index:7;width:108px;flex:none;background:#19191c;border-right:1px solid #000}
@@ -439,7 +439,10 @@ body.mob #app{display:none}
 .mreg.sel .mh::after{content:'';position:absolute;top:18px;bottom:18px;width:4px;border-radius:2px;background:#fff}
 .mreg .mh.l::after{left:5px}.mreg .mh.r::after{right:5px}
 .mlive{background:#a3201a!important}
-#mPH{position:absolute;left:0;top:0;width:2px;margin-left:-1px;background:#fff;z-index:5;pointer-events:none;box-shadow:0 0 6px rgba(255,255,255,.5)}
+.mswrap{position:relative;flex:1;min-height:0}
+#mPH{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff;z-index:8;pointer-events:none;box-shadow:0 0 6px rgba(255,255,255,.5)}
+#mPH i{position:absolute;top:0;left:-7px;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:11px solid #fff}
+#mob.land .mswrap{grid-row:2;grid-column:1/3;border-top:1px solid #000}
 .maddrow{height:auto}.maddb{background:#2a2a2f!important;border-radius:22px;padding:12px 18px;font-weight:600;white-space:nowrap}
 .mtools{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#19191c;border-top:1px solid #000;overflow-x:auto;min-height:40px}
 .mtl{background:#2a2a2f!important;border-radius:18px;padding:9px 13px;font-size:13px;font-weight:600;white-space:nowrap;flex:none;display:flex;align-items:center;gap:6px}
@@ -500,7 +503,7 @@ body.mob #toast{bottom:auto;top:calc(110px + env(safe-area-inset-top));z-index:3
 #mob.land .mtitle{font-size:15px}
 #mob.land .minfo{grid-row:1;grid-column:2;padding:4px 10px;border-bottom:0;min-width:0}
 #mob.land .mtime{font-size:18px;min-width:76px}
-#mob.land #mScroll{grid-row:2;grid-column:1/3;border-top:1px solid #000}
+
 #mob.land .mtools{grid-row:3;grid-column:1/3;padding:5px 8px;min-height:0;padding-bottom:calc(5px + env(safe-area-inset-bottom))}
 #mob.land .mtl{padding:7px 12px;font-size:12px}
 #mob.land .mtrans{grid-row:1/4;grid-column:3;flex-direction:column;justify-content:space-evenly;padding:6px 4px;padding-right:env(safe-area-inset-right);border-left:1px solid #000}
@@ -4885,7 +4888,7 @@ async function micTest(){
 // barre du haut (projets, titre, annuler, menu), pistes en grosses lignes (icône colorée à gauche, sons à droite),
 // barre d'outils contextuelle, et en bas : ⏮ ▶ ● (gros bouton rouge) ♩ ＋. Les réglages s'ouvrent en feuilles qui montent du bas.
 // Même projet (P), même moteur (E), mêmes sessions : seul l'affichage change. localStorage.studio_mob : '1' forcé, '0' version ordinateur.
-let MOB=false,MTH=66;const MHW=108,MRH=26;let mobSel=null,mobReq=0,mobLastRec=0;
+let MOB=false,MTH=66,MPAD=150,MUSER=false,MPROG=0;const MHW=108,MRH=26;let mobSel=null,mobReq=0,mobLastRec=0;
 function mobLand(){return innerWidth>innerHeight&&innerHeight<=520}
 function mobWanted(){let f=null;try{f=localStorage.getItem('studio_mob')}catch(e){}if(f==='0')return false;if(f==='1')return true;
   return innerWidth<=540||(IS_TOUCH&&Math.min(screen.width,screen.height)<=540)}
@@ -4969,17 +4972,22 @@ function mobInit(){if(MOB)return;MOB=true;document.body.classList.add('mob');PPB
     h('div',{class:'minfo'},h('div',{id:'mTime',class:'mtime'},'0:00.0'),h('div',{id:'mMeter',class:'mmeter'},h('i')),
       h('button',{id:'mTempo',class:'mchip',onclick:mobTempoSheet}),
       h('span',{class:'mzoom'},mB('','−',()=>mobZoom(1/1.4)),mB('','+',()=>mobZoom(1.4)))),
-    h('div',{id:'mScroll'},h('div',{id:'mInner'})),
+    h('div',{class:'mswrap'},h('div',{id:'mScroll'},h('div',{id:'mInner'})),h('div',{id:'mPH'},h('i'))),
     h('div',{id:'mTools',class:'mtools'}),
     h('div',{class:'mtrans'},
-      mB('mt','⏮',()=>{setPH(0);$('#mScroll').scrollLeft=0},'Début'),
+      mB('mt','⏮',()=>{setPH(0);mobSyncScroll()},'Début'),
       h('button',{id:'mPlay',class:'mt',onclick:()=>{audioUnlock();play()}},'▶'),
       h('button',{id:'mRec',class:'mrec',title:'Enregistrer',onclick:mobRecord},h('i')),
       h('button',{id:'mMetro',class:'mt',onclick:()=>{$('#bMetro').click();mobSched()}},'♩'),
       mB('mt madd','＋',mobAddSheet,'Ajouter une piste')),
     h('div',{id:'mCount',class:'mcount'}));
   document.body.append(el);
-  const S=$('#mScroll');S.addEventListener('scroll',()=>schedMobPaint(),{passive:true});
+  const S=$('#mScroll');let ut=0;
+  S.addEventListener('scroll',()=>{schedMobPaint();if(performance.now()<MPROG)return;if(!E.playing){PH=Math.max(0,S.scrollLeft/PPB);const tm=$('#mTime');if(tm)tm.textContent=mfmt(PH)}},{passive:true});
+  const userOn=()=>{MUSER=true;clearTimeout(ut);if(E.playing&&!REC){PH=E.pos();E.stop()}};
+  const userOff=()=>{clearTimeout(ut);ut=setTimeout(()=>{MUSER=false},250)};
+  S.addEventListener('touchstart',e=>{if(!e.target.closest('.mreg.sel,.mrulb'))userOn()},{passive:true});S.addEventListener('touchend',userOff,{passive:true});S.addEventListener('touchcancel',userOff,{passive:true});
+  S.addEventListener('wheel',()=>{userOn();userOff()},{passive:true});
   // pincer pour zoomer
   let pz=null;const dist=e=>Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
   S.addEventListener('touchstart',e=>{if(e.touches.length===2)pz={d:dist(e),ppb:PPB}},{passive:true});
@@ -4987,8 +4995,7 @@ function mobInit(){if(MOB)return;MOB=true;document.body.classList.add('mob');PPB
   S.addEventListener('touchend',e=>{if(e.touches.length<2)pz=null},{passive:true});
   mobBindLanes();mobRender();requestAnimationFrame(mobTick);
   addEventListener('resize',()=>mobSched());}
-function mobSetPPB(v,cx){const S=$('#mScroll'),r=S.getBoundingClientRect(),x=(cx==null?r.left+MHW+(r.width-MHW)/2:cx)-r.left-MHW,beat=(S.scrollLeft+x)/PPB;
-  PPB=clamp(v,3,160);mobRender();S.scrollLeft=Math.max(0,beat*PPB-x)}
+function mobSetPPB(v){const ph=PH;PPB=clamp(v,3,160);MPROG=performance.now()+120;mobRender();PH=ph;mobSyncScroll()}
 function mobZoom(f){mobSetPPB(PPB*f)}
 function mobSched(){if(!MOB||mobReq)return;mobReq=requestAnimationFrame(()=>{mobReq=0;mobRender()})}
 function mobLen(){let end=0;for(const t of P.tracks)for(const r of t.regions)end=Math.max(end,r.start+rLen(t,r));return Math.max(end+P.sig*8,P.sig*16,PH+P.sig*4)}
@@ -4997,19 +5004,20 @@ function mobRender(){if(!MOB||!P)return;MTH=mobLand()?54:66;$('#mob').style.setP
   $('#mTitle').textContent=(typeof COLLAB!=='undefined'&&COLLAB.on?'👥 ':'')+(P.name||'Projet');
   $('#mTempo').textContent=P.bpm+' BPM · '+NOTE_NAMES[P.key]+' '+(Object.keys(SCALES)[P.scaleIdx]||'').slice(0,3).toLowerCase();
   $('#mMetro').classList.toggle('on',!!P.settings.metro);
-  const I=$('#mInner'),W=mobLen()*PPB;I.innerHTML='';I.style.width=(MHW+W)+'px';
+  const S0=$('#mScroll');MPAD=Math.round(Math.max(60,(S0.clientWidth-MHW)*.4));$('#mPH').style.left=(MHW+MPAD)+'px';
+  const I=$('#mInner'),W=mobLen()*PPB+2*MPAD;I.innerHTML='';I.style.width=(MHW+W)+'px';
   // règle
   const rul=h('div',{class:'mrul',id:'mRul'},h('div',{class:'mcorner'}),h('div',{class:'mrulb',style:{width:W+'px'}}));
   const rb=rul.lastChild,barPx=P.sig*PPB,step=barPx>=44?1:barPx>=22?2:barPx>=11?4:barPx>=5.5?8:16;
-  for(let b=0;b*P.sig<mobLen();b+=step)rb.append(h('span',{style:{left:b*barPx+'px'}},b+1));
+  for(let b=0;b*P.sig<mobLen();b+=step)rb.append(h('span',{style:{left:MPAD+b*barPx+'px'}},b+1));
   I.append(rul);
   for(const row of ROWS()){
     if(!row.t){const f=row.f,open=FOLD_OPEN.has(f.id),ms=foldMembers(f),bh=(MTH-12)/Math.max(1,ms.length);
       const ln=h('div',{class:'mlane mfl',style:{width:W+'px'}});
-      ms.forEach((t,k)=>{for(const r of t.regions)ln.append(h('div',{class:'mfsum',style:{left:r.start*PPB+'px',width:Math.max(3,rLen(t,r)*PPB)+'px',top:(6+k*bh)+'px',height:Math.max(2,bh-2)+'px',background:shade(t.color,.8)}}))});
+      ms.forEach((t,k)=>{for(const r of t.regions)ln.append(h('div',{class:'mfsum',style:{left:MPAD+r.start*PPB+'px',width:Math.max(3,rLen(t,r)*PPB)+'px',top:(6+k*bh)+'px',height:Math.max(2,bh-2)+'px',background:shade(t.color,.8)}}))});
       I.append(h('div',{class:'mrow'},h('div',{class:'mhead mfh',onclick:()=>setFoldOpen(f,!open)},h('div',{class:'mico',style:{background:f.color}},'📁'),h('div',{class:'mhn'},h('b',null,f.name),h('small',null,(open?'▾ ':'▸ ')+ms.length+' piste'+(ms.length>1?'s':'')))),ln));continue}
     const t=row.t,ln=h('div',{class:'mlane'+(t.id===SEL?' sel':''),'data-t':t.id,style:{width:W+'px'}});
-    for(const r of t.regions)ln.append(h('div',{class:'mreg'+(SELR.has(r.id)?' sel':''),'data-r':r.id,style:{left:r.start*PPB+'px',width:Math.max(8,rLen(t,r)*PPB)+'px',background:shade(t.color,.62),opacity:r.mute||t.mute?.4:1}},
+    for(const r of t.regions)ln.append(h('div',{class:'mreg'+(SELR.has(r.id)?' sel':''),'data-r':r.id,style:{left:MPAD+r.start*PPB+'px',width:Math.max(8,rLen(t,r)*PPB)+'px',background:shade(t.color,.62),opacity:r.mute||t.mute?.4:1}},
       h('div',{class:'tiles'}),h('div',{class:'mrt'},(r.mute?'🔇 ':'')+(r.name||'')),h('div',{class:'mh l'}),h('div',{class:'mh r'})));
     I.append(h('div',{class:'mrow'},h('div',{class:'mhead'+(t.id===SEL?' sel':'')+(row.f?' inf':''),'data-t':t.id,onclick:()=>{if(SEL===t.id&&!SELR.size)mobTrackSheet(t);else{SEL=t.id;SELR.clear();mobSched()}}},
         h('div',{class:'mico',style:{background:t.color}},tIco(t),t.arm&&h('i',{class:'marm'})),
@@ -5017,7 +5025,7 @@ function mobRender(){if(!MOB||!P)return;MTH=mobLand()?54:66;$('#mob').style.setP
           h('button',{class:'m'+(t.mute?' on':''),onclick:e=>{e.stopPropagation();snapshot();t.mute=!t.mute;E.updateAll();mobSched()}},'M'),
           h('button',{class:'s'+(t.solo?' on':''),onclick:e=>{e.stopPropagation();t.solo=!t.solo;E.updateAll();mobSched()}},'S')))),ln))}
   I.append(h('div',{class:'mrow maddrow'},h('div',{class:'mhead',style:{background:'transparent',borderColor:'transparent'}}),h('div',{style:{position:'sticky',left:MHW+'px',padding:'12px 10px'}},h('button',{class:'maddb',onclick:mobAddSheet},'＋  Ajouter une piste'))));
-  I.append(h('div',{id:'mPH'}));mobLastRec=0;mobTools();schedMobPaint();mobTick(true)}
+  mobLastRec=0;mobTools();schedMobPaint();mobTick(true)}
 
 // ---------- barre d'outils contextuelle ----------
 function mobTools(){const T=$('#mTools');if(!T)return;T.innerHTML='';
@@ -5037,7 +5045,7 @@ function mobTools(){const T=$('#mTools');if(!T)return;T.innerHTML='';
 
 // ---------- gestes sur les pistes ----------
 function mobBindLanes(){const I=$('#mInner'),S=$('#mScroll');let d=null;
-  const beatAt=x=>Math.max(0,(x-S.getBoundingClientRect().left+S.scrollLeft-MHW)/PPB),snap=b=>Math.round(b*4)/4;
+  const beatAt=x=>Math.max(0,(x-S.getBoundingClientRect().left+S.scrollLeft-MHW-MPAD)/PPB),snap=b=>Math.round(b*4)/4;
   // règle : toucher / glisser = déplacer la barre de lecture
   I.addEventListener('pointerdown',e=>{const rb=e.target.closest('.mrulb');if(rb){e.preventDefault();d={mode:'ph'};try{rb.setPointerCapture(e.pointerId)}catch(x){}setPH(snap(beatAt(e.clientX)));return}
     const rg=e.target.closest('.mreg.sel');if(!rg)return;const fr=findRegion(rg.dataset.r);if(!fr)return;const [t,r]=fr;
@@ -5049,7 +5057,7 @@ function mobBindLanes(){const I=$('#mInner'),S=$('#mScroll');let d=null;
     if(d.mode==='mv')r.start=Math.max(0,snap(d.s0+db));
     else if(d.mode==='r'){if(audio){const max=(BUFS[r.buf]?BUFS[r.buf].duration:1e9)-(r.offset||0);r.dur=clamp(d.d0+db*spb(),.05,max)}else r.len=Math.max(.25,snap(d.l0+db))}
     else if(audio){const ns=clamp(snap(d.s0+db),Math.max(0,d.s0-d.o0/spb()),d.s0+d.d0/spb()-.1),k=(ns-d.s0)*spb();r.start=ns;r.offset=d.o0+k;r.dur=d.d0-k}
-    d.el.style.left=r.start*PPB+'px';d.el.style.width=Math.max(8,rLen(t,r)*PPB)+'px'});
+    d.el.style.left=MPAD+r.start*PPB+'px';d.el.style.width=Math.max(8,rLen(t,r)*PPB)+'px'});
   const up=()=>{if(d&&d.moved){renderLanes();if(E.playing){const p=E.pos();E.stop();E.play(p)}}d=null};
   I.addEventListener('pointerup',up);I.addEventListener('pointercancel',up);
   I.addEventListener('click',e=>{if(e.target.closest('.mhead,.mrul,button'))return;const rg=e.target.closest('.mreg');
@@ -5060,7 +5068,7 @@ function mobBindLanes(){const I=$('#mInner'),S=$('#mScroll');let d=null;
 // ---------- dessin des sons (tuiles visibles) ----------
 let mobPaintReq=0;function schedMobPaint(){if(!mobPaintReq)mobPaintReq=requestAnimationFrame(()=>{mobPaintReq=0;mobPaint()})}
 function mobPaint(){const S=$('#mScroll');if(!S||!MOB)return;const dpr=Math.min(2,devicePixelRatio||1),x0=S.scrollLeft-300,x1=S.scrollLeft+S.clientWidth+300,ch=MTH-8-14,key=PPB+'|'+dpr+'|'+P.bpm+'|'+MTH;
-  S.querySelectorAll('.mreg[data-r]').forEach(el=>{const fr=findRegion(el.dataset.r);if(!fr)return;const [t,r]=fr,tl=el.firstChild,left=r.start*PPB,w=Math.max(8,rLen(t,r)*PPB);
+  S.querySelectorAll('.mreg[data-r]').forEach(el=>{const fr=findRegion(el.dataset.r);if(!fr)return;const [t,r]=fr,tl=el.firstChild,left=MPAD+r.start*PPB,w=Math.max(8,rLen(t,r)*PPB);
     if(tl.dataset.key!==key){tl.innerHTML='';tl.dataset.key=key}
     const a=Math.max(x0,left)-left,b=Math.min(x1,left+w)-left,want=new Set();if(b>a)for(let i=Math.floor(a/TILE);i<=Math.floor((b-1)/TILE);i++)want.add(i);
     for(const c of [...tl.children])if(!want.has(+c.dataset.i))c.remove();const have=new Set([...tl.children].map(c=>+c.dataset.i));
@@ -5077,14 +5085,13 @@ async function mobRecord(){audioUnlock();
 
 // ---------- boucle d'affichage ----------
 function mobTick(once){if(!MOB)return;const S=$('#mScroll'),pos=E.playing?E.pos():PH,ph=$('#mPH');
-  if(ph){ph.style.transform='translateX('+(MHW+Math.max(0,pos)*PPB)+'px)';ph.style.height=$('#mInner').scrollHeight+'px'}
   const tm=$('#mTime');if(tm){tm.textContent=mfmt(pos);tm.classList.toggle('rec',!!REC)}
   $('#mPlay').textContent=E.playing&&!REC?'⏸':'▶';$('#mRec').classList.toggle('on',!!REC);
   const pk=E.inPeak||0,db=pk>0?20*Math.log10(pk):-80,mm=$('#mMeter');mm.style.visibility=E.mic?'visible':'hidden';mm.firstChild.style.width=clamp((db+60)/60*100,0,100)+'%';mm.firstChild.style.background=db>-3?'#ff3b30':db>-12?'#ffd60a':'#30d158';
   const mc=$('#mCount');if(REC&&E.playing&&pos<REC.start){mc.textContent=Math.max(1,Math.ceil(REC.start-pos));mc.style.display='flex'}else mc.style.display='none';
-  if(E.playing&&S){const x=MHW+pos*PPB-S.scrollLeft,w=S.clientWidth;if(x>w*.8||x<MHW)S.scrollLeft=Math.max(0,MHW+pos*PPB-MHW-(w-MHW)*.25)}
+  if(S&&!MUSER&&(E.playing||Math.abs(S.scrollLeft-Math.max(0,pos)*PPB)>1.5))mobSyncScroll(pos);
   if(REC&&E.recording&&pos>=REC.start){for(const tid of REC.tracks){const ln=S.querySelector('.mlane[data-t="'+tid+'"]');if(!ln)continue;let dv=ln.querySelector('.mlive');
-      if(!dv){dv=h('div',{class:'mreg mlive',style:{left:REC.start*PPB+'px'}},h('div',{class:'mrt'},'● Enregistrement…'));ln.append(dv)}dv.style.width=Math.max(4,(pos-REC.start)*PPB)+'px'}}
+      if(!dv){dv=h('div',{class:'mreg mlive',style:{left:MPAD+REC.start*PPB+'px'}},h('div',{class:'mrt'},'● Enregistrement…'));ln.append(dv)}dv.style.width=Math.max(4,(pos-REC.start)*PPB)+'px'}}
   else if(S)S.querySelectorAll('.mlive').forEach(x=>x.remove());
   if(once!==true)requestAnimationFrame(mobTick)}
 
@@ -5118,6 +5125,7 @@ function mobInstallTuto(force){
 {const o=mobMenuSheet;mobMenuSheet=function(){const r=o.apply(this,arguments);const b=document.querySelector('.msheet .mbody>div');
   if(b&&!mobInstalled())b.prepend(mRow('📲','Mettre sur l’écran d’accueil',()=>mobInstallTuto(true),'Pour l’ouvrir comme une vraie appli'));return r}}
 {const o=mobInit;mobInit=function(){const r=o.apply(this,arguments);setTimeout(()=>{if(!document.querySelector('.modal,.msheet'))mobInstallTuto()},1500);return r}}
+function mobSyncScroll(pos){const S=$('#mScroll');if(!S)return;const x=Math.max(0,(pos==null?PH:pos))*PPB;if(Math.abs(S.scrollLeft-x)>.5){MPROG=performance.now()+60;S.scrollLeft=x}}
 
 // ===== 3.11 — 💾 Sauvegarder, bien visible (téléphone et ordinateur) =====
 // Deux niveaux, expliqués simplement :
