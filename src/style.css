@@ -522,3 +522,26 @@ body.mob .msheet .mbox{max-width:620px;margin:0 auto}
 /* Safari iPhone (pas installée) : Safari floute le haut de la page sous l’heure → on descend la barre du haut */
 body.insafari #mob{padding-top:calc(env(safe-area-inset-top) + 26px)}
 body.insafari #mob.land{padding-top:0}
+/* v3.12 importer des pistes */
+.imptr{min-width:min(420px,86vw)}
+.imptr .muted{color:var(--dim);font-size:12px}
+.imptr .imfile{width:100%;padding:10px;margin:8px 0 2px;font-weight:700}
+.imptr .imrow{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;padding:9px 10px;margin:4px 0;background:#1e1e20;border-radius:8px}
+.imptr .imrow small{color:var(--dim);font-size:11px}
+.imptr .imall{display:flex;gap:6px;margin:6px 0}
+.imptr .imlist{max-height:46vh;overflow:auto;background:#1e1e20;border-radius:8px;padding:4px}
+.imptr .imt,.imptr .imf{display:flex;align-items:center;gap:8px;padding:7px 6px;border-radius:6px;cursor:pointer}
+.imptr .imt:hover,.imptr .imf:hover{background:#2b2b30}
+.imptr .imt.in{padding-left:26px}
+.imptr .imf{font-weight:700;color:var(--acc)}
+.imptr .imt span:nth-of-type(2){flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imptr .imt small{color:var(--dim);font-size:11px}
+.imptr .imdot{width:10px;height:10px;border-radius:50%;flex:none}
+.imptr input[type=checkbox]{width:18px;height:18px;flex:none}
+.imptr .imopt{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0}
+.imptr .imopt select{flex:1;min-width:180px}
+.imptr .imwarn{background:#3a2f12;border:1px solid #6b5520;border-radius:8px;padding:8px 10px;font-size:12px;margin:8px 0}
+.imptr .imbpm{display:flex;align-items:center;gap:6px;margin-top:6px;cursor:pointer}
+.imptr .imfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.imptr .imgo{font-weight:700;background:var(--acc);color:#fff}
+.imptr .imgo:disabled{opacity:.5}

@@ -23,7 +23,8 @@ function mobAddSheet(){mSheet('Ajouter une piste',h('div',{class:'mtiles'},
   mTile('🎵','Instru','Importe ta prod (MP3, WAV)',()=>importInstruDialog()),
   mTile('📂','Importer un son','Un fichier audio',()=>$('#fileAudio').click()),
   mTile('🥁','Batterie','Rythme tout prêt',()=>{addTrack('drums');mobSched()}),
-  mTile('🎹','Instrument','Synthé, basse 808…',()=>{addTrack('synth');mobSched()})))}
+  mTile('🎹','Instrument','Synthé, basse 808…',()=>{addTrack('synth');mobSched()}),
+  mTile('📥','D’un autre projet','Copie ses pistes ici',()=>importTracksDialog())))}
 function mTile(ico,lab,sub,fn){return h('button',{class:'mtile',onclick:()=>{document.querySelectorAll('.msheet').forEach(x=>x.remove());fn()}},h('span',null,ico),h('b',null,lab),h('small',null,sub))}
 
 function mobMenuSheet(){mSheet(P.name||'Projet',h('div',null,

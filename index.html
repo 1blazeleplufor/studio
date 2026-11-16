@@ -527,6 +527,29 @@ body.mob .msheet .mbox{max-width:620px;margin:0 auto}
 /* Safari iPhone (pas installée) : Safari floute le haut de la page sous l’heure → on descend la barre du haut */
 body.insafari #mob{padding-top:calc(env(safe-area-inset-top) + 26px)}
 body.insafari #mob.land{padding-top:0}
+/* v3.12 importer des pistes */
+.imptr{min-width:min(420px,86vw)}
+.imptr .muted{color:var(--dim);font-size:12px}
+.imptr .imfile{width:100%;padding:10px;margin:8px 0 2px;font-weight:700}
+.imptr .imrow{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;padding:9px 10px;margin:4px 0;background:#1e1e20;border-radius:8px}
+.imptr .imrow small{color:var(--dim);font-size:11px}
+.imptr .imall{display:flex;gap:6px;margin:6px 0}
+.imptr .imlist{max-height:46vh;overflow:auto;background:#1e1e20;border-radius:8px;padding:4px}
+.imptr .imt,.imptr .imf{display:flex;align-items:center;gap:8px;padding:7px 6px;border-radius:6px;cursor:pointer}
+.imptr .imt:hover,.imptr .imf:hover{background:#2b2b30}
+.imptr .imt.in{padding-left:26px}
+.imptr .imf{font-weight:700;color:var(--acc)}
+.imptr .imt span:nth-of-type(2){flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imptr .imt small{color:var(--dim);font-size:11px}
+.imptr .imdot{width:10px;height:10px;border-radius:50%;flex:none}
+.imptr input[type=checkbox]{width:18px;height:18px;flex:none}
+.imptr .imopt{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0}
+.imptr .imopt select{flex:1;min-width:180px}
+.imptr .imwarn{background:#3a2f12;border:1px solid #6b5520;border-radius:8px;padding:8px 10px;font-size:12px;margin:8px 0}
+.imptr .imbpm{display:flex;align-items:center;gap:6px;margin-top:6px;cursor:pointer}
+.imptr .imfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.imptr .imgo{font-weight:700;background:var(--acc);color:#fff}
+.imptr .imgo:disabled{opacity:.5}
 </style></head><body>
 <div id="app">
  <div id="bar">
@@ -2071,7 +2094,7 @@ function bindUI(){
   B('#bTyping',()=>{TYPING=!TYPING;renderBar();toast(TYPING?'Clavier musical : touches Q Z S E D F T G Y H U J K (AZERTY) · W/X = octave · Échap pour quitter':'Clavier musical désactivé',5000)});
   B('#bMidi',()=>initMIDI(true));B('#bSettings',settingsModal);B('#bHelp',helpModal);
   B('#bFile',e=>menu(e,['Projet',['📂 Mes projets…',projectsModal],['👥 Session à plusieurs…',collabModal],['🖥 Dispositions et panneaux…',()=>screensModal()],['📀 Partager un lien d’écoute (MP3)…',bounceModal],['Nouveau projet vide',()=>switchProject(()=>newProject(false))],['Nouveau projet démo (trap)',()=>switchProject(()=>newProject(true))],
-    ['Exporter le projet (.studio) pour un autre appareil',saveProject],['Importer un projet (.studio)…',()=>$('#fileProj').click()],'-','Exporter l’audio',
+    ['Exporter le projet (.studio) pour un autre appareil',saveProject],['Importer un projet (.studio)…',()=>$('#fileProj').click()],['📥 Importer des pistes d’un autre projet…',importTracksDialog],'-','Exporter l’audio',
     ['🎚 Mastering 1 clic…',()=>masterModal()],['Exporter le morceau en WAV',()=>exportMix('all')],['Exporter le morceau en MP3',()=>exportMix('all','mp3')],['Exporter la zone de cycle en WAV',()=>exportMix('cycle')],['Exporter la zone de cycle en MP3',()=>exportMix('cycle','mp3')],['Exporter chaque piste séparément (stems)',()=>exportMix('stems')],'-',
     ['🎵 Importer une instru…',importInstruDialog],['🍎 Importer depuis Logic Pro…',logicImportDialog],['Importer un son…',()=>$('#fileAudio').click()],['⌨ Raccourcis clavier',shortcutsModal],['Charger un plugin externe (.js)…',()=>$('#filePlug').click()],['Télécharger le modèle de plugin',()=>download(new Blob([PLUGIN_TEMPLATE],{type:'text/javascript'}),'mon-plugin.js')],'-',['📲 Installer l’appli sur cet appareil',installApp]]));
   B('#bAdd',addTrackMenu);B('#zIn',()=>zoom(1.25));B('#zOut',()=>zoom(.8));B('#vIn',()=>zoomV(1.2));B('#vOut',()=>zoomV(1/1.2));B('#zFit',zoomFit);B('#bSplit',splitAtPH);
@@ -2320,7 +2343,7 @@ function initApp(){
 }
 
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='3.11.0';
+const APP_VERSION='3.12.0';
 const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
@@ -2455,13 +2478,16 @@ function showChangelog(force){
   const mm=v=>String(v).split('.').slice(0,2).join('.');
   if(!force&&(mm(seen)===mm(APP_VERSION)||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés 🎉</h2><p class="muted" style="margin-top:-6px">Tu es sur la v${APP_VERSION}.</p><h4>v3.11 — Nouvelle interface téléphone 📱</h4><ul>
+  modal(h('div',{html:`<h2>Nouveautés 🎉</h2><p class="muted" style="margin-top:-6px">Tu es sur la v${APP_VERSION}.</p><h4>v3.12 — Importer des pistes d’un autre projet 📥</h4><ul>
+<li><b>Copie des pistes d’un projet à l’autre</b> : Fichier → <b>📥 Importer des pistes d’un autre projet</b> (sur téléphone : ⋯ ou ＋). Choisis un de tes projets ou un fichier .studio, coche les pistes : elles arrivent avec leur son, leurs effets, leur volume et leur dossier.</li>
+<li>Tu peux les poser à la même place que dans l’autre projet, ou à partir de la tête de lecture. Si les deux projets n’ont pas le même tempo, Studio te prévient.</li>
+</ul><h4 style="margin-top:18px">Versions précédentes</h4><details class="cl"><summary>v3.11 — Nouvelle interface téléphone 📱</summary><ul>
 <li><b>Tout est refait pour le téléphone</b>, dans l’esprit de BandLab : tes pistes en grosses lignes, et en bas le <b>gros bouton rouge</b> pour t’enregistrer, ▶ pour écouter, ＋ pour ajouter une piste.</li>
 <li><b>S’enregistrer</b> : touche ta piste voix, puis le bouton rouge. Le décompte s’affiche en grand, ta prise se dessine en direct.</li>
 <li><b>✨ Effets de voix</b> en grosses cartes (autotune, voix rap, créatif…), <b>🎧 Retour</b> pour t’entendre, volume et M / S dans la fiche de la piste (touche l’icône de la piste).</li>
 <li><b>Modifier une prise</b> : touche-la, puis glisse-la, tire ses bords pour la raccourcir, ou utilise ✂ Couper, ⧉ Dupliquer, 🗑 Supprimer. Pince avec deux doigts pour zoomer.</li>
 <li>Menu <b>⋯</b> : projets, session à plusieurs, export MP3, réglages… et <b>🖥 Version ordinateur</b> si tu veux retrouver l’ancien affichage.</li>
-</ul><h4 style="margin-top:18px">Versions précédentes</h4><details class="cl"><summary>v3.10 — Dossiers de pistes, micro sur iPhone</summary><ul>
+</ul></details><details class="cl"><summary>v3.10 — Dossiers de pistes, micro sur iPhone</summary><ul>
 <li><b>📁 Dossiers de pistes</b> : range plusieurs pistes (par exemple les 3 lignes de ton couplet) sur <b>une seule ligne</b>, avec un aperçu des prises. <b>▸</b> pour ouvrir, <b>▾</b> pour fermer. Bouton <b>📁 Dossier</b> sous les pistes, ou clic droit sur une piste. Le volume, le <b>M</b> et le <b>S</b> du dossier agissent sur toutes ses pistes ; clic droit sur le dossier pour le renommer, changer sa couleur, ajouter / retirer des pistes ou le défaire.</li>
 <li><b>⌨️ Ctrl+D</b> duplique la piste. Pour dupliquer des régions : <b>Ctrl+Maj+D</b>.</li>
 <li><b>📱 Enregistrer sur iPhone</b> : le micro marche (Studio passe l’iPhone en mode « lecture + enregistrement »). Un micro choisi sur le PC est remplacé par celui du téléphone, et si quelque chose bloque, Studio explique quoi régler.</li>
@@ -4912,7 +4938,8 @@ function mobAddSheet(){mSheet('Ajouter une piste',h('div',{class:'mtiles'},
   mTile('🎵','Instru','Importe ta prod (MP3, WAV)',()=>importInstruDialog()),
   mTile('📂','Importer un son','Un fichier audio',()=>$('#fileAudio').click()),
   mTile('🥁','Batterie','Rythme tout prêt',()=>{addTrack('drums');mobSched()}),
-  mTile('🎹','Instrument','Synthé, basse 808…',()=>{addTrack('synth');mobSched()})))}
+  mTile('🎹','Instrument','Synthé, basse 808…',()=>{addTrack('synth');mobSched()}),
+  mTile('📥','D’un autre projet','Copie ses pistes ici',()=>importTracksDialog())))}
 function mTile(ico,lab,sub,fn){return h('button',{class:'mtile',onclick:()=>{document.querySelectorAll('.msheet').forEach(x=>x.remove());fn()}},h('span',null,ico),h('b',null,lab),h('small',null,sub))}
 
 function mobMenuSheet(){mSheet(P.name||'Projet',h('div',null,
@@ -5182,5 +5209,120 @@ if(typeof mobInit==='function'){const o=mobInit;mobInit=function(){const r=o.app
 if(typeof mobMenuSheet==='function'){const o=mobMenuSheet;mobMenuSheet=function(){const r=o.apply(this,arguments);const b=document.querySelector('.msheet .mbody>div');
   if(b){[...b.querySelectorAll('.mrowb')].filter(x=>/Enregistrer le projet dans Fichiers|Ouvrir un projet \.studio/.test(x.textContent)).forEach(x=>x.remove());
     b.prepend(mRow('💾','Sauvegarder',saveHub,'Fichier .studio à ranger où tu veux'))}return r}}
+
+// ===== v3.12 : importer des pistes d'un autre projet =====
+// Source : un projet de « Mes projets » (même appareil) ou un fichier .studio.
+// Les pistes arrivent avec leur son, leurs effets, volume, pan, envois vers les bus et leur dossier.
+function trkIco(t){return isInstru(t)?'🎵':({audio:'🎤',synth:'🎹',drums:'🥁'}[t.type]||'🎚')}
+
+async function readStudioFile(f){
+  const ab=await f.arrayBuffer();if(ab.byteLength<8)throw new Error('fichier vide');
+  const hd=new Uint32Array(ab,0,2);if(hd[0]!==0x53545544)throw new Error('ce n’est pas un fichier .studio');
+  const len=hd[1],j=JSON.parse(new TextDecoder().decode(new Uint8Array(ab,8,len)));let off=8+len+(4-len%4)%4;const at={};
+  for(const m of j.buffers||[]){at[m.id]={m,off};off+=m.len*4*m.ch}
+  return{project:j.project,name:j.project.name||f.name.replace(/\.studio$/i,''),local:false,
+    getBuf:id=>{const x=at[id];if(!x)return null;const b=ctx.createBuffer(x.m.ch,x.m.len,x.m.sr);let o=x.off;
+      for(let c=0;c<x.m.ch;c++){b.copyToChannel(new Float32Array(ab.slice(o,o+x.m.len*4)),c);o+=x.m.len*4}return b}}
+}
+async function readLocalProject(id){
+  const rec=await IDB.get('projects',id);if(!rec)throw new Error('projet introuvable');const pr=JSON.parse(rec.json);
+  return{project:pr,name:pr.name||rec.name,local:true,
+    getBuf:async bid=>{if(BUFS[bid])return BUFS[bid];const b=await IDB.get('buffers',bid);if(!b)return null;
+      const ab=ctx.createBuffer(b.ch,b.len,b.sr);b.data.forEach((d,c)=>ab.copyToChannel(d,c));return ab}}
+}
+
+async function importTracksDialog(){
+  try{if(typeof saveLocal==='function')await saveLocal()}catch(e){}
+  let list=[];try{list=(await IDB.all('projects')).filter(p=>!P||p.id!==P.id).sort((a,b)=>b.updated-a.updated)}catch(e){}
+  const box=h('div',{class:'imptr'});const m=modal(box);
+  const open=async get=>{try{toast('Lecture du projet…',60000);const src=await get();$('#toast').style.display='none';m.remove();pickTracksDialog(src)}
+    catch(err){console.error(err);$('#toast').style.display='none';alert('Impossible de lire ce projet : '+err.message)}};
+  const fi=h('input',{type:'file',hidden:true,onchange:e=>{const f=e.target.files[0];e.target.value='';if(f)open(()=>readStudioFile(f))}});
+  box.append(h('h2',null,'📥 Importer des pistes'),
+    h('p',{class:'muted'},'Choisis le projet où sont les pistes à copier. Elles arrivent dans ton projet actuel avec leur son, leurs effets et leurs réglages. L’autre projet n’est pas modifié.'),
+    fi,h('button',{class:'imfile',onclick:()=>fi.click()},'📁 Choisir un fichier .studio'),
+    h('h4',null,'Ou dans Mes projets'));
+  if(!list.length)box.append(h('p',{class:'muted'},'Aucun autre projet sur cet appareil.'));
+  for(const p of list)box.append(h('button',{class:'imrow',onclick:()=>open(()=>readLocalProject(p.id))},
+    h('b',null,p.name),h('small',null,new Date(p.updated).toLocaleDateString()+' · '+p.tracks+' piste'+(p.tracks>1?'s':'')+' · '+p.bpm+' BPM')));
+  box.append(h('div',{class:'imfoot'},h('button',{onclick:()=>m.remove()},'Annuler')));
+}
+
+function pickTracksDialog(src){
+  const pr=src.project,ts=pr.tracks||[];
+  if(!ts.length)return alert('« '+src.name+' » ne contient aucune piste.');
+  const fold=t=>t.fold&&(pr.folders||[]).find(f=>f.id===t.fold);
+  const chk={};const box=h('div',{class:'imptr'});const m=modal(box);
+  const btn=h('button',{class:'imgo'});
+  const upd=()=>{const n=ts.filter(t=>chk[t.id].checked).length;btn.textContent=n?'Importer '+n+' piste'+(n>1?'s':''):'Coche au moins une piste';btn.disabled=!n};
+  const rows=h('div',{class:'imlist'});let lastF=null;
+  for(const t of ts){const f=fold(t);
+    if(f&&f!==lastF){const cb=h('input',{type:'checkbox',onchange:e=>{ts.filter(x=>fold(x)===f).forEach(x=>chk[x.id].checked=e.target.checked);upd()}});
+      rows.append(h('label',{class:'imf'},cb,'📁 '+f.name))}
+    lastF=f;
+    const n=t.regions.length;chk[t.id]=h('input',{type:'checkbox',onchange:upd});
+    rows.append(h('label',{class:'imt'+(f?' in':'')},chk[t.id],h('span',{class:'imdot',style:{background:t.color||'#888'}}),
+      h('span',null,trkIco(t)+' '+t.name),h('small',null,n?n+' prise'+(n>1?'s':''):'vide')))}
+  const all=v=>{ts.forEach(t=>chk[t.id].checked=v);rows.querySelectorAll('.imf input').forEach(c=>c.checked=v);upd()};
+  const place=h('select',null,h('option',{value:'same'},'Même place que dans l’autre projet'),h('option',{value:'ph'},'À la tête de lecture (mesure '+(Math.floor(PH/(P.sig||4))+1)+')'));
+  const diff=pr.bpm&&pr.bpm!==P.bpm,bpmCb=h('input',{type:'checkbox'});
+  box.append(h('h2',null,'📥 Pistes de « '+src.name+' »'),
+    h('div',{class:'imall'},h('button',{onclick:()=>all(true)},'Tout cocher'),h('button',{onclick:()=>all(false)},'Tout décocher')),rows,
+    h('div',{class:'imopt'},h('span',null,'Placer les prises'),place),
+    diff&&h('div',{class:'imwarn'},'⚠️ « '+src.name+' » est à ',h('b',null,pr.bpm+' BPM'),' et ton projet à ',h('b',null,P.bpm+' BPM'),'. Les voix et les sons gardent leur vitesse mais peuvent tomber à côté du temps ; batteries et instruments suivent le tempo de ton projet.',
+      h('label',{class:'imbpm'},bpmCb,' Passer mon projet à '+pr.bpm+' BPM')),
+    h('div',{class:'imfoot'},h('button',{onclick:()=>m.remove()},'Annuler'),btn));
+  btn.onclick=async()=>{const ids=ts.filter(t=>chk[t.id].checked).map(t=>t.id);if(!ids.length)return;btn.disabled=true;btn.textContent='Import…';
+    try{await doImportTracks(src,ids,{atPH:place.value==='ph',bpm:diff&&bpmCb.checked});m.remove()}
+    catch(e){console.error(e);alert('Import impossible : '+e.message);upd()}};
+  upd();
+}
+
+async function doImportTracks(src,ids,o){
+  o=o||{};const pr=src.project,sel=pr.tracks.filter(t=>ids.includes(t.id));if(!sel.length)return 0;
+  toast('Import des pistes…',60000);
+  // 1) les sons : chaque son garde son identifiant, sauf s'il en existe déjà un différent sous le même nom
+  const map={};let lost=0;
+  for(const t of sel)if(t.type==='audio')for(const r of t.regions)for(const id of [r.buf,...(r.takes||[]).map(k=>k.buf)]){
+    if(!id||id in map)continue;map[id]=id;let b=null;try{b=await src.getBuf(id)}catch(e){}
+    if(!b){if(!BUFS[id])lost++;continue}
+    const cur=BUFS[id];
+    if(!cur){addBuffer(b,id);if(src.local)SAVED_BUFS.add(id)}
+    else if(cur!==b&&(cur.length!==b.length||cur.sampleRate!==b.sampleRate||cur.numberOfChannels!==b.numberOfChannels))map[id]=addBuffer(b)}
+  // 2) plugins externes utilisés par ces pistes
+  for(const t of sel)for(const pl of t.plugins||[])if(!PLUGINS[pl.type]&&pr.ext&&pr.ext[pl.type])try{loadExternalPlugin(pr.ext[pl.type]);P.ext=P.ext||{};P.ext[pl.type]=pr.ext[pl.type]}catch(e){console.warn(e)}
+  snapshot();
+  if(o.bpm&&pr.bpm){P.bpm=pr.bpm;const i=$('#bpm');if(i)i.value=P.bpm}
+  // 3) bus d'effets : même nom = même bus ; sinon on recopie le bus de l'autre projet
+  const SA=pr.auxes||[],auxAt=SA.map(a=>P.auxes.findIndex(x=>x.name===a.name));let newAux=0;
+  for(const t of sel)(t.sends||[]).forEach((v,i)=>{if(v>-60&&SA[i]&&auxAt[i]<0){const a=deep(SA[i]);if(P.auxes.some(x=>x.id===a.id)||P.tracks.some(x=>x.id===a.id))a.id=uid('aux');
+    a.plugins=(a.plugins||[]).filter(pl=>PLUGINS[pl.type]);P.auxes.push(a);for(const x of P.tracks)(x.sends=x.sends||[]).push(-60);auxAt[i]=P.auxes.length-1;newAux++}});
+  // 4) les pistes
+  let shift=0;if(o.atPH){const st=sel.flatMap(t=>t.regions.map(r=>r.start));if(st.length)shift=PH-Math.min(...st)}
+  const fmap={},made=[];let dropped=0;
+  for(const t of sel){const c=deep(t);c.id=uid('t');c.arm=false;c.mon=false;c.solo=false;
+    c.regions.forEach(r=>{r.id=uid('r');r.start=Math.max(0,r.start+shift);if(r.buf&&map[r.buf])r.buf=map[r.buf];(r.takes||[]).forEach(k=>{if(k.buf&&map[k.buf])k.buf=map[k.buf]})});
+    const n0=(c.plugins||[]).length;c.plugins=(c.plugins||[]).filter(pl=>PLUGINS[pl.type]);dropped+=n0-c.plugins.length;
+    c.sends=P.auxes.map(()=>-60);(t.sends||[]).forEach((v,i)=>{if(auxAt[i]>=0)c.sends[auxAt[i]]=v});
+    const f=t.fold&&(pr.folders||[]).find(x=>x.id===t.fold);
+    if(f){if(!fmap[f.id]){const nf=deep(f);nf.id=uid('f');P.folders=P.folders||[];P.folders.push(nf);fmap[f.id]=nf.id}c.fold=fmap[f.id]}else delete c.fold;
+    made.push(c)}
+  // l'instru reste en haut, le reste arrive en bas
+  const ins=made.filter(isInstru),oth=made.filter(t=>!isInstru(t));
+  if(ins.length)P.tracks.splice(P.tracks.filter(isInstru).length,0,...ins);P.tracks.push(...oth);
+  if(typeof cleanFolders==='function')cleanFolders();
+  SEL=made[0].id;SELR=new Set();
+  E.build(P);E.updateAll();renderAll();if(typeof mobSched==='function')mobSched();
+  try{if(COLLAB.on&&typeof uploadBufs==='function')uploadBufs()}catch(e){}
+  let msg='✔ '+made.length+' piste'+(made.length>1?'s importées':' importée')+' depuis « '+src.name+' »';
+  if(newAux)msg+=' (+ '+newAux+' bus d’effets)';if(lost)msg+='. ⚠️ '+lost+' son'+(lost>1?'s':'')+' introuvable'+(lost>1?'s':'');
+  if(dropped)msg+='. ⚠️ '+dropped+' effet'+(dropped>1?'s':'')+' externe'+(dropped>1?'s':'')+' manquant'+(dropped>1?'s':'');
+  toast(msg,5000);return made.length
+}
+
+// téléphone : entrée dans le menu ⋯ (sous « Mes projets »)
+if(typeof mobMenuSheet==='function'){const o=mobMenuSheet;mobMenuSheet=function(){const r=o.apply(this,arguments);const b=document.querySelector('.msheet .mbody>div');
+  if(b){const mp=[...b.querySelectorAll('.mrowb')].find(x=>/Mes projets/.test(x.textContent));const it=mRow('📥','Importer des pistes',importTracksDialog,'Copier des pistes d’un autre projet');
+    mp?mp.after(it):b.append(it)}return r}}
 </script>
 </body></html>

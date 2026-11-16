@@ -1,5 +1,5 @@
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='3.11.0';
+const APP_VERSION='3.12.0';
 const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
@@ -134,13 +134,16 @@ function showChangelog(force){
   const mm=v=>String(v).split('.').slice(0,2).join('.');
   if(!force&&(mm(seen)===mm(APP_VERSION)||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés 🎉</h2><p class="muted" style="margin-top:-6px">Tu es sur la v${APP_VERSION}.</p><h4>v3.11 — Nouvelle interface téléphone 📱</h4><ul>
+  modal(h('div',{html:`<h2>Nouveautés 🎉</h2><p class="muted" style="margin-top:-6px">Tu es sur la v${APP_VERSION}.</p><h4>v3.12 — Importer des pistes d’un autre projet 📥</h4><ul>
+<li><b>Copie des pistes d’un projet à l’autre</b> : Fichier → <b>📥 Importer des pistes d’un autre projet</b> (sur téléphone : ⋯ ou ＋). Choisis un de tes projets ou un fichier .studio, coche les pistes : elles arrivent avec leur son, leurs effets, leur volume et leur dossier.</li>
+<li>Tu peux les poser à la même place que dans l’autre projet, ou à partir de la tête de lecture. Si les deux projets n’ont pas le même tempo, Studio te prévient.</li>
+</ul><h4 style="margin-top:18px">Versions précédentes</h4><details class="cl"><summary>v3.11 — Nouvelle interface téléphone 📱</summary><ul>
 <li><b>Tout est refait pour le téléphone</b>, dans l’esprit de BandLab : tes pistes en grosses lignes, et en bas le <b>gros bouton rouge</b> pour t’enregistrer, ▶ pour écouter, ＋ pour ajouter une piste.</li>
 <li><b>S’enregistrer</b> : touche ta piste voix, puis le bouton rouge. Le décompte s’affiche en grand, ta prise se dessine en direct.</li>
 <li><b>✨ Effets de voix</b> en grosses cartes (autotune, voix rap, créatif…), <b>🎧 Retour</b> pour t’entendre, volume et M / S dans la fiche de la piste (touche l’icône de la piste).</li>
 <li><b>Modifier une prise</b> : touche-la, puis glisse-la, tire ses bords pour la raccourcir, ou utilise ✂ Couper, ⧉ Dupliquer, 🗑 Supprimer. Pince avec deux doigts pour zoomer.</li>
 <li>Menu <b>⋯</b> : projets, session à plusieurs, export MP3, réglages… et <b>🖥 Version ordinateur</b> si tu veux retrouver l’ancien affichage.</li>
-</ul><h4 style="margin-top:18px">Versions précédentes</h4><details class="cl"><summary>v3.10 — Dossiers de pistes, micro sur iPhone</summary><ul>
+</ul></details><details class="cl"><summary>v3.10 — Dossiers de pistes, micro sur iPhone</summary><ul>
 <li><b>📁 Dossiers de pistes</b> : range plusieurs pistes (par exemple les 3 lignes de ton couplet) sur <b>une seule ligne</b>, avec un aperçu des prises. <b>▸</b> pour ouvrir, <b>▾</b> pour fermer. Bouton <b>📁 Dossier</b> sous les pistes, ou clic droit sur une piste. Le volume, le <b>M</b> et le <b>S</b> du dossier agissent sur toutes ses pistes ; clic droit sur le dossier pour le renommer, changer sa couleur, ajouter / retirer des pistes ou le défaire.</li>
 <li><b>⌨️ Ctrl+D</b> duplique la piste. Pour dupliquer des régions : <b>Ctrl+Maj+D</b>.</li>
 <li><b>📱 Enregistrer sur iPhone</b> : le micro marche (Studio passe l’iPhone en mode « lecture + enregistrement »). Un micro choisi sur le PC est remplacé par celui du téléphone, et si quelque chose bloque, Studio explique quoi régler.</li>
