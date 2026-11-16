@@ -163,7 +163,7 @@ function saveProject(){
   const meta=[],parts=[];for(const id of used){const b=BUFS[id];if(!b)continue;meta.push({id,sr:b.sampleRate,ch:b.numberOfChannels,len:b.length});for(let c=0;c<b.numberOfChannels;c++)parts.push(b.getChannelData(c))}
   for(const k in EXT_SRC)P.ext[k]=EXT_SRC[k];
   const js=new TextEncoder().encode(JSON.stringify({v:1,project:P,buffers:meta})),hd=new Uint32Array([0x53545544,js.length]),pad=new Uint8Array((4-js.length%4)%4);
-  download(new Blob([hd,js,pad,...parts]),(P.name||'projet').replace(/[^\w\- àâéèêëîïôûùç]/gi,'_')+'.studio');DIRTY=false;toast('Projet enregistré (fichier .studio dans vos téléchargements)');
+  return saveStudioFile(new Blob([hd,js,pad,...parts]),(P.name||'projet').replace(/[^\w\- àâéèêëîïôûùç]/gi,'_')+'.studio');
 }
 async function openProject(f){
   try{const ab=await f.arrayBuffer(),hd=new Uint32Array(ab,0,2);if(hd[0]!==0x53545544)throw new Error('Ce n’est pas un fichier .studio');
