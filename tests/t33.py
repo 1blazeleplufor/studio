@@ -9,7 +9,7 @@ PEAK="""(async()=>{const buf=await renderMix(deep(P),0,8);const d=buf.getChannel
 async def main():
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path='/usr/bin/google-chrome')
-    c=await b.new_context(viewport={'width':1400,'height':860});await c.add_init_script("localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.13.0')")
+    c=await b.new_context(viewport={'width':1400,'height':860});await c.add_init_script("localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.14.0')")
     A=await c.new_page();errs=[];A.on('pageerror',lambda e: errs.append(str(e)))
     await A.goto('http://localhost:8765/');await A.wait_for_timeout(1800);E=A.evaluate
     await E("document.querySelectorAll('.modal').forEach(m=>m.remove())");await E(SETUP);await A.wait_for_timeout(300)
@@ -32,7 +32,7 @@ async def main():
     await E("SELR=new Set(['rA']);rfxPreset(findRegion('rA')[1],'Lo-fi / radio vintage')");print('preset A',await E("findRegion('rA')[1].plugins.map(p=>p.type)"))
     print('pics avec lofi sur A',await E(PEAK))
     m=await b.new_context(viewport={'width':390,'height':780},device_scale_factor=2,has_touch=True,is_mobile=True,user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1')
-    await m.add_init_script("localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.13.0');localStorage.setItem('studio_mob_tip','1');localStorage.setItem('studio_a2hs','1')")
+    await m.add_init_script("localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.14.0');localStorage.setItem('studio_mob_tip','1');localStorage.setItem('studio_a2hs','1')")
     B=await m.new_page();B.on('pageerror',lambda e: errs.append(str(e)));await B.goto('http://localhost:8765/');await B.wait_for_timeout(2000)
     await B.evaluate(SETUP);await B.evaluate("mobSched()");await B.wait_for_timeout(300)
     print('tel outils',await B.evaluate("[...document.querySelectorAll('#mTools button')].map(x=>x.textContent)"))

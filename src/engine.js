@@ -61,7 +61,7 @@ class Engine{
     for(const t of project.tracks)if(!this.strips[t.id])this.makeStrip(t);
     this.updateAll();
   }
-  updateAll(){const p=this.project;this.updateStrip(p.master,this.strips.master);for(const o of [...p.auxes,...p.tracks])this.updateStrip(o)}
+  updateAll(){const p=this.project;this.updateStrip(p.master,this.strips.master);for(const o of [...p.auxes,...p.tracks])this.updateStrip(o);for(const t of p.tracks)for(const r of t.regions){const rs=this.strips[r.id];if(rs&&rs.isR&&r.plugins)this.updateRFx(r,rs)}}
   updateStrip(obj,s){
     s=s||this.strips[obj.id];if(!s)return;if(s.isR)return this.updateRFx(obj,s);const p=this.project;
     const sig=(obj.plugins||[]).map(q=>q.type+(q.byp?'b':'')).join(',');
@@ -109,7 +109,7 @@ class Engine{
           if(off<0){st-=off;off=0;if(end<=st+.002)continue} // prise qui commence plus tard dans la région (silence au début)
           const src=c.createBufferSource(),g=c.createGain();src.buffer=buf;let nd=src;
           if(r.tone)for(const [ty,f,k] of TONE_BANDS){const v=r.tone[k];if(!v)continue;const bq=c.createBiquadFilter();bq.type=ty;bq.frequency.value=f;if(ty==='peaking')bq.Q.value=.9;bq.gain.value=v;nd.connect(bq);nd=bq}
-          nd.connect(g);g.connect(RX?RX.input:dest);
+          nd.connect(g);g.connect(RX?RX.playIn:dest);
           const G=(r.gain!=null?dbToG(r.gain):1)*(!RX&&r.fxVol?dbToG(r.fxVol):1),fromStart=off<=r.offset+1e-4,toEnd=end>=T(re)-rl-1e-4,span=end-st;
           const fi=Math.min(fromStart?Math.max(.005,r.fi||0,X&&X.in||0):.005,span/2),fo=Math.min(toEnd?Math.max(.005,r.fo||0,X&&(X.ext||X.out)||0):.005,span/2);
           g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(G,st+fi);g.gain.setValueAtTime(G,end-fo);g.gain.linearRampToValueAtTime(0,end);
@@ -118,10 +118,10 @@ class Engine{
           const re=r.start+r.len;
           for(const n of r.notes){const ab=r.start+n.s;if(n.s>=r.len||ab<a||ab>=b)continue;
             const st=Math.max(minT,T(ab));let e=T(Math.min(ab+n.l,re));e=Math.min(e,stopC);if(e<=st)continue;
-            const RX=this.rfx(tr,r);const v=synthVoice(c,RX?RX.input:dest,st,n.p,n.v??.8,tr.instr,s.st);v.release(e);s.st.lastEnd=e;}
+            const RX=this.rfx(tr,r);const v=synthVoice(c,RX?RX.playIn:dest,st,n.p,n.v??.8,tr.instr,s.st);v.release(e);s.st.lastEnd=e;}
         }else if(tr.type==='drums'){
           const pat=r.pat,N=pat.steps,re=r.start+r.len,lo=Math.max(a,r.start),hi=Math.min(b,re);if(lo>=hi)continue;
-          const RXd=this.rfx(tr,r),dIn=RXd?RXd.input:dest;let k=Math.ceil((lo-r.start)/.25-1e-9);
+          const RXd=this.rfx(tr,r),dIn=RXd?RXd.playIn:dest;let k=Math.ceil((lo-r.start)/.25-1e-9);
           for(;;k++){const pos=r.start+k*.25;if(pos>=hi)break;if(pos<lo)continue;const si=k%N;
             const sw=(k%2===1)?(tr.instr.swing||0)*.25*spb:0;
             for(const [row] of DRUM_ROWS){const cell=pat.rows[row]&&pat.rows[row][si];if(!cell)continue;
@@ -134,7 +134,7 @@ class Engine{
   }
   click(t,acc){const c=this.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.value=acc?1760:1100;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.35,t+.001);g.gain.exponentialRampToValueAtTime(.001,t+.06);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.08)}
   play(fromBeat,opt={}){
-    if(this.playing)this.stop();
+    if(this.playing)this.stop(true);this.flushNow();
     const c=this.ctx;c.resume();this.playing=true;this.nextBeat=fromBeat;this.nextCtx=c.currentTime+.08;this.fresh=true;this.segs=[];this.opt=opt;
     for(const id in this.strips){const s=this.strips[id];s.playIn=c.createGain();s.playIn.connect(s.input);s.st={}}
     this.tick();this.timer=setInterval(()=>this.tick(),20);
@@ -157,8 +157,18 @@ class Engine{
     for(let i=this.segs.length-1;i>=0;i--)if(this.segs[i].c0<=t){s=this.segs[i];break}
     if(!s)return this.segs.length?this.segs[0].b0:0;return Math.min(s.b1,s.b0+(t-s.c0)/spb);
   }
-  stop(){
-    if(!this.playing)return;this.playing=false;clearInterval(this.timer);const t=this.ctx.currentTime;
+  // ---- à l'arrêt : vider les échos / réverbs (sinon leur queue continue après Pause) ----
+  objOf(id){const p=this.project;if(id==='master')return p.master;const o=p.auxes.find(a=>a.id===id)||p.tracks.find(t=>t.id===id);if(o)return o;for(const t of p.tracks){const r=t.regions.find(r=>r.id===id);if(r)return r}return null}
+  flushTails(){if(!this.live)return;const t=this.ctx.currentTime;this._fl=this._fl||new Set();let n=0;
+    for(const id in this.strips){const s=this.strips[id];if(!/delay|reverb|verbpro|shifter|chorus|phaser|ext:|bridge/.test(s.sig||''))continue;
+      const g=s.isR?s.fader.gain:s.mute.gain;g.cancelScheduledValues(t);g.setTargetAtTime(0,t,.012);this._fl.add(id);n++}
+    if(n){clearTimeout(this._flT);this._flT=setTimeout(()=>this.flushNow(),90)}}
+  flushNow(){clearTimeout(this._flT);const ids=this._fl;if(!ids||!ids.size)return;this._fl=new Set();const t=this.ctx.currentTime;
+    for(const id of ids){const s=this.strips[id],o=s&&this.objOf(id);if(!s||!o)continue;
+      try{this.rebuildChain(s,o)}catch(e){console.error(e)}
+      if(s.isR){s.fader.gain.cancelScheduledValues(t);s.fader.gain.setValueAtTime(0,t);s.fader.gain.linearRampToValueAtTime(1,t+.01)}else{s.mute.gain.cancelScheduledValues(t);s.mute.gain.setValueAtTime(0,t);this.updateStrip(o,s)}}}
+  stop(keepTails){
+    if(!this.playing)return;this.playing=false;clearInterval(this.timer);const t=this.ctx.currentTime;if(!keepTails)this.flushTails();
     for(const id in this.strips){const s=this.strips[id],g=s.playIn;g.gain.setTargetAtTime(0,t,.005);setTimeout(()=>{try{g.disconnect()}catch(e){}},200)}
     for(const s of this.sources)try{s.stop(t+.03)}catch(e){}this.sources=[];
   }

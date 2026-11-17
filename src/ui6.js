@@ -1,5 +1,5 @@
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='3.13.0';
+const APP_VERSION='3.14.0';
 const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
@@ -134,11 +134,15 @@ function showChangelog(force){
   const mm=v=>String(v).split('.').slice(0,2).join('.');
   if(!force&&(mm(seen)===mm(APP_VERSION)||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés 🎉</h2><p class="muted" style="margin-top:-6px">Tu es sur la v${APP_VERSION}.</p><h4>v3.13 — Effets sur un seul bloc ✨</h4><ul>
+  modal(h('div',{html:`<h2>Nouveautés 🎉</h2><p class="muted" style="margin-top:-6px">Tu es sur la v${APP_VERSION}.</p><h4>v3.14 — Chat : emojis et GIF, échos coupés à l’arrêt</h4><ul>
+<li><b>😀 Emojis et GIF dans le chat</b> de session : bouton 😀 pour les emojis, bouton <b>GIF</b> pour envoyer une image de ton appareil ou coller le lien d’un GIF (GIPHY, Tenor, Imgur). Tu peux aussi coller une image directement dans le champ.</li>
+<li><b>Plus d’écho après Pause</b> : quand tu arrêtes la lecture, les échos et les réverbs se coupent tout de suite.</li>
+<li><b>Téléphone</b> : toutes les fenêtres (Réglages, Nouveautés…) ont maintenant un bouton ✕ pour les fermer.</li>
+</ul><h4 style="margin-top:18px">Versions précédentes</h4><details class="cl"><summary>v3.13 — Effets sur un seul bloc ✨, Ctrl+J</summary><ul>
 <li><b>Des effets différents sur une même piste</b> : coupe ta prod ou ta voix (✂), sélectionne un bloc, puis <b>✨ Effets de ce bloc</b> (dans l’inspecteur à gauche, au clic droit, ou le bouton ✨ Effets sur téléphone). Ces effets ne touchent que ce bloc, en plus de ceux de la piste.</li>
 <li>Préréglages tout prêts, <b>⇣ Effets de la piste</b> pour repartir de ceux de la piste, et <b>📋 Copier / 📥 Coller</b> pour mettre les mêmes effets sur d’autres blocs. Un ✨ s’affiche sur les blocs qui ont des effets.</li>
 <li><b>🔗 Ctrl+J pour fusionner</b> : sélectionne des blocs sur plusieurs pistes (ou un dossier) et fais Ctrl+J : tout passe sur une seule piste, chaque bloc garde le son de sa piste d’origine (ses effets et son volume le suivent). Plusieurs blocs d’une même piste : Ctrl+J les colle en un seul bloc.</li>
-</ul><h4 style="margin-top:18px">Versions précédentes</h4><details class="cl"><summary>v3.12 — Importer des pistes d’un autre projet 📥</summary><ul>
+</ul></details><details class="cl"><summary>v3.12 — Importer des pistes d’un autre projet 📥</summary><ul>
 <li><b>Copie des pistes d’un projet à l’autre</b> : Fichier → <b>📥 Importer des pistes d’un autre projet</b> (sur téléphone : ⋯ ou ＋). Choisis un de tes projets ou un fichier .studio, coche les pistes : elles arrivent avec leur son, leurs effets, leur volume et leur dossier.</li>
 <li>Tu peux les poser à la même place que dans l’autre projet, ou à partir de la tête de lecture. Si les deux projets n’ont pas le même tempo, Studio te prévient.</li>
 </ul></details><details class="cl"><summary>v3.11 — Nouvelle interface téléphone 📱</summary><ul>

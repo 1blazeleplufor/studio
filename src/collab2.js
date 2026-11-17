@@ -45,7 +45,7 @@ COLLAB_H.vmsg=(m,via)=>{if(via!=='v'||!isRelay()||!COLLAB.synced||!m.user)return
   if(m.kind==='rep'&&m.x&&m.cid)cmtReply(m.cid,String(m.x).slice(0,1000),who)};
 function onChatChange(ev){
   if(ev.transaction.origin==='remote'||ev.transaction.origin==='relay'){const added=[];ev.changes.added.forEach(it=>it.content.getContent().forEach(x=>added.push(x)));
-    const others=added.filter(x=>x&&x.u!==ME.id);if(others.length&&!(C2.open&&C2.tab==='chat')){C2.unread+=others.length;const l=others[others.length-1];toast('💬 '+l.n+' : '+(l.b?'📀 '+l.b.title:l.voc?'🎤 message vocal':l.x).slice(0,80),3500)}}
+    const others=added.filter(x=>x&&x.u!==ME.id);if(others.length&&!(C2.open&&C2.tab==='chat')){C2.unread+=others.length;const l=others[others.length-1];toast('💬 '+l.n+' : '+(l.b?'📀 '+l.b.title:l.voc?'🎤 message vocal':gifURL(l.x)?'🖼 GIF':l.x).slice(0,80),3500)}}
   renderBadge();if(C2.open&&C2.tab==='chat')drawPanel()}
 
 // ---------- 📌 Notes sur la timeline (dans le projet : marchent seul et en session) ----------
@@ -198,12 +198,12 @@ function drawPanel(){
           au,h('div',{class:'vrow'},h('span',{class:'dim'},'🎤 '+Math.floor(m.voc.dur/60)+':'+String(m.voc.dur%60).padStart(2,'0')),
             !COLLAB.viewer&&h('button',{title:'Ajouter ce vocal au projet (à la tête de lecture). Vous pouvez aussi le glisser sur une piste.',onclick:()=>vocToTrack(m.voc,PH,SEL,m.n)},'➕ Au projet')))}
       else if(m.b)content=h('div',{class:'ctxt'},m.x+' : ',h('a',{href:bounceLink(m.b.f,m.b.title),target:'_blank',rel:'noopener'},'📀 '+m.b.title+' ('+Math.floor(m.b.dur/60)+':'+String(m.b.dur%60).padStart(2,'0')+')'));
-      else content=h('div',{class:'ctxt'},m.x);
+      else content=chatContent(m.x);
       body.append(h('div',{class:'cmsg'+(mine?' me':'')},h('div',{class:'cmeta'},h('b',{style:{color:m.c}},m.n),' ',h('span',null,hhmm(m.t))),content))}
     const inp=h('input',{type:'text',placeholder:'Écrire un message…',maxlength:1000,value:draft,onkeydown:e=>{e.stopPropagation();if(e.key==='Enter'){const v=inp.value;inp.value='';chatSend(v)}}});
-    const recUI=VOC.rec?h('div',{class:'cin rec'},h('span',{class:'vtime'},'● 0:00 / 2:00'),h('div',{style:{flex:1}}),h('button',{title:'Annuler',onclick:()=>vocStop(false)},'✕'),h('button',{class:'send',onclick:()=>vocStop(true)},'➤ Envoyer'))
-      :h('div',{class:'cin'},h('button',{title:'Message vocal (2 min max)',onclick:vocStart},'🎤'),inp,h('button',{onclick:()=>{const v=inp.value;inp.value='';chatSend(v);const ni=$('#cpanel .cin input');if(ni)ni.focus()}},'➤'));
-    p.append(h('div',{class:'cquick'},['🔥','👍','😂','🎧','💯','🙏'].map(x=>h('button',{onclick:()=>chatSend(x)},x))),recUI,h('span',{class:'vtime',style:{display:'none'}}));
+    C2.inpEl=inp;const recUI=VOC.rec?h('div',{class:'cin rec'},h('span',{class:'vtime'},'● 0:00 / 2:00'),h('div',{style:{flex:1}}),h('button',{title:'Annuler',onclick:()=>vocStop(false)},'✕'),h('button',{class:'send',onclick:()=>vocStop(true)},'➤ Envoyer'))
+      :h('div',{class:'cin'},h('button',{title:'Message vocal (2 min max)',onclick:vocStart},'🎤'),h('button',{class:C2.pick==='emo'?'on':'',title:'Emojis',onclick:()=>{C2.pick=C2.pick==='emo'?null:'emo';drawPanel()}},'😀'),h('button',{class:'cgifb'+(C2.pick==='gif'?' on':''),title:'Envoyer un GIF ou une image',onclick:()=>{C2.pick=C2.pick==='gif'?null:'gif';drawPanel()}},'GIF'),inp,h('button',{onclick:()=>{const v=inp.value;inp.value='';chatSend(v);const ni=$('#cpanel .cin input');if(ni)ni.focus()}},'➤'));
+    p.append(...[!VOC.rec&&chatPicker()].filter(Boolean),h('div',{class:'cquick'},['🔥','👍','😂','🎧','💯','🙏'].map(x=>h('button',{onclick:()=>chatSend(x)},x))),recUI,h('span',{class:'vtime',style:{display:'none'}}));
     setTimeout(()=>{body.scrollTop=body.scrollHeight},0);if(!IS_TOUCH&&!VOC.rec)setTimeout(()=>inp.focus(),0)}
   else if(C2.tab==='cmts'){
     const curAt=()=>C2.newAt!=null?C2.newAt:(E.playing?E.pos():PH);

@@ -9,7 +9,7 @@ PK="""(async()=>{const buf=await renderMix(deep(P),0,12);const d=buf.getChannelD
 async def main():
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path='/usr/bin/google-chrome')
-    c=await b.new_context(viewport={'width':1400,'height':860});await c.add_init_script("localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.13.0')")
+    c=await b.new_context(viewport={'width':1400,'height':860});await c.add_init_script("localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.14.0')")
     A=await c.new_page();errs=[];A.on('pageerror',lambda e: errs.append(str(e)))
     await A.goto('http://localhost:8765/');await A.wait_for_timeout(1800);E=A.evaluate
     await E("document.querySelectorAll('.modal').forEach(m=>m.remove())");await E(SETUP)

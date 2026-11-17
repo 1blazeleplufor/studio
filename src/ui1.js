@@ -128,7 +128,10 @@ function menu(e,items){
 }
 function closeMenuOut(e){if(!e.target.closest('#menu'))closeMenu()}
 function closeMenu(){const m=$('#menu');if(m)m.remove();document.removeEventListener('pointerdown',closeMenuOut,true)}
-function modal(content){const m=h('div',{class:'modal',onpointerdown:e=>{if(e.target===m)m.remove()}},h('div',{class:'box'},content));document.body.append(m);return m}
+function modal(content){const m=h('div',{class:'modal',onpointerdown:e=>{if(e.target===m)m.remove()}},h('div',{class:'box'},content));const bx=m.firstChild,cl=h('div',{class:'mcl'},h('button',{title:'Fermer',onclick:()=>m.remove()},'✕'));bx.prepend(cl);
+  try{new MutationObserver(()=>{if(bx.firstChild!==cl)bx.prepend(cl)}).observe(bx,{childList:true})}catch(e){} // la croix reste toujours en haut
+  document.body.append(m);return m}
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;const ms=document.querySelectorAll('.modal');if(ms.length){e.preventDefault();e.stopPropagation();ms[ms.length-1].remove()}},true);
 async function download(blob,name){
   if(IS_TOUCH&&navigator.canShare){const f=new File([blob],name,{type:blob.type||'application/octet-stream'});
     if(navigator.canShare({files:[f]})){const go=async()=>{try{await navigator.share({files:[f],title:name})}catch(e){}};
