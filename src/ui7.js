@@ -39,13 +39,13 @@ function openTunePro(o,i){
       presetSelect(o,i,pl,re),
       h('button',{class:pl.byp?'':'on',onclick:e=>{snapshot();pl.byp=!pl.byp;e.target.classList.toggle('on',!pl.byp);e.target.textContent=pl.byp?'Contourné':'Actif';E.updateStrip(o);rerenderStrips()}},pl.byp?'Contourné':'Actif')),
     h('div',{class:'tune-mid'},
-      h('div',{class:'tune-side'},K('tracking',34,'#9aa7ff'),K('transpose',34,'#9aa7ff'),K('detune',34,'#9aa7ff'),K('mix',34,'#9aa7ff')),
+      h('div',{class:'tune-side'},K('tracking',34,'#9aa7ff'),K('transpose',34,'#9aa7ff'),K('detune',34,'#9aa7ff'),K('amount',34,'#9aa7ff'),K('mix',34,'#9aa7ff')),
       h('div',{class:'tune-center'},nrow,cv,h('div',{class:'legend'},h('span',{style:{color:'#ff8a65'}},'━ voix d’origine'),h('span',{style:{color:'#5ee0c6'}},'━ voix corrigée'))),
       h('div',{class:'tune-side'},tog('classic','Mode classique'),tog('formant','Formants'),K('throat',34,'#f6c177'))),
     h('div',{class:'tune-bottom'},
       h('div',{class:'big'},K('retune',92,'#5ee0c6'),h('div',{class:'hint'},'0 ms = effet robot · 20-50 ms = moderne · 80+ ms = naturel')),
       K('humanize',58,'#5ee0c6'),K('flex',58,'#5ee0c6'),K('vibrato',58,'#5ee0c6')),
-    h('div',{class:'pro-foot'},'Notes : ✓ corrigée · ~ ignorée · ✕ retirée. Humanize laisse respirer les notes tenues, Flex-Tune ne corrige que près des notes, Vibrato naturel garde/renforce le vibrato. Latence compensée automatiquement à la lecture.'));
+    h('div',{class:'pro-foot'},'Notes : ✓ corrigée · ~ ignorée · ✕ retirée. Humanize laisse respirer les notes tenues, Flex-Tune ne corrige que près des notes, Vibrato naturel : au-dessus de 0 il garde/renforce ton vibrato, en dessous il l’efface. Latence compensée automatiquement à la lecture.'));
   // graphique de hauteur en direct
   const g=cv.getContext('2d');let ctr=60;
   const tick=()=>{if(!WINS[o.id+':'+i])return;const inst=E.strips[o.id]&&E.strips[o.id].plugins[i];const data=inst&&inst.graph?inst.graph.slice(-560):[];

@@ -3,7 +3,7 @@
 import asyncio,json,urllib.request,base64
 from playwright.async_api import async_playwright
 URL='http://localhost:8765/';MOCK='http://localhost:8790'
-INIT="localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.14.0');localStorage.setItem('studio_supa',JSON.stringify({url:'%s',key:'test'}));localStorage.setItem('studio_user',JSON.stringify({name:'%s',color:'%s'}))"
+INIT="localStorage.setItem('studio_seen','1');localStorage.setItem('studio_ver','3.15.0');localStorage.setItem('studio_supa',JSON.stringify({url:'%s',key:'test'}));localStorage.setItem('studio_user',JSON.stringify({name:'%s',color:'%s'}))"
 GIF=base64.b64decode('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==')
 async def main():
   urllib.request.urlopen(MOCK+'/__reset').read()

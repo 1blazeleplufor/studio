@@ -241,7 +241,58 @@ Object.assign(PLUGINS,{
   {id:'flex',n:'Flex-Tune',min:0,max:100,def:0},{id:'vibrato',n:'Vibrato naturel',min:-100,max:100,def:0,u:'%'},
   {id:'transpose',n:'Transposer',min:-24,max:24,def:0,u:'dt',step:1},{id:'detune',n:'Désaccord',min:-100,max:100,def:0,u:'ct',step:1},
   {id:'formant',n:'Formants',opts:['Non','Oui'],def:1},{id:'throat',n:'Gorge',min:50,max:150,def:100,u:'%'},
-  {id:'mix',n:'Mix',min:0,max:100,def:100,u:'%'},{id:'classic',n:'Mode classique',opts:['Non','Oui'],def:0},{id:'notes',hidden:1,def:null}],
+  {id:'mix',n:'Mix',min:0,max:100,def:100,u:'%'},{id:'classic',n:'Mode classique',opts:['Non','Oui'],def:0},{id:'amount',n:'Correction',min:0,max:100,def:100,u:'%'},{id:'notes',hidden:1,def:null}],
   create(ctx,P){P=P||{};const n=new AudioWorkletNode(ctx,'tunepro-proc',{numberOfInputs:1,outputChannelCount:[2],processorOptions:{params:tuneParams(P)}});
    const inst={input:n,output:n,graph:[],set(p){n.port.postMessage(tuneParams(p))}};n.port.onmessage=e=>{inst.graph.push(e.data);if(inst.graph.length>1200)inst.graph.splice(0,200)};return inst}},
 });
+// ===== v3.15 : effets « studio » =====
+// Autotune, pitch shifter et doubleur passent tous par le moteur VoxTune (tunepro-proc).
+const TUNE_LAT=sr=>Math.round(.05*sr)/sr;
+function tuneNode(ctx,params){const n=new AudioWorkletNode(ctx,'tunepro-proc',{numberOfInputs:1,outputChannelCount:[2],processorOptions:{params}});return n}
+const BYPASS_NOTES=new Array(12).fill(1);
+function workletInst(ctx,name,params,extra){const n=new AudioWorkletNode(ctx,name,{numberOfInputs:1,outputChannelCount:[2],processorOptions:{params:Object.assign({},params||{})}});
+  const comp={reduction:0};n.port.onmessage=e=>{comp.reduction=name==='level-proc'?-Math.abs(e.data):-e.data};return Object.assign({input:n,output:n,comp,set(p){n.port.postMessage(Object.assign({},p,extra?extra(p):{}))}})}
+function satCurve(type){const n=4096,c=new Float32Array(n),R=6;
+  for(let i=0;i<n;i++){const x=(i/(n-1)*2-1)*R;
+    c[i]=type===1?(x>=0?Math.tanh(x):Math.tanh(x*.7)/.7)*.9 // tube : asymétrique (harmoniques paires, chaleur)
+      :type===2?x/Math.pow(1+Math.pow(Math.abs(x),6),1/6) // dure : écrêtage net mais arrondi
+      :Math.tanh(x)}                                   // douce : bande magnétique
+  return c}
+Object.assign(PLUGINS,{
+ comp:Object.assign(PLUGINS.comp,{params:[...PLUGINS.comp.params.filter(p=>p.id!=='style'),{id:'style',n:'Caractère',opts:['Propre (VCA)','Rapide (FET, type 1176)','Doux (opto, type LA-2A)'],def:0}],
+  create(ctx,P){const lg=p=>({legacy:p&&p.legacy!=null?p.legacy:(!p||p.style===undefined?1:0)});return workletInst(ctx,'comp-proc',Object.assign({},P,lg(P)),lg)}}),
+ deess:Object.assign(PLUGINS.deess,{create(ctx){return workletInst(ctx,'deess-proc')}}),
+ level:{name:'Niveau auto (voix)',cat:'Dynamique',params:[{id:'target',n:'Niveau visé',min:-30,max:-10,def:-18,u:'dB'},{id:'speed',n:'Vitesse',min:50,max:2000,def:400,u:'ms',log:1},{id:'range',n:'Remontée max',min:0,max:24,def:18,u:'dB'}],
+  create(ctx){return workletInst(ctx,'level-proc')}},
+ sat:Object.assign(PLUGINS.sat,{params:PLUGINS.sat.params.map(p=>p.id==='out'?Object.assign({},p,{def:0}):p),
+  create(ctx){const m=mixNode(ctx),pre=ctx.createGain(),ws=ctx.createWaveShaper(),dc=ctx.createBiquadFilter(),lp=ctx.createBiquadFilter(),post=ctx.createGain(),o=ctx.createGain();ws.oversample='4x';dc.type='highpass';dc.frequency.value=12;
+   m.input.connect(pre);pre.connect(ws);ws.connect(dc);dc.connect(lp);lp.connect(post);post.connect(m.wet);m.output.connect(o);let last=-1;
+   return{input:m.input,output:o,set(p){const t=p.type|0;if(t!==last){ws.curve=satCurve(t);last=t}const d=p.drive*.24; // 0 → 24 dB dans la saturation
+    pre.gain.value=dbToG(d)/6;post.gain.value=dbToG(-d*.82);lp.frequency.value=Math.min(p.tone,ctx.sampleRate/2-100);m.setMix(p.mix/100);o.gain.value=dbToG(p.out)}}}}),
+ pitch:Object.assign(PLUGINS.pitch,{latency:TUNE_LAT,create(ctx,P){P=P||{};const map=p=>({notes:scaleNotes(p.key|0,p.scale|0),retune:p.speed,amount:p.amount,transpose:Math.round(p.shift||0),mix:p.mix,input:1,formant:1,humanize:0});
+   const n=tuneNode(ctx,map(Object.assign(defaultParams('pitch'),P)));return{input:n,output:n,set(p){n.port.postMessage(map(p))}}}}),
+ shifter:Object.assign(PLUGINS.shifter,{latency:TUNE_LAT,params:[...PLUGINS.shifter.params.filter(p=>!['formant','throat','fine'].includes(p.id)),
+   {id:'fine',n:'Réglage fin',min:-50,max:50,def:0,u:'ct',step:1},{id:'formant',n:'Timbre',opts:['Change avec la hauteur (effet)','Garde la voix (naturel)'],def:1},{id:'throat',n:'Gorge',min:60,max:140,def:100,u:'%'}],
+  create(ctx,P){P=P||{};const map=p=>({notes:BYPASS_NOTES,amount:0,retune:0,transpose:Math.round(p.shift||0),cents:p.fine||0,formant:p.formant??1,throat:p.throat??100,mix:p.mix,input:1});
+   const n=tuneNode(ctx,map(P));return{input:n,output:n,set(p){n.port.postMessage(map(p))}}}}),
+ double:{name:'Doubleur de voix',cat:'Voix',latency:TUNE_LAT,params:[{id:'det',n:'Écart',min:0,max:30,def:10,u:'ct'},{id:'delay',n:'Retard',min:5,max:45,def:18,u:'ms'},{id:'wob',n:'Naturel',min:0,max:15,def:5,u:'ct'},{id:'width',n:'Largeur',min:0,max:100,def:85,u:'%'},{id:'mix',n:'Doublures',min:0,max:100,def:45,u:'%'}],
+  create(ctx){const input=ctx.createGain(),out=ctx.createGain(),dry=ctx.createDelay(.2),wet=ctx.createGain();dry.delayTime.value=TUNE_LAT(ctx.sampleRate);input.connect(dry);dry.connect(out);wet.connect(out);
+   const V=[-1,1].map(s=>{const n=tuneNode(ctx,{notes:BYPASS_NOTES,amount:0,retune:0,input:1,formant:1}),d=ctx.createDelay(.1),pn=ctx.createStereoPanner(),f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=140;
+     input.connect(n);n.connect(f);f.connect(d);d.connect(pn);pn.connect(wet);return{s,n,d,pn}});
+   return{input,output:out,set(p){V.forEach((v,i)=>{v.n.port.postMessage({cents:v.s*p.det,wob:p.wob});v.d.delayTime.value=p.delay/1000*(i?1.37:1);v.pn.pan.value=v.s*p.width/100});
+    const w=p.mix/100;wet.gain.value=w*.7;}}}},
+ reverb:Object.assign(PLUGINS.reverb,{create(ctx){const m=mixNode(ctx),pre=ctx.createDelay(1),hp=ctx.createBiquadFilter(),cv=ctx.createConvolver();hp.type='highpass';cv.normalize=false;m.input.connect(pre);pre.connect(hp);hp.connect(cv);cv.connect(m.wet);let key='';
+   return{input:m.input,output:m.output,set(p){pre.delayTime.value=p.pre/1000;hp.frequency.value=p.lowcut;m.setMix(p.mix/100);const k=p.size.toFixed(2)+p.damp.toFixed(0);
+    if(k!==key){key=k;cv.buffer=roomIR(ctx,p.size,p.damp)}}}}}),
+});
+// Réponse d'une salle : premières réflexions éparses puis queue dense qui décroît vraiment de 60 dB en « Durée »,
+// les aigus s'éteignant plus vite que les graves ; gauche et droite différentes (vraie largeur).
+function roomIR(ctx,rt,damp){const sr=ctx.sampleRate,len=Math.floor(sr*Math.min(10,rt*1.15+.05)),b=ctx.createBuffer(2,len,sr);let seed=12345;const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x3fffffff-1};
+  for(let c=0;c<2;c++){const d=b.getChannelData(c);let l1=0,l2=0,e=0;
+    for(let i=0;i<len;i++){const t=i/sr,dec=Math.exp(-6.91*t/rt),fc=damp*Math.pow(.18,Math.min(1,t/rt)),a=Math.exp(-2*Math.PI*Math.min(fc,sr*.45)/sr);
+      const n=rnd();l1=(1-a)*n+a*l1;l2=(1-a)*l1+a*l2;const dens=Math.min(1,t/.06);d[i]=(l2*1.6)*dec*(.25+.75*dens*dens)}
+    // premières réflexions
+    for(let k=0;k<14;k++){const t=.004+Math.pow(rnd()*.5+.5,2)*.07*Math.min(1.5,.4+rt/3),i=Math.floor(t*sr);if(i<len)d[i]+=(rnd()>0?1:-1)*.5*Math.exp(-t*25)}
+    for(let i=0;i<len;i++)e+=d[i]*d[i];const g=.5/Math.sqrt(e/sr*2+1e-9);for(let i=0;i<len;i++)d[i]*=g;
+    const f=Math.floor(.002*sr);for(let i=0;i<f;i++)d[i]*=i/f}
+  return b}

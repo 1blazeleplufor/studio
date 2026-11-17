@@ -8,6 +8,7 @@ Fonctionne hors ligne et s'installe comme une appli (iPhone, iPad, Android, Mac,
 **Plugins AU/VST3 de l'ordinateur** : voir [bridge/LISEZ-MOI.md](bridge/LISEZ-MOI.md).
 
 ## Versions
+- **v3.15.0** : effets refaits (autotune, compresseur, de-esser, saturation, niveau auto, doubleur), préréglages voix « studio ».
 - **v3.14.0** : emojis et GIF dans le chat (aussi sur téléphone), échos coupés à l’arrêt, croix de fermeture sur toutes les fenêtres.
 - **v3.13.0** : effets sur un seul bloc, Ctrl+J pour fusionner des pistes / des blocs.
 - **v3.12.0** : importer des pistes d’un autre projet (son, effets, réglages, dossier).

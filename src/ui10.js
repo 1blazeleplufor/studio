@@ -70,9 +70,9 @@ colorPicker=function(e,t){
 
 // ---------- 🎤 préréglages « style ZZ » (voix mélodique et voix drill/trap) ----------
 Object.assign(VOCAL_PRESETS,{
- 'ZZ — mélodie (autotune)':{cat:'Style ZZ',sends:[-12,-15],pl:[['gate',{thr:-55}],['tunepro',{input:2,retune:10,humanize:20,flex:15,formant:1,mix:100}],['eq',{hp:100,m1F:300,m1G:-3,m2F:3500,m2G:3,hiF:11000,hiG:3.5}],['comp',{thr:-24,ratio:5,att:4,rel:90,gain:6}],['deess',{}],['chorus',{mix:14,depth:25}],['width',{w:130}]]},
- 'ZZ — drill / trap (kickée)':{cat:'Style ZZ',sends:[-24,-18],pl:[['gate',{thr:-50}],['tunepro',{input:2,retune:35,humanize:45,formant:1,mix:100}],['eq',{hp:120,m1F:400,m1G:-3.5,m2F:3000,m2G:4,hiF:10000,hiG:2}],['comp',{thr:-28,ratio:8,att:2,rel:60,gain:8}],['sat',{drive:22,type:1,mix:35,out:-2}],['deess',{}]]},
- 'ZZ — ad-libs / backs':{cat:'Style ZZ',sends:[-9,-12],pl:[['tunepro',{input:2,retune:5,humanize:10,formant:1,mix:100}],['eq',{hp:200,m1F:400,m1G:-3,hiG:3}],['comp',{thr:-24,ratio:5,gain:5}],['chorus',{mix:40,depth:50}],['width',{w:170,haas:10}]]}});
+ 'ZZ — mélodie (autotune)':{cat:'Style ZZ',sends:[-13,-16],pl:[['gate',{thr:-58,rel:150}],['level',{}],['tunepro',{input:1,retune:6,humanize:20,flex:15,formant:1}],['eq',{hp:100,m1F:300,m1G:-3,m2F:3500,m2G:2.5,hiF:11000,hiG:3.5}],['comp',{style:1,thr:-26,ratio:5,att:3,rel:70,knee:4,gain:5}],['deess',{freq:6500,thr:-30,amt:70}],['comp',{style:2,thr:-22,ratio:2.5,att:10,rel:300,knee:8,gain:2}],['double',{mix:18,det:8,width:80}]]},
+ 'ZZ — drill / trap (kickée)':{cat:'Style ZZ',sends:[-24,-19],pl:[['gate',{thr:-55,rel:120}],['level',{}],['tunepro',{input:1,retune:30,humanize:40,formant:1}],['eq',{hp:120,m1F:400,m1G:-3.5,m2F:3000,m2G:3.5,hiF:10000,hiG:2}],['comp',{style:1,thr:-30,ratio:8,att:1,rel:60,knee:3,gain:7}],['sat',{drive:15,type:1,tone:10000,mix:30}],['deess',{freq:6000,thr:-30,amt:75}]]},
+ 'ZZ — ad-libs / backs':{cat:'Style ZZ',sends:[-10,-13],pl:[['level',{}],['tunepro',{input:1,retune:0,formant:1}],['eq',{hp:200,m1F:400,m1G:-3,hiG:3}],['comp',{style:1,thr:-25,ratio:5,att:3,rel:70,gain:4}],['deess',{}],['double',{mix:50,det:12,width:100}]]}});
 
 // ---------- 🏷 marqueurs dans la règle + menu clic droit (notes, marqueurs) ----------
 let MHITS=[];

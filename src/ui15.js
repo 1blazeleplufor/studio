@@ -234,10 +234,10 @@ document.addEventListener('keydown',e=>{if(e.shiftKey&&!e.ctrlKey&&!e.metaKey&&!
 
 // ---------- 7 : mastering 1 clic ----------
 const MASTER_STYLES={
-  'Trap':{tip:'Basses lourdes, aigus nets, fort',eq:{hp:28,lowF:70,lowG:1.5,m1F:320,m1G:-1,m1Q:.8,m2F:3500,m2G:.5,m2Q:.7,hiF:11000,hiG:1.5,lp:20000,out:0},comp:{thr:-16,ratio:2,att:30,rel:180,knee:10,gain:2,mix:100},sat:{drive:12,type:0,tone:16000,mix:35,out:-1},lufs:-8.5},
-  'Drill':{tip:'Punch, médiums présents, très fort',eq:{hp:30,lowF:60,lowG:1,m1F:250,m1G:-1.5,m1Q:.9,m2F:2500,m2G:1,m2Q:.8,hiF:9000,hiG:1,lp:20000,out:0},comp:{thr:-15,ratio:2.5,att:20,rel:120,knee:8,gain:2,mix:100},sat:{drive:18,type:1,tone:14000,mix:40,out:-1.5},lufs:-8},
-  'Mélodique':{tip:'Doux, aéré, voix en avant',eq:{hp:25,lowF:90,lowG:.5,m1F:350,m1G:-1,m1Q:.8,m2F:4000,m2G:.5,m2Q:.6,hiF:12000,hiG:2,lp:20000,out:0},comp:{thr:-18,ratio:1.8,att:40,rel:250,knee:12,gain:1.5,mix:100},sat:{drive:8,type:0,tone:18000,mix:25,out:-.5},lufs:-10},
-  'Naturel':{tip:'Juste plus fort et propre, sans couleur',eq:{hp:25,lowF:100,lowG:0,m1F:350,m1G:0,m1Q:1,m2F:3000,m2G:0,m2Q:1,hiF:10000,hiG:0,lp:20000,out:0},comp:{thr:-18,ratio:1.5,att:40,rel:250,knee:12,gain:1,mix:100},sat:null,lufs:-11}};
+  'Trap':{tip:'Basses lourdes, aigus nets, fort',eq:{hp:28,lowF:70,lowG:1.5,m1F:320,m1G:-1,m1Q:.8,m2F:3500,m2G:.5,m2Q:.7,hiF:11000,hiG:1.5,lp:20000,out:0},comp:{legacy:1,thr:-16,ratio:2,att:30,rel:180,knee:10,gain:2,mix:100},sat:{drive:12,type:0,tone:16000,mix:35,out:-1},lufs:-8.5},
+  'Drill':{tip:'Punch, médiums présents, très fort',eq:{hp:30,lowF:60,lowG:1,m1F:250,m1G:-1.5,m1Q:.9,m2F:2500,m2G:1,m2Q:.8,hiF:9000,hiG:1,lp:20000,out:0},comp:{legacy:1,thr:-15,ratio:2.5,att:20,rel:120,knee:8,gain:2,mix:100},sat:{drive:18,type:1,tone:14000,mix:40,out:-1.5},lufs:-8},
+  'Mélodique':{tip:'Doux, aéré, voix en avant',eq:{hp:25,lowF:90,lowG:.5,m1F:350,m1G:-1,m1Q:.8,m2F:4000,m2G:.5,m2Q:.6,hiF:12000,hiG:2,lp:20000,out:0},comp:{legacy:1,thr:-18,ratio:1.8,att:40,rel:250,knee:12,gain:1.5,mix:100},sat:{drive:8,type:0,tone:18000,mix:25,out:-.5},lufs:-10},
+  'Naturel':{tip:'Juste plus fort et propre, sans couleur',eq:{hp:25,lowF:100,lowG:0,m1F:350,m1G:0,m1Q:1,m2F:3000,m2G:0,m2Q:1,hiF:10000,hiG:0,lp:20000,out:0},comp:{legacy:1,thr:-18,ratio:1.5,att:40,rel:250,knee:12,gain:1,mix:100},sat:null,lufs:-11}};
 function masterModal(){let style='Trap',meas;const ex=P.master.plugins.some(p=>p._master);
   const cards=h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px',margin:'8px 0'}});
   const draw=()=>{cards.innerHTML='';for(const n in MASTER_STYLES)cards.append(h('div',{onclick:()=>{style=n;draw()},style:{padding:'8px',borderRadius:'8px',cursor:'pointer',border:'2px solid '+(style===n?'#2b6fd6':'#333'),background:style===n?'#16263a':'#1a1a1a'}},h('b',null,n),h('div',{style:{fontSize:'11px',color:'var(--dim)'}},MASTER_STYLES[n].tip)))};draw();

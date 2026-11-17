@@ -42,26 +42,30 @@ function newTrack(type,name,extra){
   if(type==='drums')t.instr=deep(DRUM_KITS['Trap 808']),t.kit='Trap 808';
   return Object.assign(t,extra||{});
 }
-const VOCAL_PRESETS={
- 'Voix rap propre':{cat:'Base',sends:[-17,-24],pl:[['gate',{thr:-55}],['eq',{hp:90,m1F:300,m1G:-2.5,m2F:3500,m2G:3,hiF:10000,hiG:2.5}],['comp',{thr:-22,ratio:4,att:5,rel:100,gain:5}],['deess',{}]]},
- 'Voix lourde / sombre':{cat:'Base',sends:[-18,-60],pl:[['eq',{hp:70,lowF:160,lowG:3,m2F:2500,m2G:-1,hiF:9000,hiG:-3}],['comp',{thr:-26,ratio:5,att:8,gain:6}],['sat',{drive:22,type:1,mix:60,out:-2}]]},
- 'Voix drill sale':{cat:'Base',sends:[-22,-18],pl:[['gate',{thr:-50}],['eq',{hp:120,m1F:400,m1G:-3,m2F:3200,m2G:4,hiG:2}],['comp',{thr:-28,ratio:8,att:2,rel:60,gain:8}],['sat',{drive:35,type:2,mix:45,out:-4}],['deess',{}]]},
- 'Chuchoté / ASMR':{cat:'Base',sends:[-18,-60],pl:[['eq',{hp:150,m2F:5000,m2G:3,hiF:10000,hiG:5}],['comp',{thr:-32,ratio:6,att:3,gain:10}],['deess',{thr:-34,amt:85}]]},
- 'Voix autotune trap':{cat:'Autotune',sends:[-14,-17],pl:[['gate',{thr:-55}],['pitch',{speed:0,amount:100}],['eq',{hp:110,m1F:350,m1G:-3,m2F:4000,m2G:4,hiF:11000,hiG:3}],['comp',{thr:-24,ratio:6,att:3,rel:80,gain:6}],['deess',{}],['chorus',{mix:18}]]},
- 'Autotune mélodieux':{cat:'Autotune',sends:[-11,-14],pl:[['gate',{thr:-55}],['pitch',{speed:12,amount:95}],['eq',{hp:100,m1F:300,m1G:-2,m2F:3800,m2G:3,hiG:3.5}],['comp',{thr:-22,ratio:4,gain:5}],['deess',{}],['chorus',{mix:22,depth:30}]]},
- 'Autotune naturel':{cat:'Autotune',sends:[-17,-22],pl:[['pitch',{speed:45,amount:75}],['eq',{hp:90,m2F:3200,m2G:2}],['comp',{thr:-20,ratio:3.5,gain:4}],['deess',{}]]},
- 'Voix chantée aérienne':{cat:'Autotune',sends:[-8,-14],pl:[['pitch',{speed:25,amount:90}],['eq',{hp:120,m1G:-2,hiF:12000,hiG:5}],['comp',{thr:-24,ratio:4,gain:5}],['deess',{}],['chorus',{mix:30,depth:45}],['width',{w:150}]]},
- 'Robot':{cat:'Autotune',sends:[-16,-18],pl:[['pitch',{speed:0,amount:100}],['robot',{freq:45,mix:35}],['crush',{bits:10,down:2,mix:30}],['eq',{hp:120,m2G:3}],['comp',{thr:-22,ratio:5,gain:5}]]},
- 'Voix grave (démon)':{cat:'Créatif',sends:[-16,-60],pl:[['shifter',{shift:-7,mix:100}],['eq',{hp:60,lowG:3,hiG:-2}],['sat',{drive:30,type:1,mix:50,out:-3}],['comp',{thr:-24,ratio:5,gain:5}]]},
- 'Voix aiguë (pitchée)':{cat:'Créatif',sends:[-16,-20],pl:[['shifter',{shift:5,mix:100}],['eq',{hp:150,m2G:2}],['comp',{thr:-22,ratio:4,gain:4}]]},
- 'Doublage octave':{cat:'Créatif',sends:[-14,-20],pl:[['shifter',{shift:-12,mix:35}],['chorus',{mix:35}],['eq',{hp:90}],['comp',{thr:-22,ratio:4,gain:4}]]},
- 'Lo-fi / radio vintage':{cat:'Créatif',sends:[-20,-20],pl:[['filter',{type:2,freq:1600,q:.8}],['crush',{bits:8,down:4,mix:55}],['sat',{drive:30,mix:60,out:-3}],['comp',{thr:-20,ratio:4,gain:6}]]},
- 'Phaser psyché':{cat:'Créatif',sends:[-12,-16],pl:[['eq',{hp:100}],['comp',{thr:-22,ratio:4,gain:4}],['phaser',{rate:.3,mix:55}]]},
- 'Grande salle / stade':{cat:'Créatif',sends:[-5,-13],pl:[['eq',{hp:110,m2G:3,hiG:2}],['comp',{thr:-24,ratio:5,gain:6}],['width',{w:150}]]},
- 'Écho slap':{cat:'Créatif',sends:[-20,-60],pl:[['eq',{hp:100,m2G:2}],['comp',{thr:-22,ratio:4,gain:4}],['delay',{sync:0,ms:110,fb:12,pp:0,mix:28}]]},
- 'Ad-libs téléphone':{cat:'Ad-libs & backs',sends:[-15,-10],pl:[['filter',{type:3}],['sat',{drive:40,mix:70,out:-4}],['width',{w:160,haas:12}],['comp',{thr:-20,ratio:4,gain:3}]]},
- 'Ad-libs lointains':{cat:'Ad-libs & backs',sends:[-6,-9],pl:[['eq',{hp:250,lp:7000}],['comp',{thr:-22,ratio:4,gain:3}],['width',{w:180,haas:15}]]},
- 'Backs / doublage':{cat:'Ad-libs & backs',sends:[-14,-20],pl:[['eq',{hp:160,m1F:400,m1G:-3,hiG:2}],['comp',{thr:-24,ratio:4,gain:4}],['chorus',{mix:55,depth:60}],['width',{w:170,haas:8}]]},
+const VOCAL_PRESETS={ // v3.15 : chaînes « studio ». Niveau auto en tête → même rendu quel que soit le niveau de la prise.
+ // Base
+ 'Voix rap propre':{cat:'Base',sends:[-20,-24],pl:[['gate',{thr:-58,rel:150}],['level',{}],['eq',{hp:85,m1F:280,m1G:-2.5,m1Q:1.1,m2F:3200,m2G:2,m2Q:.9,hiF:11000,hiG:3}],['comp',{style:1,thr:-26,ratio:4,att:3,rel:80,knee:4,gain:5}],['deess',{freq:6500,thr:-30,amt:70}],['comp',{style:2,thr:-22,ratio:2.5,att:10,rel:300,knee:8,gain:2.5}]]},
+ 'Voix lourde / sombre':{cat:'Base',sends:[-19,-60],pl:[['gate',{thr:-58,rel:150}],['level',{}],['eq',{hp:70,lowF:150,lowG:2.5,m1F:450,m1G:-2,m2F:2800,m2G:-1,hiF:9000,hiG:-2}],['comp',{style:2,thr:-26,ratio:4,att:10,rel:250,knee:8,gain:5}],['sat',{drive:18,type:1,tone:9000,mix:40}],['deess',{freq:6000,thr:-30,amt:60}]]},
+ 'Voix drill sale':{cat:'Base',sends:[-24,-19],pl:[['gate',{thr:-55,rel:120}],['level',{}],['eq',{hp:110,m1F:380,m1G:-3,m2F:2600,m2G:3.5,m2Q:1,hiF:10000,hiG:1.5}],['comp',{style:1,thr:-30,ratio:8,att:1,rel:60,knee:3,gain:7}],['sat',{drive:28,type:1,tone:10000,mix:35}],['deess',{freq:6000,thr:-30,amt:75}]]},
+ 'Chuchoté / ASMR':{cat:'Base',sends:[-19,-60],pl:[['level',{target:-22}],['eq',{hp:140,m2F:5000,m2G:2.5,hiF:10000,hiG:4}],['comp',{style:2,thr:-32,ratio:4,att:10,rel:250,gain:6}],['deess',{freq:7000,thr:-34,amt:85}]]},
+ // Autotune (suit la tonalité du projet)
+ 'Voix autotune trap':{cat:'Autotune',sends:[-15,-18],pl:[['gate',{thr:-58,rel:150}],['level',{}],['tunepro',{input:1,retune:0,humanize:0,flex:0,formant:1}],['eq',{hp:100,m1F:300,m1G:-3,m2F:3500,m2G:2.5,hiF:11000,hiG:3.5}],['comp',{style:1,thr:-26,ratio:5,att:3,rel:70,knee:4,gain:5}],['deess',{freq:6500,thr:-30,amt:70}],['comp',{style:2,thr:-22,ratio:2.5,att:10,rel:300,knee:8,gain:2}]]},
+ 'Autotune mélodieux':{cat:'Autotune',sends:[-13,-16],pl:[['gate',{thr:-58,rel:150}],['level',{}],['tunepro',{input:1,retune:8,humanize:25,flex:10,formant:1}],['eq',{hp:100,m1F:300,m1G:-2,m2F:3800,m2G:2,hiF:12000,hiG:3.5}],['comp',{style:1,thr:-25,ratio:4,att:4,rel:80,knee:5,gain:4.5}],['deess',{freq:6500,thr:-30,amt:70}],['comp',{style:2,thr:-22,ratio:2.5,att:10,rel:300,knee:8,gain:2}],['double',{mix:22,det:8,width:80}]]},
+ 'Autotune naturel':{cat:'Autotune',sends:[-18,-22],pl:[['gate',{thr:-60,rel:180}],['level',{}],['tunepro',{input:1,retune:40,humanize:50,flex:40,formant:1}],['eq',{hp:90,m1F:300,m1G:-1.5,m2F:3200,m2G:1.5,hiF:11000,hiG:2.5}],['comp',{style:2,thr:-24,ratio:3,att:10,rel:250,knee:8,gain:4}],['deess',{freq:6500,thr:-30,amt:65}]]},
+ 'Voix chantée aérienne':{cat:'Autotune',sends:[-10,-15],pl:[['gate',{thr:-60,rel:200}],['level',{}],['tunepro',{input:1,retune:18,humanize:35,flex:20,formant:1}],['eq',{hp:120,m1F:350,m1G:-2,m2F:4000,m2G:1.5,hiF:12000,hiG:4.5}],['comp',{style:2,thr:-25,ratio:3.5,att:10,rel:300,knee:8,gain:4.5}],['deess',{freq:7000,thr:-31,amt:75}],['double',{mix:30,det:10,width:90}]]},
+ 'Robot':{cat:'Autotune',sends:[-16,-18],pl:[['gate',{thr:-55}],['level',{}],['tunepro',{input:1,retune:0,classic:1,formant:1,throat:92}],['eq',{hp:130,m1F:350,m1G:-3,m2F:2500,m2G:3}],['comp',{style:1,thr:-26,ratio:6,att:2,rel:60,gain:5}],['crush',{bits:11,down:2,tone:9000,mix:25}]]},
+ // Créatif
+ 'Voix grave (démon)':{cat:'Créatif',sends:[-17,-60],pl:[['level',{}],['shifter',{shift:-7,formant:0,mix:100}],['eq',{hp:45,lowF:120,lowG:3,hiF:8000,hiG:-3}],['sat',{drive:20,type:1,tone:8000,mix:45}],['comp',{style:2,thr:-25,ratio:4,att:10,rel:250,gain:4}]]},
+ 'Voix aiguë (pitchée)':{cat:'Créatif',sends:[-17,-20],pl:[['level',{}],['shifter',{shift:5,formant:0,mix:100}],['eq',{hp:150,m2F:3000,m2G:1.5}],['comp',{style:1,thr:-25,ratio:4,att:3,rel:80,gain:4}],['deess',{freq:7500,thr:-30,amt:70}]]},
+ 'Doublage octave':{cat:'Créatif',sends:[-15,-20],pl:[['level',{}],['eq',{hp:90}],['comp',{style:2,thr:-24,ratio:3.5,att:10,rel:250,gain:4}],['shifter',{shift:-12,formant:1,mix:32}],['double',{mix:25,det:8}]]},
+ 'Lo-fi / radio vintage':{cat:'Créatif',sends:[-21,-20],pl:[['level',{}],['filter',{type:2,freq:1600,q:.8}],['sat',{drive:35,type:1,tone:7000,mix:70}],['crush',{bits:10,down:3,tone:6000,mix:30}],['comp',{style:1,thr:-24,ratio:4,att:3,rel:80,gain:4}]]},
+ 'Phaser psyché':{cat:'Créatif',sends:[-13,-16],pl:[['level',{}],['eq',{hp:100,hiG:2}],['comp',{style:2,thr:-24,ratio:3.5,gain:4}],['phaser',{rate:.3,mix:45}]]},
+ 'Grande salle / stade':{cat:'Créatif',sends:[-6,-14],pl:[['level',{}],['eq',{hp:110,m2G:2.5,hiG:2}],['comp',{style:1,thr:-26,ratio:5,att:3,rel:80,gain:5}],['deess',{}],['double',{mix:25}]]},
+ 'Écho slap':{cat:'Créatif',sends:[-21,-60],pl:[['level',{}],['eq',{hp:100,m2G:2}],['comp',{style:1,thr:-25,ratio:4,att:3,rel:80,gain:4}],['deess',{}],['delay',{sync:0,ms:105,fb:10,pp:0,lp:4000,mix:22}]]},
+ // Ad-libs & backs
+ 'Ad-libs téléphone':{cat:'Ad-libs & backs',sends:[-16,-10],pl:[['level',{}],['filter',{type:3}],['sat',{drive:30,type:1,tone:6000,mix:60}],['comp',{style:1,thr:-24,ratio:5,att:2,rel:60,gain:3}]]},
+ 'Ad-libs lointains':{cat:'Ad-libs & backs',sends:[-6,-9],pl:[['level',{}],['eq',{hp:300,m1F:600,m1G:-2,lp:6500}],['comp',{style:2,thr:-24,ratio:4,gain:3}],['double',{mix:40,width:100}]]},
+ 'Backs / doublage':{cat:'Ad-libs & backs',sends:[-13,-19],pl:[['level',{}],['eq',{hp:180,m1F:400,m1G:-3,hiG:2}],['comp',{style:2,thr:-25,ratio:4,att:10,rel:250,gain:4}],['deess',{freq:6500,thr:-31,amt:75}],['double',{mix:60,det:12,width:100}]]},
  'Aucun effet':{cat:'Base',sends:[-60,-60],pl:[]},
 };
 function applyVocalPreset(t,name){snapshot();const v=VOCAL_PRESETS[name];t.plugins=v.pl.map(([ty,o])=>plug(ty,o));t.sends=P.auxes.map((a,i)=>v.sends[i]??-60);t.preset=name;closeAllPlugins();E.updateStrip(t);renderAll();toast('Préréglage « '+name+' » appliqué')}

@@ -1,20 +1,22 @@
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='3.14.0';
-const PLUG_ORDER=['gate','pitch','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','width','delay','reverb','limiter'];
+const APP_VERSION='3.15.0';
+const PLUG_ORDER=['gate','level','pitch','tunepro','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','double','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);
   let at=t.plugins.findIndex(p=>PLUG_ORDER.indexOf(p.type)>oi);if(at<0)at=t.plugins.length;t.plugins.splice(at,0,pl);closeAllPlugins();return[pl,true]}
 const sendPct=db=>db<=-59.5?0:clamp((db+40)/40*100,0,100),pctSend=v=>v<=0?-60:-40+40*v/100;
+const tunePlug=t=>findPlug(t,'tunepro')||findPlug(t,'pitch');
 const QUICK=[
  {n:'🔁 Écho',tip:'Répète la voix en rythme (yeah… yeah… yeah)',min:0,max:100,get:t=>sendPct(t.sends[1]??-60),set:(t,v)=>{t.sends[1]=pctSend(v)}},
  {n:'🌫 Réverb',tip:'Met la voix dans une pièce : effet d’espace, sans répétitions',min:0,max:100,get:t=>sendPct(t.sends[0]??-60),set:(t,v)=>{t.sends[0]=pctSend(v)}},
- {n:'🎯 Autotune',min:0,max:100,get:t=>{const p=findPlug(t,'pitch');return p&&!p.byp?p.params.amount:0},set:(t,v)=>{const p=findPlug(t,'pitch');if(!p&&v<=0)return;const [pl,a]=ensurePlug(t,'pitch',{amount:v,speed:20});pl.params.amount=v;pl.byp=v<=0;return a||pl._b!==pl.byp}},
- {n:'🤖 Naturel ↔ Robot',min:0,max:100,get:t=>{const p=findPlug(t,'pitch');return p?clamp(100-p.params.speed/80*100,0,100):50},set:(t,v)=>{const p=findPlug(t,'pitch');if(p)p.params.speed=80*(1-v/100)}},
+ {n:'🎯 Autotune',min:0,max:100,get:t=>{const p=tunePlug(t);return p&&!p.byp?(p.params.amount??100):0},set:(t,v)=>{const p=tunePlug(t);if(!p&&v<=0)return;const [pl,a]=p?[p,false]:ensurePlug(t,'tunepro',{amount:v,retune:15,humanize:25});pl.params.amount=v;pl.byp=v<=0;return a||pl._b!==pl.byp}},
+ {n:'🤖 Naturel ↔ Robot',min:0,max:100,get:t=>{const p=tunePlug(t);if(!p)return 50;const r=p.type==='pitch'?p.params.speed:p.params.retune;return clamp(100-r/80*100,0,100)},
+  set:(t,v)=>{const p=tunePlug(t);if(!p)return;const r=80*(1-v/100);if(p.type==='pitch')p.params.speed=r;else{p.params.retune=r;p.params.humanize=Math.round(50*(1-v/100))}}},
  {n:'🔈 Basses',min:-12,max:12,get:t=>{const p=findPlug(t,'eq');return p?p.params.lowG:0},set:(t,v)=>{const p=findPlug(t,'eq');if(!p&&v===0)return;const [pl,a]=ensurePlug(t,'eq');pl.params.lowG=v;return a}},
  {n:'✨ Clarté',min:-6,max:12,get:t=>{const p=findPlug(t,'eq');return p?p.params.m2G:0},set:(t,v)=>{const p=findPlug(t,'eq');if(!p&&v===0)return;const [pl,a]=ensurePlug(t,'eq');pl.params.m2G=v;return a}},
  {n:'💎 Brillance',min:-12,max:12,get:t=>{const p=findPlug(t,'eq');return p?p.params.hiG:0},set:(t,v)=>{const p=findPlug(t,'eq');if(!p&&v===0)return;const [pl,a]=ensurePlug(t,'eq');pl.params.hiG=v;return a}},
  {n:'👊 Punch',min:0,max:100,get:t=>{const p=findPlug(t,'comp');return p&&!p.byp?clamp((-p.params.thr-8)/30*100,0,100):0},set:(t,v)=>{const p=findPlug(t,'comp');if(!p&&v<=0)return;const [pl,a]=ensurePlug(t,'comp');pl.params.thr=-8-30*v/100;pl.params.ratio=2+6*v/100;pl.params.gain=10*v/100;pl.byp=v<=0;return a}},
- {n:'👥 Doublage',min:0,max:100,get:t=>{const p=findPlug(t,'chorus');return p&&!p.byp?p.params.mix:0},set:(t,v)=>{const p=findPlug(t,'chorus');if(!p&&v<=0)return;const [pl,a]=ensurePlug(t,'chorus');pl.params.mix=v;pl.byp=v<=0;return a}},
+ {n:'👥 Doublage',min:0,max:100,get:t=>{const p=findPlug(t,'double')||findPlug(t,'chorus');return p&&!p.byp?p.params.mix:0},set:(t,v)=>{const p=findPlug(t,'double')||findPlug(t,'chorus');if(!p&&v<=0)return;const [pl,a]=p?[p,false]:ensurePlug(t,'double');pl.params.mix=v;pl.byp=v<=0;return a||pl._b!==pl.byp}},
  {n:'🔥 Chaleur',min:0,max:100,get:t=>{const p=findPlug(t,'sat');return p&&!p.byp?p.params.mix:0},set:(t,v)=>{const p=findPlug(t,'sat');if(!p&&v<=0)return;const [pl,a]=ensurePlug(t,'sat',{drive:25,type:1,out:-2});pl.params.mix=v;pl.byp=v<=0;return a}},
  {n:'🔊 Volume',min:-30,max:6,get:t=>t.vol,set:(t,v)=>{t.vol=v;syncFaders(t.id)}},
 ];
@@ -94,7 +96,7 @@ function analyzeRegion(t,r,auto){
   const busy=modal([h('h2',null,'🔍 Analyse de l’instru…')]);
   setTimeout(()=>{let b,k;try{b=detectBPM(BUFS[r.buf],r.offset,r.dur);k=detectKey(BUFS[r.buf],r.offset,r.dur)}catch(e){busy.remove();return alert('Analyse impossible : '+e.message)}busy.remove();
     r.bpm=b.bpm;r.key=k.key;r.scale=k.scaleIdx;renderInspector();
-    const apply=(bpm)=>{snapshot();P.bpm=bpm;P.key=k.key;P.scaleIdx=k.scaleIdx;for(const o of [...P.tracks,...P.auxes])o.plugins.forEach(pl=>{if(pl.type==='pitch'||pl.type==='tunepro'){pl.params.key=P.key;pl.params.scale=P.scaleIdx;if(pl.type==='tunepro')pl.params.notes=null}});
+    const apply=(bpm)=>{snapshot();P.bpm=bpm;P.key=k.key;P.scaleIdx=k.scaleIdx;for(const o of [...P.tracks,...P.auxes,...P.tracks.flatMap(t=>t.regions.filter(r=>r.plugins).map(r=>({plugins:r.plugins})))])o.plugins.forEach(pl=>{if(pl.type==='pitch'||pl.type==='tunepro'){pl.params.key=P.key;pl.params.scale=P.scaleIdx;if(pl.type==='tunepro')pl.params.notes=null}});
       r.bpm=bpm;E.updateAll();renderAll();toast('Projet réglé sur '+bpm+' BPM, '+NOTE_NAMES[k.key]+' '+k.scale+' (autotune inclus)')};
     const m=modal([h('h2',null,'🎵 Instru analysée'),h('p',null,'Tempo détecté : ',h('b',null,b.bpm+' BPM'),b.alt?' (ou '+b.alt+' BPM)':''),
       h('p',null,'Tonalité détectée : ',h('b',null,NOTE_NAMES[k.key]+' '+k.scale),h('span',{style:{color:'var(--dim)'}},k.conf<.6?' (incertaine)':'')),
@@ -134,11 +136,18 @@ function showChangelog(force){
   const mm=v=>String(v).split('.').slice(0,2).join('.');
   if(!force&&(mm(seen)===mm(APP_VERSION)||!old)){try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}return}
   try{localStorage.setItem('studio_ver',APP_VERSION)}catch(e){}
-  modal(h('div',{html:`<h2>Nouveautés 🎉</h2><p class="muted" style="margin-top:-6px">Tu es sur la v${APP_VERSION}.</p><h4>v3.14 — Chat : emojis et GIF, échos coupés à l’arrêt</h4><ul>
+  modal(h('div',{html:`<h2>Nouveautés 🎉</h2><p class="muted" style="margin-top:-6px">Tu es sur la v${APP_VERSION}.</p><h4>v3.15 — Effets refaits, qualité studio 🎛</h4><ul>
+<li><b>Nouvel autotune</b> (Pitch Pro, Pitch Correction, Pitch Shifter) : la correction tombe pile au bon moment et le son reste propre. En mode dur, la note est juste à moins d’un centième de demi-ton. Les voix graves ne sont plus prises pour une note plus aiguë.</li>
+<li><b>Nouveau compresseur</b> avec 3 caractères : <b>Propre</b>, <b>Rapide</b> (type 1176, qui claque) et <b>Doux</b> (type LA-2A, qui lisse). Il ne monte plus le volume en cachette.</li>
+<li><b>De-esser</b> refait : il ne touche plus le reste de la voix, seulement les « s » trop forts. <b>Saturation</b> beaucoup plus musicale (elle n’explose plus).</li>
+<li>Nouveaux effets : <b>Niveau auto</b> (ta prise est remise à un niveau régulier, qu’elle soit enregistrée fort ou faible) et <b>Doubleur de voix</b> (comme si tu avais doublé ta voix en vrai).</li>
+<li><b>Tous les préréglages voix refaits</b> comme en studio : même rendu quel que soit ton niveau d’enregistrement, plus de saturation, des « s » maîtrisés.</li>
+<li>Réverb : un son court (caisse claire, fin de mot) pouvait perdre sa réverb. Corrigé.</li>
+</ul><h4 style="margin-top:18px">Versions précédentes</h4><details class="cl"><summary>v3.14 — Chat : emojis et GIF, échos coupés à l’arrêt</summary><ul>
 <li><b>😀 Emojis et GIF dans le chat</b> de session : bouton 😀 pour les emojis, bouton <b>GIF</b> pour envoyer une image de ton appareil ou coller le lien d’un GIF (GIPHY, Tenor, Imgur). Tu peux aussi coller une image directement dans le champ.</li>
 <li><b>Plus d’écho après Pause</b> : quand tu arrêtes la lecture, les échos et les réverbs se coupent tout de suite.</li>
 <li><b>Téléphone</b> : toutes les fenêtres (Réglages, Nouveautés…) ont maintenant un bouton ✕ pour les fermer.</li>
-</ul><h4 style="margin-top:18px">Versions précédentes</h4><details class="cl"><summary>v3.13 — Effets sur un seul bloc ✨, Ctrl+J</summary><ul>
+</ul></details><details class="cl"><summary>v3.13 — Effets sur un seul bloc ✨, Ctrl+J</summary><ul>
 <li><b>Des effets différents sur une même piste</b> : coupe ta prod ou ta voix (✂), sélectionne un bloc, puis <b>✨ Effets de ce bloc</b> (dans l’inspecteur à gauche, au clic droit, ou le bouton ✨ Effets sur téléphone). Ces effets ne touchent que ce bloc, en plus de ceux de la piste.</li>
 <li>Préréglages tout prêts, <b>⇣ Effets de la piste</b> pour repartir de ceux de la piste, et <b>📋 Copier / 📥 Coller</b> pour mettre les mêmes effets sur d’autres blocs. Un ✨ s’affiche sur les blocs qui ont des effets.</li>
 <li><b>🔗 Ctrl+J pour fusionner</b> : sélectionne des blocs sur plusieurs pistes (ou un dossier) et fais Ctrl+J : tout passe sur une seule piste, chaque bloc garde le son de sa piste d’origine (ses effets et son volume le suivent). Plusieurs blocs d’une même piste : Ctrl+J les colle en un seul bloc.</li>

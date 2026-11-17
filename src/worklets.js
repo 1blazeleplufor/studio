@@ -193,6 +193,7 @@ class VerbProc extends AudioWorkletProcessor{
     const at=p.attack/100;this.taps=[0,.023,.047,.083].map(t=>Math.round((p.pre/1000+t*at)*sr));this.tg=at>0?[1-.55*at,.55*at,.45*at,.35*at]:[1,0,0,0];
     const s=this.tg.reduce((a,b)=>a+b,0);this.tg=this.tg.map(x=>x/s);this.early=(1-at)*.45*p.ed/100+(m.amb?.35:0);
     this.gateRel=1-Math.exp(-1/(Math.max(.05,p.decay*.35)*sr));this.mix=p.mix/100;
+    this.QN=Math.ceil((p.pre/1000+.1)*sr/128)+3; // saut du silence : pas avant que le pré-délai soit écoulé
   }
   process(inputs,outputs){
     const inp=inputs[0],out=outputs[0];if(!out[0])return true;const n=out[0].length,sr=this.sr,L=this.L,M=this.M,f=this.f;
@@ -234,60 +235,96 @@ class VerbProc extends AudioWorkletProcessor{
 registerProcessor('verb-proc',VerbProc);
 
 // ===== Pitch Pro : autotune avancé (TD-PSOLA, formants, humanize, flex-tune, vibrato) =====
+// ===== v3.15 : moteur d'autotune « VoxTune » =====
+// PSOLA synchrone : (1) hauteur mesurée (YIN) et datée ; (2) repères d'analyse posés sur les crêtes de la voix ;
+// (3) la correction est calculée pour l'instant exact du grain (pas 50 ms trop tôt) ; (4) grains recollés en phase.
+// Utilisé par « Pitch Pro », « Pitch Correction » et « Pitch Shifter ».
 class TuneProProc extends AudioWorkletProcessor{
   constructor(o){super();const po=(o&&o.processorOptions)||{},sr=sampleRate;this.sr=sr;
-    this.p=Object.assign({input:1,tracking:50,key:0,notes:[0,2,0,0,2,0,2,0,0,2,0,2],retune:20,humanize:0,flex:0,vibrato:0,transpose:0,detune:0,formant:1,throat:100,mix:100,classic:0},po.params||{});
+    this.p=Object.assign({input:1,tracking:50,key:0,notes:[0,2,0,0,2,0,2,0,0,2,0,2],retune:20,humanize:0,flex:0,vibrato:0,transpose:0,detune:0,formant:1,throat:100,mix:100,classic:0,amount:100},po.params||{});
     this.port.onmessage=e=>{Object.assign(this.p,e.data);this.cfg()};
-    this.NB=16384;this.inb=[new Float32Array(this.NB),new Float32Array(this.NB)];this.outb=[new Float32Array(this.NB),new Float32Array(this.NB)];
-    this.n=0;this.D=Math.round(.05*sr);this.det=new Float32Array(2048);this.dw=0;this.dec=0;this.decN=0;this.since=0;this.hop=256;
-    this.win=512;this.frame=new Float32Array(2048);this.dd=new Float32Array(1100);
-    this.P=Math.round(sr/200);this.voiced=false;this.ratio=1;this.target=1;this.ms=0;this.last=-1;this.holdT=0;this.sNext=-1;this.aMark=0;this.cnt=0;this.curM=0;this.tgtM=0;this.cfg()}
+    this.NB=65536;this.MK=this.NB-1;this.inb=[new Float32Array(this.NB),new Float32Array(this.NB)];this.outb=[new Float32Array(this.NB),new Float32Array(this.NB)];this.lpb=new Float32Array(this.NB);
+    this.n=0;this.D=Math.round(.05*sr);this.QN=Math.ceil(this.D/128)+4; // saut du silence : attendre que tout le retard soit sorti
+    this.U=Math.round(.0045*sr);
+    this.det=new Float32Array(4096);this.dw=0;this.dn=0;this.dpa=0;this.dpb=0;this.since=0;this.hop=Math.round(sr/187.5);
+    this.win=Math.round(512*sr/48000);this.frame=new Float32Array(4096);this.dd=new Float32Array(2200);
+    this.HN=1024;this.hT=new Float64Array(this.HN);this.hF=new Float32Array(this.HN);this.hn=0;this.lastF=0;
+    this.MN=4096;this.mP=new Float64Array(this.MN);this.mL=new Float32Array(this.MN);this.mV=new Uint8Array(this.MN);this.mn=0;this.mNext=0;this.mSel=0;
+    this.l1=0;this.l2=0;this.sNext=-1;this.ratio=1;this.target=1;this.ms=0;this.last=-1;this.holdT=0;this.curM=0;this.outM=0;this.gT=0;
+    this.cfg()}
   cfg(){const p=this.p,R=[[150,1100],[75,900],[55,420],[60,1500],[35,320]][p.input|0]||[75,900],h=this.sr/2;
-    this.minLag=Math.max(2,Math.floor(h/R[1]));this.maxLag=Math.min(1050,Math.ceil(h/R[0]));this.thr=.06+p.tracking/100*.24;this.ref=440*Math.pow(2,p.detune/1200)}
+    this.minLag=Math.max(2,Math.floor(h/R[1]));this.maxLag=Math.min(2100,Math.ceil(h/R[0]));this.thr=.07+(p.tracking??50)/100*.16;this.ref=440*Math.pow(2,(p.detune||0)/1200)}
+  // ---- hauteur : YIN sur le signal décimé ×2, datée au centre de la fenêtre ----
   detect(){const L=this.det.length,need=this.win+this.maxLag+2,f=this.frame;
     for(let i=0;i<need;i++)f[i]=this.det[(this.dw-need+i+L*4)%L];
-    let e=0;for(let i=0;i<this.win;i++)e+=f[i]*f[i];if(Math.sqrt(e/this.win)<.006)return 0;
+    let e=0;for(let i=0;i<this.win;i++)e+=f[i]*f[i];if(Math.sqrt(e/this.win)<.004)return[0,0];
     const d=this.dd;d[0]=1;let run=0,best=-1;
-    for(let t=1;t<=this.maxLag;t++){let s=0;for(let i=0;i<this.win;i+=2){const x=f[i]-f[i+t];s+=x*x}run+=s;d[t]=run>0?s*t/run:1}
-    for(let t=this.minLag;t<this.maxLag;t++)if(d[t]<this.thr){while(t+1<this.maxLag&&d[t+1]<d[t])t++;best=t;break}
-    if(best<0)return 0;const a=d[best-1],b=d[best],c=d[best+1],den=a-2*b+c;return(this.sr/2)/(den?best+.5*(a-c)/den:best)}
-  analyse(){const p=this.p,f=this.detect(),hopS=this.hop/this.sr;let st=p.transpose;
-    if(f>0){this.voiced=true;this.P=this.P*.4+(this.sr/f)*.6;const m=69+12*Math.log2(f/this.ref);
-      if(!this.ms||Math.abs(m-this.ms)>2)this.ms=m;else this.ms+=(m-this.ms)*.18;const vib=m-this.ms;
+    // fonction de différence calculée au fur et à mesure : on s'arrête dès qu'on a de quoi vérifier 4 périodes
+    let top=this.maxLag,t=1;const W=this.win;
+    for(;t<=top;t++){let s=0;for(let i=0;i<W;i+=2){const x=f[i]-f[i+t];s+=x*x}run+=s;d[t]=run>0?s*t/run:1;
+      if(best<0&&t>this.minLag+1&&d[t-1]<this.thr&&d[t]>=d[t-1]){best=t-1;top=Math.min(this.maxLag,best*4+4)}}
+    for(let k=t;k<=this.maxLag+1;k++)d[k]=1;
+    if(best<0){let mi=this.minLag;for(let t=this.minLag;t<this.maxLag;t++)if(d[t]<d[mi])mi=t;if(d[mi]<this.thr*1.6)best=mi;else return[0,0]}
+    // une harmonique prise pour la note (creux peu profond) : si un multiple de la période est nettement plus creux, c'est lui la vraie note
+    for(let k=2;k<=4;k++){const c=Math.round(best*k);if(c+1>=this.maxLag)break;let q=c;for(let t=c-2;t<=c+2;t++)if(d[t]<d[q])q=t;if(d[q]<d[best]-.08&&d[q]<.15){best=q;break}}
+    // garde-fou d'octave : si on tombait à l'octave au-dessus de la note tenue
+    const b2=best*2;if(this.lastF>0&&b2<this.maxLag&&Math.abs((this.sr/2)/best/this.lastF-2)<.12&&d[b2]<d[best]+.08)best=b2;
+    if(best<1||best+1>this.maxLag)return[0,0];
+    const a=d[best-1],b=d[best],c=d[best+1],den=a-2*b+c,tau=den?best+.5*(a-c)/den:best;
+    return[(this.sr/2)/tau,this.n-2*(need-1-(this.win+best)/2)]}
+  F(t){const H=this.HN,n=this.hn;if(!n)return 0;let j=n-1;while(j>0&&j>n-H+1&&this.hT[j%H]>t)j--;const t0=this.hT[j%H],f0=this.hF[j%H];
+    if(t<=t0||j===n-1)return f0;const t1=this.hT[(j+1)%H],f1=this.hF[(j+1)%H];if(!f0||!f1)return t-t0<t1-t?f0:f1;return f0*Math.pow(f1/f0,(t-t0)/(t1-t0))}
+  // ---- repères d'analyse : un par période, posé sur la crête du signal filtré ----
+  marks(){const N=this.n,MK=this.MK;
+    while(true){const c=this.mNext,f=this.F(c),v=f>0,L=v?this.sr/f:this.U,R=v?Math.round(.3*L):0;if(c+R+2>N)break;
+      let m=Math.round(c);if(v){const lo=Math.max(Math.round(c-R),this.mn?Math.ceil(this.mP[(this.mn-1)%this.MN]+.55*L):-1e9),hi=Math.round(c+R);let bv=-1e9;for(let k=lo;k<=hi;k++){const x=this.lpb[k&MK];if(x>bv){bv=x;m=k}}}
+      const i=this.mn%this.MN;this.mP[i]=m;this.mL[i]=L;this.mV[i]=v?1:0;this.mn++;this.mNext=m+L}}
+  // ---- note visée pour l'instant tin (dt = temps écoulé depuis le grain précédent) ----
+  decide(tin,dt){const p=this.p,f=this.F(tin);if(p.wob){this.wt=(this.wt||0)-dt;if(this.wt<=0){this.wt=.15+Math.random()*.35;this.wg=(Math.random()*2-1)*p.wob}this.wv=(this.wv||0)+((this.wg||0)-(this.wv||0))*(1-Math.exp(-dt/.25))}
+    let st=(p.transpose||0)+(p.cents||0)/100+(this.wv||0)/100;
+    if(f>0){const m=69+12*Math.log2(f/this.ref);
+      if(!this.ms||Math.abs(m-this.ms)>2)this.ms=m;else this.ms+=(m-this.ms)*(1-Math.exp(-dt/.09));const vib=m-this.ms;
       let best=null,bd=99;for(let n=Math.round(m)-6;n<=Math.round(m)+6;n++){const s=p.notes[((n%12)+12)%12]|0;if(s===2)continue;const dd=Math.abs(n-m);if(dd<bd){bd=dd;best=n}}
-      if(best!==null&&this.last>=0&&best!==this.last&&Math.abs(m-this.last)<.62&&(p.notes[((this.last%12)+12)%12]|0)!==2)best=this.last;
-      if(best!==this.last){this.last=best;this.holdT=0}else this.holdT+=hopS;
-      let shift=0;
+      if(best!==null&&this.last!==null&&this.last>=0&&best!==this.last&&Math.abs(m-this.last)<.6&&(p.notes[((this.last%12)+12)%12]|0)!==2)best=this.last;
+      if(best!==this.last){this.last=best;this.holdT=0}else this.holdT+=dt;
+      let sh=0;
       if(best!==null&&(p.notes[((best%12)+12)%12]|0)!==1){
-        if(p.classic){shift=best-m}
-        else{let w=1;if(p.flex>0){const zone=.5*(1-p.flex/100)+.04,dv=Math.abs(m-best);w=dv<=zone?1:Math.max(0,1-(dv-zone)/.3)}
-          const T=best+vib*(1+p.vibrato/100);shift=(T-m)*w}}
-      st+=shift;this.curM=m;this.tgtM=m+shift}
-    else{this.voiced=false;this.P+=(Math.round(this.sr*.006)-this.P)*.3;this.curM=0;this.holdT=0}
+        if(p.classic)sh=best-m;
+        else{let w=1;if(p.flex>0){const zone=.5*(1-p.flex/100)+.04,dv=Math.abs(this.ms-best);w=dv<=zone?1:Math.max(0,1-(dv-zone)/.3)}
+          // vibrato : 0 = la vitesse de correction décide ; >0 = on garde/renforce le vibrato chanté ; <0 = on l'efface en plus
+          const vk=(p.vibrato||0)/100,T=best+(vk>0?vib*vk*1.5:0);sh=(T-m)*w;if(vk<0)sh=(best-m)*w*(-vk)+sh*(1+vk)}}
+      st+=sh*((p.amount??100)/100);this.curM=m;this.outM=m+st}
+    else{this.holdT=0;this.curM=0;this.outM=0}
     this.target=Math.pow(2,st/12);
-    let rt=p.retune;if(!p.classic&&p.humanize>0&&this.holdT>.12)rt+=p.humanize/100*350*Math.min(1,(this.holdT-.12)/.5);
-    this.rcoef=rt<=.5?1:1-Math.exp(-1/(rt/1000*this.sr));
-    if((++this.cnt&1)===0)this.port.postMessage([this.curM,this.voiced?this.curM+12*Math.log2(this.ratio):0])}
+    let rt=p.retune||0;if(!p.classic&&p.humanize>0&&this.holdT>.12)rt+=p.humanize/100*350*Math.min(1,(this.holdT-.12)/.5);
+    const k=rt<=.5?1:1-Math.exp(-dt/(rt/1000));this.ratio+=(this.target-this.ratio)*k;
+    this.gT+=dt;if(this.gT>.011){this.gT=0;this.port.postMessage([this.curM,this.curM?this.outM:0])}}
   process(inputs,outputs){
-    const inp=inputs[0],out=outputs[0];if(!out[0])return true;const n=out[0].length,NB=this.NB,D=this.D,p=this.p,mix=p.mix/100;
-    const c0=inp[0]||null,c1=inp[1]||inp[0]||null;
-    for(let s=0;s<n;s++){const x0=c0?c0[s]:0,x1=c1?c1[s]:0,N=this.n,wi=N%NB;this.inb[0][wi]=x0;this.inb[1][wi]=x1;
-      this.dec+=x0;if(++this.decN===2){this.det[this.dw]=this.dec*.5;this.dw=(this.dw+1)%this.det.length;this.dec=0;this.decN=0}
-      if(++this.since>=this.hop){this.since=0;this.analyse()}
-      this.ratio+=(this.target-this.ratio)*(this.rcoef||1);
-      if(this.sNext<0){this.sNext=N+D;this.aMark=N}
-      let guard=0;
-      while(guard++<8){
-        const P=Math.max(16,this.P),Po=P/this.ratio,ff=(p.formant?1:this.ratio)*(p.throat/100);const Wg=Math.min(P,(D-24)/(1+ff));
-        if(this.sNext-Wg>N+1)break;const tgt=this.sNext-D;
-        while(this.aMark+P*.5<tgt)this.aMark+=P;while(this.aMark-P*1.5>tgt)this.aMark-=P;
-        const gain=Math.max(.5,Math.min(2,Po/Wg)),W=Math.floor(Wg),am=this.aMark,sN=this.sNext;
-        for(let k=-W;k<=W;k++){const w=(.5+.5*Math.cos(Math.PI*k/Wg))*gain;let src=am+k*ff;if(src>N)src=N;const si=Math.floor(src),fr=src-si,a=((si%NB)+NB)%NB,b=(a+1)%NB,oi=((Math.round(sN)+k)%NB+NB)%NB;
-          this.outb[0][oi]+=(this.inb[0][a]+(this.inb[0][b]-this.inb[0][a])*fr)*w;this.outb[1][oi]+=(this.inb[1][a]+(this.inb[1][b]-this.inb[1][a])*fr)*w}
+    const inp=inputs[0],out=outputs[0];if(!out||!out[0])return true;const n=out[0].length,MK=this.MK,D=this.D,p=this.p,mix=(p.mix??100)/100,sr=this.sr;
+    const c0=inp&&inp[0]||null,c1=inp&&(inp[1]||inp[0])||null,lpa=1-Math.exp(-2*Math.PI*850/sr),ib0=this.inb[0],ib1=this.inb[1],ob0=this.outb[0],ob1=this.outb[1];
+    for(let s=0;s<n;s++){const x0=c0?c0[s]:0,x1=c1?c1[s]:0,N=this.n,wi=N&MK;ib0[wi]=x0;ib1[wi]=x1;
+      const xm=(x0+x1)*.5;this.l1+=(xm-this.l1)*lpa;this.l2+=(this.l1-this.l2)*lpa;this.lpb[wi]=this.l2;
+      // décimation ×2 (filtre anti-repliement léger) pour la détection
+      const fa=(xm+this.dpa*2+this.dpb)*.25;this.dpb=this.dpa;this.dpa=xm;if(++this.dn===2){this.dn=0;this.det[this.dw]=fa;this.dw=(this.dw+1)%this.det.length}
+      if(++this.since>=this.hop){this.since=0;const [f,t]=this.detect(),H=this.HN;
+        if(this.hn&&t<=this.hT[(this.hn-1)%H]){}else{this.hT[this.hn%H]=t||N-this.win*2;this.hF[this.hn%H]=f;this.hn++}this.lastF=f>0?f:this.lastF*.0}
+      this.n++;if(this.hn)this.marks();
+      // synthèse : on pose les grains dont l'instant est atteint
+      if(this.sNext<0){this.sNext=N+D;this.mNext=N}
+      for(let g=0;g<16;g++){
+        const tin=this.sNext-D;let j=this.mSel;
+        while(j+1<this.mn&&this.mP[(j+1)%this.MN]<=tin)j++;if(j+1<this.mn&&Math.abs(this.mP[(j+1)%this.MN]-tin)<Math.abs(this.mP[j%this.MN]-tin))j++;
+        if(j<this.mn-this.MN+8)j=this.mn-this.MN+8;if(j<0)j=0;this.mSel=j;
+        const has=this.mn>0&&this.mV[j%this.MN],mi=j%this.MN,m=has?this.mP[mi]:tin,L=has?this.mL[mi]:this.U; // sans note (souffle, consonne) : grain pris pile à l'instant voulu
+        const ff=(p.formant?1:this.ratio)*((p.throat??100)/100),W=Math.max(8,Math.min(L,(D-24)/(1+ff)))|0;
+        if(this.sNext-W>N+1)break;
+        const fz=this.F(tin),Lt=fz>0&&L!==this.U?sr/fz:L;this.decide(tin,Lt/this.ratio/sr);const Po=Math.max(8,Lt/this.ratio); // période réelle à cet instant (pas celle, estimée d'avance, du repère)
+        const gain=Math.max(.35,Math.min(2.5,Po/W)),si=Math.round(this.sNext),fr=si-this.sNext;
+        for(let k=-W+1;k<W;k++){const kk=k+fr,w=(.5+.5*Math.cos(Math.PI*kk/W))*gain;let src=m+kk*ff;if(src>N)src=N;const a=Math.floor(src),q=src-a,i0=a&MK,i1=(a+1)&MK,o=(si+k)&MK;
+          ob0[o]+=(ib0[i0]+(ib0[i1]-ib0[i0])*q)*w;ob1[o]+=(ib1[i0]+(ib1[i1]-ib1[i0])*q)*w}
         this.sNext+=Po}
-      const ri=wi,y0=this.outb[0][ri],y1=this.outb[1][ri];this.outb[0][ri]=0;this.outb[1][ri]=0;
-      const di=((N-D)%NB+NB)%NB;out[0][s]=this.inb[0][di]*(1-mix)+y0*mix;if(out[1])out[1][s]=this.inb[1][di]*(1-mix)+y1*mix;
-      this.n++}
+      const y0=ob0[wi],y1=ob1[wi];ob0[wi]=0;ob1[wi]=0;const di=(N-D)&MK;
+      out[0][s]=ib0[di]*(1-mix)+y0*mix;if(out[1])out[1][s]=ib1[di]*(1-mix)+y1*mix}
     return true}
 }
 registerProcessor('tunepro-proc',TuneProProc);
@@ -323,7 +360,73 @@ registerProcessor('cap-proc',CapProc);
 for(const C of [PitchProc,GateProc,CrushProc,LimitProc,VerbProc,TuneProProc]){const p=C.prototype.process;
   C.prototype.process=function(inputs,outputs,params){
     const inp=inputs[0];let silent=true;if(inp)for(let c=0;c<inp.length&&silent;c++){const d=inp[c];for(let i=0;i<d.length;i++)if(d[i]!==0){silent=false;break}}
-    if(silent&&this._quiet>=3){for(const o of outputs)for(const ch of o)ch.fill(0);return true}
+    if(silent&&this._quiet>=(this.QN||3)){for(const o of outputs)for(const ch of o)ch.fill(0);return true}
     const r=p.call(this,inputs,outputs,params);
     if(silent){let pk=0;for(const o of outputs)for(const ch of o)for(let i=0;i<ch.length;i++){const a=ch[i]<0?-ch[i]:ch[i];if(a>pk)pk=a}this._quiet=pk<1e-6?(this._quiet||0)+1:0}else this._quiet=0;
     return r}}
+
+// ===== v3.15 : compresseur, de-esser et niveau auto « studio » =====
+const db2g=d=>Math.pow(10,d/20),g2db=g=>20*Math.log10(Math.max(g,1e-9));
+// Compresseur : détection stéréo liée, courbe à genou doux, PAS de gain caché (contrairement à celui du navigateur).
+// Styles : 0 propre (VCA) · 1 rapide (FET, 1176) · 2 doux (opto, LA-2A, relâche en deux temps)
+class CompProc extends AudioWorkletProcessor{
+  constructor(o){super();this.p=Object.assign({thr:-20,ratio:4,att:10,rel:120,knee:6,gain:0,mix:100,style:0,legacy:0},(o.processorOptions||{}).params||{});
+    this.port.onmessage=e=>Object.assign(this.p,e.data);this.env=0;this.gr=0;this.slow=0;this.k=0;this.mn=0}
+  curve(x){const p=this.p,T=p.thr,R=Math.max(1,p.ratio),K=Math.max(0,p.knee),o=x-T;
+    if(2*o<-K)return 0;if(K>0&&2*Math.abs(o)<=K)return(1/R-1)*(o+K/2)*(o+K/2)/(2*K);return(1/R-1)*o}
+  process(inputs,outputs){const inp=inputs[0],out=outputs[0];if(!out||!out[0])return true;const p=this.p,sr=sampleRate,n=out[0].length,st=p.style|0;
+    const a0=inp&&inp[0],a1=inp&&(inp[1]||inp[0]);const att=Math.max(.05,p.att)*(st===1?.35:st===2?2.5:1),rel=Math.max(5,p.rel)*(st===1?.6:1);
+    const ca=Math.exp(-1/(att*.001*sr)),cr=Math.exp(-1/(rel*.001*sr)),cs=Math.exp(-1/(1.8*sr)),ce=Math.exp(-1/(.004*sr));
+    let mk=db2g(p.gain);if(p.legacy){mk*=Math.pow(1/db2g(this.curve(0)),.6)} // anciens projets : même niveau qu'avant
+    const wet=p.mix/100,dry=1-wet;
+    for(let i=0;i<n;i++){const x0=a0?a0[i]:0,x1=a1?a1[i]:0;let lv=Math.max(Math.abs(x0),Math.abs(x1));
+      if(st===2){this.env=lv>this.env?lv:this.env*ce+lv*(1-ce);lv=this.env} // opto : réagit à l'enveloppe, pas aux crêtes
+      const want=-this.curve(g2db(lv)); // réduction voulue (dB, positive)
+      if(want>this.gr)this.gr=want+(this.gr-want)*ca;
+      else{if(st===2){// relâche opto : vite sur la première moitié, puis lente (mémoire)
+          this.slow=Math.max(this.slow*cs,this.gr*.5);const tgt=Math.max(want,this.slow);this.gr=tgt+(this.gr-tgt)*cr}
+        else{const c=st===1?Math.exp(-1/((rel*(.5+.5*Math.min(1,this.gr/10)))*.001*sr)):cr;this.gr=want+(this.gr-want)*c}}
+      let g=db2g(-this.gr)*mk;let y0=x0*g,y1=x1*g;
+      if(st===1){y0=Math.tanh(y0*1.25)/1.25;y1=Math.tanh(y1*1.25)/1.25} // un peu de grain FET
+      out[0][i]=x0*dry+y0*wet;if(out[1])out[1][i]=x1*dry+y1*wet;if(this.gr>this.mn)this.mn=this.gr}
+    if(++this.k%8===0){this.port.postMessage(this.mn);this.mn=0}
+    return true}
+}
+registerProcessor('comp-proc',CompProc);
+function lpCoef(f,q){const w=2*Math.PI*f/sampleRate,c=Math.cos(w),a=Math.sin(w)/(2*q),a0=1+a;return[(1-c)/2/a0,(1-c)/a0,(1-c)/2/a0,-2*c/a0,(1-a)/a0]}
+function hpCoef(f,q){const w=2*Math.PI*f/sampleRate,c=Math.cos(w),a=Math.sin(w)/(2*q),a0=1+a;return[(1+c)/2/a0,-(1+c)/a0,(1+c)/2/a0,-2*c/a0,(1-a)/a0]}
+// De-esser : on ne touche qu'aux aigus, et seulement quand un « s » dépasse le seuil. Totalement transparent le reste du temps.
+class DeessProc extends AudioWorkletProcessor{
+  constructor(){super();this.p={freq:6500,thr:-28,amt:70};this.port.onmessage=e=>Object.assign(this.p,e.data);this.z=new Float64Array(12);this.env=0;this.g=1;this.k=0;this.mn=0;this.f=0}
+  process(inputs,outputs){const inp=inputs[0],out=outputs[0];if(!out||!out[0])return true;const p=this.p,sr=sampleRate,n=out[0].length,z=this.z;
+    if(this.f!==p.freq){this.f=p.freq;this.sc=hpCoef(Math.min(p.freq,sr*.45),.9);this.hb=lpCoef(Math.min(p.freq*.6,sr*.45),.6)}
+    const S=this.sc,H=this.hb,a0=inp&&inp[0],a1=inp&&(inp[1]||inp[0]),ea=Math.exp(-1/(.0005*sr)),er=Math.exp(-1/(.05*sr)),ga=Math.exp(-1/(.001*sr)),gr=Math.exp(-1/(.07*sr)),mx=p.amt/100*18;
+    for(let i=0;i<n;i++){const x0=a0?a0[i]:0,x1=a1?a1[i]:0,m=(x0+x1)*.5;
+      // chaîne latérale : passe-haut à la fréquence choisie
+      const s=S[0]*m+z[0];z[0]=S[1]*m-S[3]*s+z[1];z[1]=S[2]*m-S[4]*s;const a=Math.abs(s);this.env=a>this.env?a+(this.env-a)*ea:a+(this.env-a)*er;
+      const o=g2db(this.env)-p.thr,red=o<=0?0:Math.min(mx,o<3?o*o/12*.8:(o-.75)*.8),tg=db2g(-red);this.g=tg<this.g?tg+(this.g-tg)*ga:tg+(this.g-tg)*gr;
+      // aigus des deux canaux = signal − graves (complémentaire exact, donc en phase) ; y = graves + g·aigus
+      const l0=H[0]*x0+z[2];z[2]=H[1]*x0-H[3]*l0+z[3];z[3]=H[2]*x0-H[4]*l0;const l1=H[0]*x1+z[4];z[4]=H[1]*x1-H[3]*l1+z[5];z[5]=H[2]*x1-H[4]*l1;
+      out[0][i]=l0+this.g*(x0-l0);if(out[1])out[1][i]=l1+this.g*(x1-l1);if(red>this.mn)this.mn=red}
+    if(++this.k%8===0){this.port.postMessage(this.mn);this.mn=0}
+    return true}
+}
+registerProcessor('deess-proc',DeessProc);
+// Niveau auto : ramène la voix à un niveau régulier AVANT la chaîne (comme un ingé son qui pousse le fader).
+// Une prise trop faible ou trop forte donne alors le même rendu avec les préréglages.
+class LevelProc extends AudioWorkletProcessor{
+  // niveau mesuré = le plus fort des 40 derniers « instants » de 10 ms (sur 0,4 s) : un début ou une fin de phrase
+  // ne fait donc pas croire que la voix est faible (sinon le gain monterait à chaque attaque).
+  constructor(){super();this.p={target:-18,speed:400,range:18};this.port.onmessage=e=>Object.assign(this.p,e.data);this.ms=0;this.gdb=0;this.k=0;this.init=0;
+    this.H=new Float32Array(40).fill(-120);this.hi=0;this.cnt=0;this.on=0;this.lv=-120}
+  process(inputs,outputs){const inp=inputs[0],out=outputs[0];if(!out||!out[0])return true;const p=this.p,sr=sampleRate,n=out[0].length,a0=inp&&inp[0],a1=inp&&(inp[1]||inp[0]);
+    const cm=Math.exp(-1/(.03*sr)),up=Math.exp(-1/(Math.max(20,p.speed)*.001*sr)),dn=Math.exp(-1/(Math.max(5,p.speed*.35)*.001*sr)),blk=Math.round(.01*sr);
+    for(let i=0;i<n;i++){const x0=a0?a0[i]:0,x1=a1?a1[i]:0,m=(x0*x0+x1*x1)*.5;this.ms=m+(this.ms-m)*cm;
+      if(++this.cnt>=blk){this.cnt=0;this.H[this.hi]=10*Math.log10(this.ms+1e-12);this.hi=(this.hi+1)%40;let mx=-120;for(let k=0;k<40;k++)if(this.H[k]>mx)mx=this.H[k];this.lv=mx;
+        this.on=mx>Math.max(-56,p.target-34)?this.on+1:0}
+      if(this.on>=8){const want=Math.max(-12,Math.min(p.range,p.target-this.lv));
+        if(!this.init){this.gdb=want;this.init=1}else this.gdb=want+(this.gdb-want)*(want<this.gdb?dn:up)}
+      const g=db2g(this.gdb);out[0][i]=x0*g;if(out[1])out[1][i]=x1*g}
+    if(++this.k%8===0)this.port.postMessage(this.gdb);return true}
+}
+registerProcessor('level-proc',LevelProc);
