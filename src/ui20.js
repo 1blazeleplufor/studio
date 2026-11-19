@@ -94,6 +94,8 @@ function mobInit(){if(MOB)return;MOB=true;document.body.classList.add('mob');if(
       mB('mt','⏮',()=>{setPH(0);mobSyncScroll()},'Début'),
       h('button',{id:'mPlay',class:'mt',onclick:()=>{audioUnlock();play()}},'▶'),
       h('button',{id:'mRec',class:'mrec',title:'Enregistrer',onclick:mobRecord},h('i')),
+      h('button',{id:'mLoop',class:'mt',title:'Boucle',onclick:()=>{const C=P.cycle;C.on=!C.on;if(C.end<=C.start){C.start=Math.floor(PH/P.sig)*P.sig;C.end=C.start+P.sig*4}
+        try{renderBar();updateCycleShade();drawRuler()}catch(e){}mobSched();toast(C.on?'🔁 Boucle : mesures '+(C.start/P.sig+1)+' à '+(C.end/P.sig)+' (touche encore pour l’enlever)':'Boucle enlevée')}},'🔁'),
       h('button',{id:'mMetro',class:'mt',onclick:()=>{$('#bMetro').click();mobSched()}},'♩'),
       mB('mt madd','＋',mobAddSheet,'Ajouter une piste')),
     h('div',{id:'mCount',class:'mcount'}));
@@ -119,13 +121,14 @@ function mobLen(){let end=0;for(const t of P.tracks)for(const r of t.regions)end
 function mobRender(){if(!MOB||!P)return;MTH=mobLand()?54:66;$('#mob').style.setProperty('--mth',MTH+'px');$('#mob').classList.toggle('land',mobLand());
   $('#mTitle').textContent=(typeof COLLAB!=='undefined'&&COLLAB.on?'👥 ':'')+(P.name||'Projet');
   $('#mTempo').textContent=P.bpm+' BPM · '+NOTE_NAMES[P.key]+' '+(Object.keys(SCALES)[P.scaleIdx]||'').slice(0,3).toLowerCase();
-  $('#mMetro').classList.toggle('on',!!P.settings.metro);
+  $('#mMetro').classList.toggle('on',!!P.settings.metro);{const L=$('#mLoop');if(L)L.classList.toggle('on',!!(P.cycle&&P.cycle.on))}
   const S0=$('#mScroll');MPAD=Math.round(Math.max(60,(S0.clientWidth-MHW)*.4));$('#mPH').style.left=(MHW+MPAD)+'px';
   const I=$('#mInner'),W=mobLen()*PPB+2*MPAD;I.innerHTML='';I.style.width=(MHW+W)+'px';
   // règle
   const rul=h('div',{class:'mrul',id:'mRul'},h('div',{class:'mcorner'}),h('div',{class:'mrulb',style:{width:W+'px'}}));
   const rb=rul.lastChild,barPx=P.sig*PPB,step=barPx>=44?1:barPx>=22?2:barPx>=11?4:barPx>=5.5?8:16;
   for(let b=0;b*P.sig<mobLen();b+=step)rb.append(h('span',{style:{left:MPAD+b*barPx+'px'}},b+1));
+  if(P.cycle&&P.cycle.on&&P.cycle.end>P.cycle.start)rb.append(h('div',{class:'mcyc',style:{left:MPAD+P.cycle.start*PPB+'px',width:(P.cycle.end-P.cycle.start)*PPB+'px'}}));
   I.append(rul);
   for(const row of ROWS()){
     if(!row.t){const f=row.f,open=FOLD_OPEN.has(f.id),ms=foldMembers(f),bh=(MTH-12)/Math.max(1,ms.length);
