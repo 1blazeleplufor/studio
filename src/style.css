@@ -581,3 +581,4 @@ body.mob.insafari #cpanel{padding-top:calc(env(safe-area-inset-top) + 26px)}
 body.mob #cpanel button{min-height:36px;min-width:36px}body.mob #cpanel .cpgrid button{font-size:26px;min-width:0}body.mob #cpanel .cpgrid{grid-template-columns:repeat(auto-fill,minmax(40px,1fr));max-height:180px}
 body.mob #cpanel .cin input,body.mob #cpanel .cplink input{font-size:16px}
 #mob .mchat{position:relative}#mob .mchat.has::after{content:attr(data-n);position:absolute;top:2px;right:0;background:#ff453a;color:#fff;font-size:10px;font-weight:700;border-radius:8px;padding:0 4px;line-height:15px}
+#backMob{position:fixed;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:9999;padding:12px 16px;font-size:16px;font-weight:700;border-radius:24px;background:#2b6fd6;color:#fff;border:none;box-shadow:0 4px 16px #0008}

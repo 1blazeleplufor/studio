@@ -242,3 +242,7 @@ function mobInstallTuto(force){
   if(b&&!mobInstalled())b.prepend(mRow('📲','Mettre sur l’écran d’accueil',()=>mobInstallTuto(true),'Pour l’ouvrir comme une vraie appli'));return r}}
 {const o=mobInit;mobInit=function(){const r=o.apply(this,arguments);setTimeout(()=>{if(!document.querySelector('.modal,.msheet'))mobInstallTuto()},1500);return r}}
 function mobSyncScroll(pos){const S=$('#mScroll');if(!S)return;const x=Math.max(0,(pos==null?PH:pos))*PPB;if(Math.abs(S.scrollLeft-x)>.5){MPROG=performance.now()+60;S.scrollLeft=x}}
+// v3.15.1 : sur un téléphone en « version ordinateur », un bouton toujours visible pour revenir
+(function(){const phone=IS_TOUCH&&Math.min(screen.width,screen.height)<=540;if(MOB||!phone)return;
+  const go=()=>{if(document.getElementById('backMob'))return;document.body.append(h('button',{id:'backMob',onclick:()=>mobSet(true)},'📱 Version téléphone'))};
+  document.readyState==='loading'?document.addEventListener('DOMContentLoaded',go):go()})();
