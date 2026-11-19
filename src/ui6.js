@@ -1,5 +1,5 @@
 // ===== v2 : Réglages rapides, atelier instru, version =====
-const APP_VERSION='3.15.1';
+const APP_VERSION='3.15.2';
 const PLUG_ORDER=['gate','level','pitch','tunepro','shifter','eq','comp','deess','sat','filter','crush','robot','phaser','tremolo','chorus','double','width','delay','reverb','limiter'];
 function findPlug(t,type){return t.plugins.find(p=>p.type===type)}
 function ensurePlug(t,type,over){let pl=findPlug(t,type);if(pl)return[pl,false];pl=plug(type,over);const oi=PLUG_ORDER.indexOf(type);

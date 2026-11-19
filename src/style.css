@@ -434,7 +434,9 @@ body.mob #app{display:none}
 .mreg.sel .mh::after{content:'';position:absolute;top:18px;bottom:18px;width:4px;border-radius:2px;background:#fff}
 .mreg .mh.l::after{left:5px}.mreg .mh.r::after{right:5px}
 .mlive{background:#a3201a!important}
-.mswrap{position:relative;flex:1;min-height:0}
+.mswrap{position:relative;flex:1;min-height:0;isolation:isolate}
+/* Safari iPhone : la zone qui défile passait par-dessus la barre de lecture → couches séparées */
+#mScroll{z-index:0}#mPH{z-index:30!important;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform}
 #mPH{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff;z-index:8;pointer-events:none;box-shadow:0 0 6px rgba(255,255,255,.5)}
 #mPH i{position:absolute;top:0;left:-7px;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:11px solid #fff}
 #mob.land .mswrap{grid-row:2;grid-column:1/3;border-top:1px solid #000}
@@ -520,7 +522,7 @@ body.mob .msheet .mbox{max-width:620px;margin:0 auto}
 .svsec{display:block;width:100%;padding:11px!important;border-radius:12px!important;border:0!important;background:#2e2e33!important;color:#fff!important;font-size:14px!important;font-weight:600;cursor:pointer}
 
 /* Safari iPhone (pas installée) : Safari floute le haut de la page sous l’heure → on descend la barre du haut */
-body.insafari #mob{padding-top:calc(env(safe-area-inset-top) + 26px)}
+body.insafari #mob{padding-top:calc(env(safe-area-inset-top) + 50px)} /* iOS 26 : Safari floute une bande sous l'heure */
 body.insafari #mob.land{padding-top:0}
 /* v3.12 importer des pistes */
 .imptr{min-width:min(420px,86vw)}
@@ -577,7 +579,7 @@ body.mob .modal .mcl{height:46px;margin-bottom:6px;background:#2a2a2e;border-bot
 body.mob .modal .mcl::before{content:'';position:absolute;left:50%;top:8px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:#55555c}
 body.mob .modal .mcl button{width:34px;height:34px;min-height:0;font-size:16px;margin:6px 10px}
 body.mob #cpanel{top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;z-index:150;border:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box;font-size:15px}
-body.mob.insafari #cpanel{padding-top:calc(env(safe-area-inset-top) + 26px)}
+body.mob.insafari #cpanel{padding-top:calc(env(safe-area-inset-top) + 50px)}
 body.mob #cpanel button{min-height:36px;min-width:36px}body.mob #cpanel .cpgrid button{font-size:26px;min-width:0}body.mob #cpanel .cpgrid{grid-template-columns:repeat(auto-fill,minmax(40px,1fr));max-height:180px}
 body.mob #cpanel .cin input,body.mob #cpanel .cplink input{font-size:16px}
 #mob .mchat{position:relative}#mob .mchat.has::after{content:attr(data-n);position:absolute;top:2px;right:0;background:#ff453a;color:#fff;font-size:10px;font-weight:700;border-radius:8px;padding:0 4px;line-height:15px}
